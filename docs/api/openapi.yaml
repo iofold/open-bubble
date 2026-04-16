@@ -26,10 +26,9 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PromptRequest'
-            encoding:
-              media:
-                contentType: image/*,video/*
+              oneOf:
+                - $ref: '#/components/schemas/ImagePromptRequest'
+                - $ref: '#/components/schemas/VideoPromptRequest'
       responses:
         '200':
           description: Prompt handled synchronously
@@ -51,6 +50,18 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
+    PromptRequestBase:
+      type: object
+      required: [media]
+      properties:
+        media:
+          type: string
+          format: binary
+          description: Upload a single image/* or video/* file.
+        prompt:
+          type: string
+          description: Optional user prompt to accompany the media upload.
+      additionalProperties: false
     HealthResponse:
       type: object
       required: [ok, service, version]
@@ -62,18 +73,26 @@ components:
           const: open-bubble-api
         version:
           type: string
-    PromptRequest:
-      type: object
-      required: [media]
-      properties:
-        media:
-          type: string
-          format: binary
-          description: Upload an image/* or video/* file.
-        prompt:
-          type: string
-          description: Optional user prompt to accompany the media upload.
-      additionalProperties: false
+    ImagePromptRequest:
+      allOf:
+        - $ref: '#/components/schemas/PromptRequestBase'
+        - type: object
+          properties:
+            media:
+              type: string
+              format: binary
+              contentMediaType: image/*
+              description: Upload an image file such as PNG, JPEG, GIF, WebP, or another image/* type.
+    VideoPromptRequest:
+      allOf:
+        - $ref: '#/components/schemas/PromptRequestBase'
+        - type: object
+          properties:
+            media:
+              type: string
+              format: binary
+              contentMediaType: video/*
+              description: Upload a video file such as MP4, MOV, WebM, or another video/* type.
     PromptMedia:
       type: object
       required: [filename, mimeType, kind]
