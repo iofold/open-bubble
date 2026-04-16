@@ -177,38 +177,27 @@ Suggested node groups:
 
 Start with a simple local web page under `apps/server` or a future `apps/control-panel`.
 
-MVP rendering options:
-
-1. **Small graph first:** Canvas/SVG force layout is acceptable for tens/hundreds of nodes.
-2. **Scale path:** Use Sigma.js + Graphology if graph size grows or if we need community detection/faster pan/zoom.
-
-Do not add graph visualization dependencies until the App Server exposes the draft graph API or a static JSON export from DuckDB.
-
-The Codex-agent workspace now provides a dependency-free control panel under `apps/codex-agent/control-panel/`. It can load exported JSON directly, or it can run live through the context graph server:
+The control panel is now a React/Vite app under `apps/control-panel`. The main Fastify API serves the built app from `/control-panel/` and streams graph snapshots from `/context-graph/stream`.
 
 ```bash
-apps/codex-agent/scripts/context-graph-server.py \
-  --db apps/codex-agent/data/demo-context.duckdb \
-  --host tailscale \
-  --port 8788
+cd apps/api
+HOST=<tailscale-ip> PORT=3000 OPEN_BUBBLE_CONTEXT_DB=../codex-agent/data/demo-context.duckdb npm run dev
 ```
 
 Then open:
 
 ```text
-http://<tailscale-ip>:8788/control-panel?sessionId=sess_test_001
+http://<tailscale-ip>:3000/control-panel?sessionId=sess_test_001
 ```
 
-For static fallback, export JSON with:
+For separate control-panel development:
 
 ```bash
-apps/codex-agent/scripts/export-context-graph.py \
-  --db <context.duckdb> \
-  --session-id <session-id> \
-  --out apps/codex-agent/control-panel/graph.sample.json
+cd apps/control-panel
+VITE_OPEN_BUBBLE_API_BASE_URL=http://<tailscale-ip>:3000 npm run dev -- --host 0.0.0.0
 ```
 
-This is not the final App Server UI; it is a local operator/debugging panel that keeps the graph contract testable while `apps/api` owns dispatch and coordination.
+This is a local operator/debugging panel served by `apps/api`. It keeps the graph contract testable while the API owns dispatch and coordination.
 
 ## Demo Scenario
 

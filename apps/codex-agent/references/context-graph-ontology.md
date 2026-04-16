@@ -7,7 +7,7 @@ This ontology is inspired by temporal context graph systems, but it does not dep
 - Preserve raw frontend inputs as immutable-ish episodes.
 - Derive searchable semantic entities from each episode.
 - Store fact edges with provenance, confidence, and validity windows.
-- Keep the MVP implementation usable from a local Codex cwd with direct DuckDB access.
+- Keep the MVP implementation usable through the local Fastify API with DuckDB as the backing store.
 
 ## Core Layers
 

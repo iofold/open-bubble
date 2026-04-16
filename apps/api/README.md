@@ -8,6 +8,7 @@ Run everything from inside `apps/api/`, unless you want the repo-level launcher.
 
 ```bash
 npm install
+npm --prefix ../control-panel install
 npm run dev
 npm run dev:ngrok
 npm test
@@ -23,6 +24,13 @@ From the repository root, `./scripts/start-api-ngrok.sh` installs missing API de
 - `GET /apps`
 - `POST /prompt`
 - `GET /tasks/:taskId`
+- `GET /context-graph`
+- `GET /context-graph/stream`
+- `POST /context-graph/seed`
+- `POST /context-graph/ingest/mcp-results`
+- `POST /context-graph/ingest/context-request`
+- `POST /context-graph/connectors`
+- `GET /control-panel/`
 - `GET /documentation`
 - `GET /openapi.json`
 
@@ -57,3 +65,22 @@ Optional overrides:
 
 - `OPEN_BUBBLE_CLASSIFIER_MODEL` defaults to `gpt-5.4`
 - `OPEN_BUBBLE_CLASSIFIER_BASE_URL` defaults to `https://api.openai.com/v1`
+
+## Context graph and control panel
+
+The API owns DuckDB graph writes and reads. Set `OPEN_BUBBLE_CONTEXT_DB` to choose the graph database path.
+
+The React control panel lives in `apps/control-panel`. `npm run build` builds it before compiling the API, and the API serves the built app from `/control-panel/`.
+
+For separate UI development:
+
+```bash
+cd apps/control-panel
+VITE_OPEN_BUBBLE_API_BASE_URL=http://localhost:3000 npm run dev -- --host 0.0.0.0
+```
+
+## Composio MCP
+
+Set `OPEN_BUBBLE_COMPOSIO_MCP_URL` and either `OPEN_BUBBLE_COMPOSIO_MCP_HEADERS` or `OPEN_BUBBLE_COMPOSIO_MCP_TOKEN` to enable `POST /context-graph/connectors`.
+
+Allowed tools are limited to Gmail fetch/draft, Drive fetch, and Calendar fetch/event creation.

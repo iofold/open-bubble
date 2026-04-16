@@ -1,6 +1,6 @@
 # MVP Understanding
 
-The current MVP is a local Fastify API in `apps/api` with four endpoints:
+The current MVP is a local Fastify API in `apps/api` with prompt endpoints plus API-owned context graph endpoints:
 
 - `GET /health`
 - `GET /apps`
@@ -21,23 +21,25 @@ When the classifier can tie the request to supported tools or data sources, it a
 
 ## Backend Context Extension
 
-`apps/codex-agent` is an adjacent local workspace for richer context graph experiments. It is not the active API dispatcher.
+`apps/codex-agent` is now an adjacent instruction/schema/fixture workspace. It is not the graph runtime.
 
-The Codex-agent workspace can:
+The API graph runtime can:
 
 1. Ingest frontend-style screenshot + prompt requests into DuckDB.
 2. Normalize fixture or live MCP connector results from Gmail, Google Drive, and Google Calendar.
 3. Store connector-derived context as episodes, entities, facts, and searchable chunks.
-4. Export graph JSON for a local control panel.
+4. Dispatch prompt-relevant Composio MCP reads and the limited action lane.
 5. Produce `ContextAnswer` JSON from the graph.
 
 ## Connector Boundary
 
-Gmail, Drive, and Calendar are backend/local context sources. The Flutter app should not call those providers directly. When live MCP connectors are wired, the local Codex/App Server/API side should fetch minimized snippets and ingest them into the context graph with provenance.
+Gmail, Drive, and Calendar are backend/local context sources. The Flutter app should not call those providers directly. When live MCP connectors are configured, the API fetches minimized snippets and ingests them into the context graph with provenance.
+
+The only allowed action tools for now are Gmail draft creation and Google Calendar event creation.
 
 ## Control Panel Boundary
 
-The graph control panel is a local developer/operator view for inspecting DuckDB graph exports. It is not the Android bubble surface and does not replace the API MVP.
+The graph control panel is a React developer/operator view for inspecting API graph snapshots. It is not the Android bubble surface and does not replace the API MVP.
 
 ## Current Actors
 
@@ -45,14 +47,12 @@ The graph control panel is a local developer/operator view for inspecting DuckDB
 | --- | --- |
 | Flutter mobile app | Captures screen media and prompt text/audio, then calls `apps/api`. |
 | Native Android layer | Handles Android-only capabilities behind Flutter platform channels. |
-| API | Local Fastify API with `GET /health`, `GET /apps`, `POST /prompt`, and `GET /tasks/{taskId}`. |
-| Codex agent workspace | Local graph/context experiments, connector normalization, graph export, and future answer generation path. |
-| MCP connectors | Local backend-side sources for Gmail, Drive, and Calendar context. |
-| Graph control panel | Local static UI for inspecting exported context graph JSON. |
+| API | Local Fastify API with prompt, task, graph, connector, and control-panel routes. |
+| Codex agent workspace | Local instructions, schemas, references, and graph fixtures. |
+| Composio MCP connectors | Local backend-side sources/actions for Gmail, Drive, and Calendar context. |
+| Graph control panel | React UI for inspecting API graph snapshots. |
 
 ## Current Open Decisions
 
-- How `apps/api` will dispatch to `apps/codex-agent` scripts once the simple `/prompt` MVP is stable.
-- Exact live MCP tool names for Gmail, Drive, and Calendar.
 - How long connector-derived snippets should live in local DuckDB.
-- Whether the static graph panel remains under `apps/codex-agent` or moves to a future app once API graph endpoints exist.
+- Whether the control panel can purge connector-derived data by connector, time range, or session.

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
@@ -6,6 +6,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { buildApp, serviceVersion } from '../src/app.js';
+import type { McpToolClient } from '../src/lib/connectors/composio-mcp.js';
 import type {
   PromptTaskProcessorInput,
   PromptTaskProcessorOutcome,
@@ -212,6 +213,32 @@ const withContextGraphDb = async <T>(fn: () => Promise<T>): Promise<T> => {
       delete process.env['OPEN_BUBBLE_CONTEXT_DB'];
     } else {
       process.env['OPEN_BUBBLE_CONTEXT_DB'] = previous;
+    }
+    await rm(tempDir, { recursive: true, force: true });
+  }
+};
+
+const withControlPanelDist = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'open-bubble-panel-'));
+  const previous = process.env['OPEN_BUBBLE_CONTROL_PANEL_DIST'];
+  process.env['OPEN_BUBBLE_CONTROL_PANEL_DIST'] = tempDir;
+
+  try {
+    await mkdir(path.join(tempDir, 'assets'), { recursive: true });
+    await writeFile(
+      path.join(tempDir, 'index.html'),
+      '<!doctype html><div id="root"></div><script type="module" src="./assets/app.js"></script>'
+    );
+    await writeFile(
+      path.join(tempDir, 'assets', 'app.js'),
+      'window.__OPEN_BUBBLE_CONTROL_PANEL__ = true;'
+    );
+    return await fn();
+  } finally {
+    if (previous === undefined) {
+      delete process.env['OPEN_BUBBLE_CONTROL_PANEL_DIST'];
+    } else {
+      process.env['OPEN_BUBBLE_CONTROL_PANEL_DIST'] = previous;
     }
     await rm(tempDir, { recursive: true, force: true });
   }
@@ -704,27 +731,152 @@ void test('context graph endpoints seed, ingest MCP, and export live graph', asy
   });
 });
 
-void test('control panel serves the live graph UI assets', async () => {
-  const app = await createTestApp();
+void test('connector dispatch fetches through allowed MCP tools and ingests graph context', async () => {
+  await withContextGraphDb(async () => {
+    const calls: Array<{ toolName: string; args: Record<string, unknown> }> = [];
+    const fakeClient: McpToolClient = {
+      async callTool(toolName, args) {
+        calls.push({ toolName, args });
+        return {
+          messages: [
+            {
+              id: 'gmail_msg_live_001',
+              threadId: 'gmail_thread_live_001',
+              subject: 'Launch plan',
+              snippet: 'Draft the customer email after the calendar invite is ready.',
+              from: { name: 'Aaditya', email: 'aaditya@example.com' },
+              to: [{ name: 'Open Bubble', email: 'team@example.com' }]
+            }
+          ]
+        };
+      }
+    };
+    const app = await createTestApp({ mcpToolClient: fakeClient });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/context-graph/connectors',
+        payload: {
+          sessionId: 'sess_live_001',
+          connector: 'gmail',
+          action: 'fetch',
+          query: 'launch plan email'
+        }
+      });
+
+      assert.equal(response.statusCode, 200);
+      assert.equal(response.json().kind, 'context_ingested');
+      assert.equal(response.json().tool, 'GMAIL_FETCH_EMAILS');
+      assert.deepEqual(calls, [
+        {
+          toolName: 'GMAIL_FETCH_EMAILS',
+          args: { query: 'launch plan email' }
+        }
+      ]);
+
+      const graphResponse = await app.inject({
+        method: 'GET',
+        url: '/context-graph?sessionId=sess_live_001'
+      });
+
+      assert.equal(graphResponse.statusCode, 200);
+      assert.ok(
+        graphResponse.json().nodes.some((node: { type: string }) => node.type === 'gmail_message')
+      );
+      assert.equal(graphResponse.json().stats.connectorCounts.gmail, 3);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+void test('connector dispatch executes only the supported action tools', async () => {
+  const calls: Array<{ toolName: string; args: Record<string, unknown> }> = [];
+  const fakeClient: McpToolClient = {
+    async callTool(toolName, args) {
+      calls.push({ toolName, args });
+      return { id: 'created_resource_001' };
+    }
+  };
+  const app = await createTestApp({ mcpToolClient: fakeClient });
 
   try {
-    const html = await app.inject({
-      method: 'GET',
-      url: '/control-panel'
+    const draftResponse = await app.inject({
+      method: 'POST',
+      url: '/context-graph/connectors',
+      payload: {
+        sessionId: 'sess_live_001',
+        action: 'draft_email',
+        parameters: {
+          to: ['aaditya@example.com'],
+          subject: 'Open Bubble follow-up',
+          body: 'Here is the draft.'
+        }
+      }
     });
 
-    assert.equal(html.statusCode, 200);
-    assert.match(html.body, /Context Graph/);
-    assert.match(html.headers['content-type'] as string, /text\/html/);
+    assert.equal(draftResponse.statusCode, 200);
+    assert.equal(draftResponse.json().kind, 'action_executed');
+    assert.equal(draftResponse.json().tool, 'GMAIL_CREATE_EMAIL_DRAFT');
 
-    const js = await app.inject({
-      method: 'GET',
-      url: '/control-panel/app.js'
+    const eventResponse = await app.inject({
+      method: 'POST',
+      url: '/context-graph/connectors',
+      payload: {
+        sessionId: 'sess_live_001',
+        action: 'create_calendar_event',
+        parameters: {
+          summary: 'Open Bubble demo',
+          start: '2026-04-17T16:00:00Z',
+          end: '2026-04-17T16:30:00Z'
+        }
+      }
     });
 
-    assert.equal(js.statusCode, 200);
-    assert.match(js.body, /EventSource/);
+    assert.equal(eventResponse.statusCode, 200);
+    assert.equal(eventResponse.json().kind, 'action_executed');
+    assert.equal(eventResponse.json().tool, 'GOOGLECALENDAR_CREATE_EVENT');
+    assert.deepEqual(calls.map((call) => call.toolName), [
+      'GMAIL_CREATE_EMAIL_DRAFT',
+      'GOOGLECALENDAR_CREATE_EVENT'
+    ]);
   } finally {
     await app.close();
   }
+});
+
+void test('control panel serves the live graph UI assets', async () => {
+  await withControlPanelDist(async () => {
+    const app = await createTestApp();
+
+    try {
+      const redirect = await app.inject({
+        method: 'GET',
+        url: '/control-panel'
+      });
+
+      assert.equal(redirect.statusCode, 308);
+      assert.equal(redirect.headers.location, '/control-panel/');
+
+      const html = await app.inject({
+        method: 'GET',
+        url: '/control-panel/'
+      });
+
+      assert.equal(html.statusCode, 200);
+      assert.match(html.body, /root/);
+      assert.match(html.headers['content-type'] as string, /text\/html/);
+
+      const js = await app.inject({
+        method: 'GET',
+        url: '/control-panel/assets/app.js'
+      });
+
+      assert.equal(js.statusCode, 200);
+      assert.match(js.body, /OPEN_BUBBLE_CONTROL_PANEL/);
+    } finally {
+      await app.close();
+    }
+  });
 });

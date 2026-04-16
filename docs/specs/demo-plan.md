@@ -143,36 +143,33 @@ Before the demo:
 - Prepare a fallback text prompt: `What is the agent working on right now?`
 - Prepare optional raw audio if the audio path is being shown.
 - Start the local API or ngrok tunnel.
-- Seed the Codex-agent graph with deterministic test context.
+- Seed the API-owned graph with deterministic test context.
 - Open the graph control panel to `sess_test_001`.
-- Keep a static exported graph JSON available as fallback.
+- Keep the API and control panel running from Docker Compose or local npm scripts.
 
-Useful commands from `apps/codex-agent`:
+Useful local API calls:
 
 ```bash
-./scripts/seed-context-graph.py --db /tmp/open-bubble-context.duckdb --reset
-./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-gmail-results.json
-./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-drive-results.json
-./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-calendar-results.json
-./scripts/export-context-graph.py \
-  --db /tmp/open-bubble-context.duckdb \
-  --session-id sess_test_001 \
-  --out control-panel/graph.sample.json
+curl -X POST http://localhost:3000/context-graph/seed \
+  -H 'content-type: application/json' \
+  --data-binary @apps/codex-agent/testdata/seed-context.json
+
+curl -X POST http://localhost:3000/context-graph/ingest/mcp-results \
+  -H 'content-type: application/json' \
+  --data-binary @apps/codex-agent/testdata/mcp-gmail-results.json
 ```
 
-For the live graph server path:
+For the live graph API path:
 
 ```bash
-./scripts/context-graph-server.py \
-  --db data/demo-context.duckdb \
-  --host tailscale \
-  --port 8788
+cd apps/api
+HOST=<tailscale-ip> PORT=3000 OPEN_BUBBLE_CONTEXT_DB=../codex-agent/data/demo-context.duckdb npm run dev
 ```
 
 Then open:
 
 ```text
-http://<tailscale-ip>:8788/control-panel?sessionId=sess_test_001
+http://<tailscale-ip>:3000/control-panel?sessionId=sess_test_001
 ```
 
 ## Fallbacks
@@ -182,9 +179,8 @@ http://<tailscale-ip>:8788/control-panel?sessionId=sess_test_001
 | Flutter UI is not ready | Use a phone mock or emulator screenshot, then show the API and graph proof. |
 | Audio capture fails | Use `promptText` and state that raw audio is supported by the API contract. |
 | `ngrok` fails | Demo against localhost or emulator networking. |
-| Live graph server fails | Load exported static graph JSON in the control panel. |
-| Connector integrations are not live | Use fixture Gmail, Drive, and Calendar data and label it clearly as fixture context. |
-| API-to-Codex dispatch is not wired | State that the context graph is the adjacent local path and API dispatch wiring is next. |
+| Live graph API fails | Restart the Compose API service and reseed fixtures through `/context-graph/seed`. |
+| Composio MCP is not configured | Use fixture Gmail, Drive, and Calendar data and label it clearly as fixture context. |
 
 ## Success Criteria
 

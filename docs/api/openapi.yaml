@@ -166,9 +166,44 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+  /context-graph/connectors:
+    post:
+      summary: Dispatch prompt-relevant Composio MCP connector work
+      description: Fetch minimized Gmail, Drive, or Calendar context into the graph, create a Gmail draft, or create a Google Calendar event. The action lane is intentionally limited to draft creation and calendar event creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectorDispatchRequest'
+      responses:
+        '200':
+          description: Connector dispatch result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorDispatchResponse'
+        '400':
+          description: Invalid connector dispatch request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Composio MCP endpoint is not configured or unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /control-panel:
     get:
-      summary: Serve the local context graph control panel
+      summary: Redirect to the local context graph control panel
+      responses:
+        '308':
+          description: Redirects to `/control-panel/`
+  /control-panel/:
+    get:
+      summary: Serve the React context graph control panel
       responses:
         '200':
           description: HTML control panel
@@ -406,3 +441,60 @@ components:
           type: object
           required: [nodeCount, edgeCount, episodeCount, chunkCount]
           additionalProperties: true
+    ConnectorName:
+      type: string
+      enum: [gmail, drive, calendar]
+    ConnectorDispatchAction:
+      type: string
+      enum: [fetch, draft_email, create_calendar_event]
+    ConnectorDispatchRequest:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId:
+          type: string
+          minLength: 1
+        connector:
+          $ref: '#/components/schemas/ConnectorName'
+        action:
+          $ref: '#/components/schemas/ConnectorDispatchAction'
+        query:
+          type: string
+          description: Search query or prompt text used for connector fetches.
+        sourceRequestId:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Tool arguments for the selected fetch or action.
+      additionalProperties: false
+    ConnectorDispatchResponse:
+      type: object
+      required: [kind, sessionId, connector, action, tool, mcpResult]
+      properties:
+        kind:
+          type: string
+          enum: [context_ingested, action_executed]
+        sessionId:
+          type: string
+        connector:
+          $ref: '#/components/schemas/ConnectorName'
+        action:
+          $ref: '#/components/schemas/ConnectorDispatchAction'
+        tool:
+          type: string
+          enum:
+            - GMAIL_FETCH_EMAILS
+            - GOOGLEDRIVE_FIND_FILE
+            - GOOGLECALENDAR_EVENTS_LIST
+            - GMAIL_CREATE_EMAIL_DRAFT
+            - GOOGLECALENDAR_CREATE_EVENT
+        normalizedFetch:
+          type: object
+          additionalProperties: true
+        ingest:
+          type: object
+          additionalProperties: true
+        mcpResult:
+          description: Raw MCP tool result returned by the configured Composio MCP server.
+      additionalProperties: true

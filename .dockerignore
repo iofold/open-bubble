@@ -1,0 +1,17 @@
+.git
+.omx
+**/.omx
+**/node_modules
+**/dist
+**/.local
+**/.dart_tool
+**/build
+**/__pycache__
+**/*.pyc
+apps/codex-agent/data/*
+apps/codex-agent/requests/*
+apps/codex-agent/responses/*
+!.gitkeep
+.env
+.env.*
+!.env.example

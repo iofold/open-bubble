@@ -1,30 +1,23 @@
 ---
 name: open-bubble-ingest-request
-description: Ingest an Open Bubble screenshot plus voice-note context request into the local DuckDB context graph, classify whether the voice prompt asks for a response, and produce a ContextAnswer when requested.
+description: Ingest an Open Bubble screenshot plus voice-note context request through the Fastify API graph endpoint.
 ---
 
 # Open Bubble Ingest Request
 
 ## Use This When
 
-The App Server spawned Codex to process an incoming frontend context request that includes screenshot metadata/image data and an audio transcript or typed voice-note fallback.
+The App Server spawned Codex to process an incoming frontend context request that includes screenshot metadata/image data and an audio transcript or typed fallback.
 
 ## Fast Path
 
-Run:
+Post the request JSON to:
 
-```bash
-./scripts/process-context-request.py --answer-only
+```text
+POST /context-graph/ingest/context-request
 ```
 
-The script:
-
-1. Loads the request from `OPEN_BUBBLE_CONTEXT_REQUEST`, `OPEN_BUBBLE_CONTEXT_REQUEST_FILE`, or `requests/latest.json`.
-2. Analyzes screenshot metadata/image presence.
-3. Analyzes the voice transcript for keywords and intent.
-4. Creates or updates `data/context.duckdb` unless `OPEN_BUBBLE_CONTEXT_DB` points elsewhere.
-5. Stores the raw episode, request, screenshot, voice note, graph entities, temporal/provenance fact edges, and searchable chunks.
-6. If the classified intent is `fetch_response` or `code_assertion`, queries the context graph and emits a `ContextAnswer`.
+The API stores the raw episode, request, screenshot, voice note, graph entities, provenance fact edges, and searchable chunks. If the classified intent asks for a response, the API response includes a graph-backed answer.
 
 ## Intent Rules
 
@@ -34,12 +27,4 @@ The script:
 
 ## Output
 
-When `OPEN_BUBBLE_RESPONSE_FILE` is set, write the answer JSON there. The script also prints an ingest report to stdout for logs.
-
-## Test Fixtures
-
-Use `testdata/seed-context.json` to preload deterministic graph context, then process one of:
-
-- `testdata/request-fetch-response.json`
-- `testdata/request-ingest-only.json`
-- `testdata/request-code-assertion.json`
+Write the answer JSON to `OPEN_BUBBLE_RESPONSE_FILE` when set. Otherwise print JSON to stdout.

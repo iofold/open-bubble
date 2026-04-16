@@ -11,13 +11,18 @@ import {
 } from './lib/task-manager.js';
 import { promptRoute } from './routes/prompt.js';
 import { taskStatusRoute } from './routes/task-status.js';
-import { contextGraphRoute } from './routes/context-graph.js';
+import {
+  contextGraphRoute,
+  type ContextGraphRouteOptions
+} from './routes/context-graph.js';
 import { openApiExists, resolveOpenApiPath } from './lib/openapi.js';
 import { createClassifierPromptTaskProcessor } from './lib/request-classifier.js';
 
 export const serviceVersion = '0.1.0';
 
-export interface BuildAppOptions extends PromptTaskManagerOptions {}
+export interface BuildAppOptions
+  extends PromptTaskManagerOptions,
+    ContextGraphRouteOptions {}
 
 export const buildApp = async (
   options: BuildAppOptions = {}
@@ -52,7 +57,15 @@ export const buildApp = async (
 
   await app.register(healthRoute({ serviceVersion }));
   await app.register(appsRoute());
-  await app.register(contextGraphRoute());
+  const contextGraphOptions: ContextGraphRouteOptions = {};
+  if (options.store) {
+    contextGraphOptions.store = options.store;
+  }
+  if (options.mcpToolClient) {
+    contextGraphOptions.mcpToolClient = options.mcpToolClient;
+  }
+
+  await app.register(contextGraphRoute(contextGraphOptions));
   await app.register(promptRoute({ taskManager }));
   await app.register(taskStatusRoute({ taskManager }));
 

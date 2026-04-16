@@ -1,6 +1,6 @@
 # DuckDB Context Schema
 
-This is the MVP reference shape for direct DuckDB reads. The implementation may start with only some tables; the agent should query defensively.
+This is the MVP reference shape for the API-owned DuckDB context graph. Agents should query through the Fastify API unless they are running low-level database diagnostics.
 
 ## Preferred Tables
 
@@ -76,7 +76,7 @@ Raw frontend request intake.
 
 ## Query Guidance
 
-- Start with `session_context` by `session_id`.
-- Search `context_chunks.text` with `ILIKE` when vector functions are unavailable.
+- Start with `GET /context-graph?sessionId=<id>`.
 - Use `graph_entities` and `graph_relations` for named entities, files, tasks, and evidence chains.
-- Always mention schema gaps in `details` instead of failing the answer.
+- Use `sourceEpisodeId` to cite provenance.
+- Keep any direct DuckDB inspection to API diagnostics, not normal agent request handling.

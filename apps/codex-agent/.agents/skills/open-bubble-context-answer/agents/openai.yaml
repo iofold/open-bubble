@@ -1,3 +1,3 @@
 display_name: Open Bubble Context Answer
-short_description: Answer frontend context requests from local session, files, and DuckDB context.
-default_prompt: Answer this Open Bubble context request quickly using local context first.
+short_description: Answer frontend context requests from the Open Bubble API graph.
+default_prompt: Answer this Open Bubble context request quickly using the API graph first.

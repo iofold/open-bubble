@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for hackathon scaffold.
+Superseded by ADR 0004 for runtime graph ownership.
 
 ## Context
 

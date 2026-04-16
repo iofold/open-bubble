@@ -2,25 +2,32 @@
 
 ## Role
 
-Open Bubble can enrich local session answers with user-approved context from Gmail, Google Drive, and Google Calendar through MCP connectors available to the local Codex/App Server session.
+Open Bubble can enrich local session answers with prompt-relevant context from Gmail, Google Drive, and Google Calendar through a configured Composio MCP server.
 
-The phone frontend should not connect to Google services directly. The App Server/Codex local session owns connector access, consent state, retrieval, normalization, and graph ingestion.
+The phone frontend should not connect to Google services directly. The API owns connector access, retrieval, normalization, graph ingestion, and the limited action lane.
 
 ## MVP Boundary
 
-For the first implementation, connectors are optional context sources for the spawned Codex agent:
+For the first implementation, connectors are API-owned context sources:
 
 ```text
 Flutter mobile
   -> App Server context request
-    -> Codex agent cwd: apps/codex-agent/
-      -> built-in/local MCP connectors
+    -> Fastify API
+      -> Composio MCP dispatch
         -> Gmail / Drive / Calendar reads
+        -> Gmail draft creation / Calendar event creation
       -> DuckDB context graph ingestion
-      -> ContextAnswer back to App Server
+      -> ContextAnswer / action result back to App Server
 ```
 
 MCP connector data should be fetched only when the user prompt or session policy makes it relevant. Do not query Gmail, Drive, or Calendar for every request.
+
+Configure the live connector endpoint with:
+
+- `OPEN_BUBBLE_COMPOSIO_MCP_URL`
+- `OPEN_BUBBLE_COMPOSIO_MCP_HEADERS` for the JSON headers returned with the Composio MCP session, or
+- `OPEN_BUBBLE_COMPOSIO_MCP_TOKEN` for a bearer token when the MCP URL expects bearer auth.
 
 ## Connector Capabilities
 
@@ -31,6 +38,10 @@ Allowed MVP reads:
 - Search messages by query terms.
 - Fetch selected message/thread metadata and text snippets.
 - Summarize recent messages only when the prompt asks about email or people mentioned in email.
+
+Allowed MVP action:
+
+- Create an email draft with `GMAIL_CREATE_EMAIL_DRAFT`.
 
 Graph entities:
 
@@ -81,6 +92,10 @@ Allowed MVP reads:
 - Fetch event title, time, attendees, location/meeting link metadata, and description snippets.
 - Answer schedule/context questions only when the prompt asks about calendar, meetings, availability, or a person/event.
 
+Allowed MVP action:
+
+- Create a calendar event with `GOOGLECALENDAR_CREATE_EVENT`.
+
 Graph entities:
 
 - `calendar_event`
@@ -121,24 +136,27 @@ Each connector fetch should create one raw episode:
 
 Derived entities and relations must point back to the source episode with `graph_relations.source_episode_id`.
 
-The Codex-agent implementation accepts normalized connector result JSON matching `apps/codex-agent/schemas/mcp-fetch-result.schema.json`. Prefer routing writes through the context graph server:
+The API accepts normalized connector result JSON at:
 
-```bash
-OPEN_BUBBLE_CONTEXT_GRAPH_URL=http://<host>:8788 \
-apps/codex-agent/scripts/ingest-mcp-results.py \
-  --db <context.duckdb> \
-  --input <mcp-fetch-result.json>
+```text
+POST /context-graph/ingest/mcp-results
 ```
 
-The script falls back to direct DuckDB writes when no server URL is set:
+For live Composio MCP dispatch, use:
 
-```bash
-apps/codex-agent/scripts/ingest-mcp-results.py \
-  --db <context.duckdb> \
-  --input <mcp-fetch-result.json>
+```text
+POST /context-graph/connectors
 ```
 
-This keeps live MCP tool calls separate from graph normalization. `apps/api` or the spawned Codex session can own connector dispatch and write the normalized JSON handoff file.
+Allowed MCP tools are fixed in code:
+
+- `GMAIL_FETCH_EMAILS`
+- `GOOGLEDRIVE_FIND_FILE`
+- `GOOGLECALENDAR_EVENTS_LIST`
+- `GMAIL_CREATE_EMAIL_DRAFT`
+- `GOOGLECALENDAR_CREATE_EVENT`
+
+The action lane does not add a second confirmation prompt. The user prompt is the action instruction, and the API limits available credentials/tools to draft creation and calendar event creation.
 
 ## Privacy And Safety
 
@@ -172,7 +190,5 @@ The answer details should cite connector-derived snippets by source label, not b
 
 ## Open Decisions
 
-- Exact MCP tool names exposed by the local Codex App session.
-- Whether connector consent is configured outside Open Bubble or surfaced in the control panel.
-- How long connector-derived snippets should live in the local DuckDB graph.
+- How long connector-derived snippets should live in local DuckDB.
 - Whether the control panel can purge connector-derived data by connector, time range, or session.

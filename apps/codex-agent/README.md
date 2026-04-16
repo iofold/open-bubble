@@ -1,110 +1,43 @@
 # Open Bubble Codex Agent Workspace
 
-This directory is the planned `cwd` for Codex agents spawned by the Open Bubble App Server.
+This directory is the working-directory contract for a future Codex agent spawned by the Open Bubble API. It no longer owns graph writes or Python helper scripts.
 
-The directory is intentionally simple: local instructions, local skills, request/response handoff folders, and helper scripts for direct DuckDB context reads. The App Server can launch Codex here and pass a context request by environment variable or JSON file.
+The canonical context graph runtime is the Fastify API in `apps/api`.
 
-## Expected launch shape
+## Runtime Boundary
 
-```bash
-cd apps/codex-agent
-OPEN_BUBBLE_CONTEXT_REQUEST_FILE=/tmp/open-bubble/request.json \
-OPEN_BUBBLE_RESPONSE_FILE=/tmp/open-bubble/response.json \
-OPEN_BUBBLE_CONTEXT_DB=/path/to/context.duckdb \
-codex
-```
+- The API owns DuckDB writes and live graph reads.
+- The React control panel lives in `apps/control-panel`.
+- The API serves the built control panel from `/control-panel/`.
+- Composio MCP dispatch is exposed through `POST /context-graph/connectors`.
+- Local Codex agents should call API endpoints instead of opening DuckDB directly.
 
-The exact App Server command can change when implementation starts. The stable contract is the environment variables documented in `AGENTS.md`.
+## Request Contract
 
-For the current MVP script path:
+The App Server may still pass context request data to a future Codex process with:
 
-```bash
-cd apps/codex-agent
-OPEN_BUBBLE_CONTEXT_REQUEST_FILE=../../docs/api/examples/context-request.json \
-OPEN_BUBBLE_RESPONSE_FILE=/tmp/open-bubble-response.json \
-./scripts/process-context-request.py --answer-only
-```
+- `OPEN_BUBBLE_CONTEXT_REQUEST`
+- `OPEN_BUBBLE_CONTEXT_REQUEST_FILE`
+- `OPEN_BUBBLE_RESPONSE_FILE`
+- `OPEN_BUBBLE_SESSION_ID`
 
-This ingests the screenshot metadata and prompt transcript into `data/context.duckdb`, classifies the voice prompt intent, queries the graph when a response is requested, and writes a `ContextAnswer` JSON object.
-
-## Test Data
-
-Seed deterministic graph context:
-
-```bash
-./scripts/seed-context-graph.py --db /tmp/open-bubble-context.duckdb --reset
-```
-
-Run the local processor tests:
-
-```bash
-python3 -m unittest discover -s tests
-```
-
-Ingest MCP connector fixture data:
-
-```bash
-./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-gmail-results.json
-./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-drive-results.json
-./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-calendar-results.json
-```
-
-Export graph data for the control panel:
-
-```bash
-./scripts/export-context-graph.py \
-  --db /tmp/open-bubble-context.duckdb \
-  --session-id sess_test_001 \
-  --out control-panel/graph.sample.json
-```
-
-Open `control-panel/index.html` in a browser, or use the `Load JSON` button with any exported graph file.
-
-## Live Context Graph Server
-
-Run a single long-lived DuckDB owner for writes and live graph reads:
-
-```bash
-./scripts/context-graph-server.py \
-  --db data/demo-context.duckdb \
-  --host tailscale \
-  --port 8788
-```
-
-Use `--host tailscale` to bind to the machine's Tailscale IPv4 address, or `--host 0.0.0.0` for all interfaces.
-
-Point agent scripts at the server instead of opening DuckDB directly:
-
-```bash
-export OPEN_BUBBLE_CONTEXT_GRAPH_URL=http://<tailscale-ip>:8788
-
-./scripts/seed-context-graph.py --db data/demo-context.duckdb --fixture testdata/seed-context.json --reset
-./scripts/ingest-mcp-results.py --db data/demo-context.duckdb --input testdata/mcp-gmail-results.json
-./scripts/process-context-request.py --db data/demo-context.duckdb --answer-only
-```
-
-Open the live control panel:
+For the current implementation, submit context requests directly to:
 
 ```text
-http://<tailscale-ip>:8788/control-panel?sessionId=sess_test_001
+POST /context-graph/ingest/context-request
 ```
 
-The panel reads `/context-graph` and listens to `/context-graph/stream`, so it updates as the graph server accepts writes.
-
-## Layout
+Submit normalized connector reads or use the Composio MCP dispatch endpoint:
 
 ```text
-apps/codex-agent/
-  AGENTS.md
-  .agents/skills/
-  references/
-  schemas/
-  testdata/
-  tests/
-  control-panel/
-  requests/
-  responses/
-  scripts/
+POST /context-graph/ingest/mcp-results
+POST /context-graph/connectors
 ```
 
-Runtime payloads in `requests/`, `responses/`, and `data/` are ignored except for `.gitkeep` files.
+## Remaining Files
+
+- `.agents/skills/`: local Codex skill instructions, updated to route through the API.
+- `references/`: graph ontology and protocol notes.
+- `schemas/`: JSON schema references for request, answer, graph export, and normalized MCP fetches.
+- `testdata/`: deterministic JSON fixtures used by API tests.
+- `data/`, `requests/`, and `responses/`: ignored local runtime handoff directories.
