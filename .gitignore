@@ -1,4 +1,5 @@
 # Local OMX runtime state
+.omc/
 .omx/
 
 # Secrets / local config
@@ -12,6 +13,10 @@ local.properties
 .idea/
 .vscode/
 *.swp
+
+# Python
+__pycache__/
+*.pyc
 
 # Flutter / Dart
 .dart_tool/

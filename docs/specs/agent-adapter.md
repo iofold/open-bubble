@@ -8,14 +8,19 @@ Agent adapters connect whatever backend agent runtime the team uses to the Open 
 
 - Discover or register active sessions.
 - Maintain or access local directory context for a session.
+- Read local DuckDB context data directly when a session has a context graph.
 - Accept phone-originated screenshot + audio/typed prompt context requests.
-- Answer context requests using local directory context.
+- Answer context requests using local directory context, direct DuckDB lookup, or the active backend agent.
 - Treat outgoing code assertion/verification as a special mode only when explicitly requested by the user prompt.
 - Emit events when an answer is ready, an agent changes status, or an agent finishes work.
 
 ## Adapter boundary
 
 Adapters should call the App Server; the Flutter app should not call agent runtimes directly.
+
+For MVP, do not introduce a production-style tool bridge between the backend agent and DuckDB. The active agent/adapter may use an embedded DuckDB client directly to query session context, graph tables, and vector/search indexes. A Bun CLI can be added later if the direct path becomes too slow, repetitive, or hard to share across agent harnesses.
+
+The first Codex-backed adapter should treat `apps/codex-agent/` as the spawned agent working directory. The App Server or adapter can pass a context request with `OPEN_BUBBLE_CONTEXT_REQUEST_FILE` and read the answer from `OPEN_BUBBLE_RESPONSE_FILE`.
 
 ## Context answer flow
 
@@ -25,9 +30,10 @@ Adapters should call the App Server; the Flutter app should not call agent runti
    - screenshot/visual context from the phone,
    - audio transcript or typed prompt,
    - local working directory context,
+   - direct DuckDB context graph results when available,
    - current agent/session state.
-4. Adapter produces an answer.
-5. Adapter publishes `context.answer.ready` or `code.assertion.ready`.
+4. Adapter produces a fast inline answer when direct context is sufficient.
+5. If slower agent work is needed, adapter publishes `context.answer.partial`, `context.answer.ready`, or `code.assertion.ready`.
 
 ## Initial event mapping
 

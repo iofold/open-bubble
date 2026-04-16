@@ -1,0 +1,18 @@
+{
+  "id": "evt_context_partial_001",
+  "type": "context.answer.partial",
+  "sessionId": "sess_hackathon_001",
+  "contextRequestId": "ctx_req_001",
+  "title": "Answer updating",
+  "message": "Found matching local context; checking whether slower agent reasoning is needed.",
+  "severity": "info",
+  "createdAt": "2026-04-16T06:40:30Z",
+  "answer": {
+    "summary": "The request appears answerable from local context, but the backend is still checking recent agent state.",
+    "confidence": "low",
+    "retrievalMode": "mixed",
+    "localContextUsed": [
+      "duckdb:session_context"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "ctx_req_assert_001",
+  "sessionId": "sess_test_001",
+  "deviceId": "android_test_device",
+  "createdAt": "2026-04-16T07:12:00Z",
+  "intent": "code_assertion",
+  "userExplicitlyRequestedCodeAssertion": true,
+  "screenshot": {
+    "capturedAt": "2026-04-16T07:11:58Z",
+    "screenMetadata": {
+      "visibleText": "Processor outputs ContextAnswer"
+    }
+  },
+  "prompt": {
+    "capturedAt": "2026-04-16T07:11:59Z",
+    "transcript": "Assert that the processor outputs structured ContextAnswer JSON.",
+    "language": "en-US"
+  }
+}

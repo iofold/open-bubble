@@ -28,6 +28,7 @@ apps/
   mobile/          Flutter Android app placeholder
   server/          App Server placeholder
   agent-adapters/  Backend/Codex-agent adapter placeholder
+  codex-agent/     Codex agent workspace spawned by App Server
 docs/
   api/             OpenAPI, event contracts, sample payloads
   specs/           Product, implementation, user journey, and collaboration specs
@@ -63,6 +64,15 @@ docs/
 - Adapters connect backend agent runtimes to the App Server; mobile should not talk directly to agent runtimes.
 - Start with a demo adapter that can register a fake session, answer a screenshot + audio context request from local directory context, and publish `context.answer.ready` / `agent.done`.
 - Keep adapter payloads aligned with `docs/api/examples/`.
+
+### Codex Agent Workspace (`apps/codex-agent/`)
+
+- This directory is the intended `cwd` for Codex agents spawned or managed by the App Server.
+- Keep runnable agent instructions in `apps/codex-agent/AGENTS.md`.
+- Put local Codex-compatible skills under `apps/codex-agent/.agents/skills/`.
+- Keep helper scripts lightweight and dependency-free unless a dependency is documented in this directory.
+- Runtime request/response payloads and local DuckDB files should stay ignored.
+- The MVP agent may read DuckDB directly for context answers; do not introduce a Bun CLI/tool bridge until the direct path is too slow or repetitive.
 
 ## Contract-change rule
 

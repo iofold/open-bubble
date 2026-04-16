@@ -18,6 +18,8 @@ The App Server is the contract boundary between the Flutter app and backend agen
 
 `POST /v1/sessions/{sessionId}/context-requests` is the primary "fetch context" action. It represents the user asking a question with phone-side screenshot/audio prompt. The answer should be generated from the selected session's local directory context.
 
+For the hackathon path, the server/backend agent should first attempt a direct local lookup against the session's available context state, including a local DuckDB context graph when present. If that is enough to answer, return the answer inline. If the request needs slower model reasoning, skills, or sub-agent work, accept it quickly and publish the final answer later through SSE.
+
 The server should not treat every request as a code assertion. A request is a code assertion only when the user explicitly asks for assertion/verification in the audio prompt, transcript, or typed prompt.
 
 ## MVP transport
@@ -29,7 +31,9 @@ The server should not treat every request as a code assertion. A request is a co
 
 ## Storage
 
-Start with in-memory storage. Add file or database persistence only if the demo needs restart survival.
+Start with in-memory App Server state for sessions/events. The backend agent/query layer may read a local DuckDB database directly for directory context, graph relations, and vector/search tables. Do not add a tool bridge or service boundary until direct access becomes a performance, isolation, or portability problem.
+
+A Bun CLI or similar command surface is a later optimization for repeated agent calls, batching, and harness portability. It is not required for the first query path.
 
 ## Suggested server modules later
 
@@ -40,9 +44,14 @@ apps/server/
     api/             # routes/controllers
     domain/          # session/event/request models
     adapters/        # backend agent integrations
+    context/         # direct local DuckDB/context lookup helpers
     store/           # in-memory persistence
   test/              # API contract tests
 ```
+
+## Codex agent cwd
+
+When the server needs a real Codex-backed answer, spawn or manage Codex with `apps/codex-agent/` as the working directory. Pass the context request through `OPEN_BUBBLE_CONTEXT_REQUEST` or `OPEN_BUBBLE_CONTEXT_REQUEST_FILE`. If `OPEN_BUBBLE_RESPONSE_FILE` is set, the agent should write its final answer JSON there; otherwise the server can capture stdout.
 
 ## Contract discipline
 

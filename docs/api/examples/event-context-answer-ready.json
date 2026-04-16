@@ -10,6 +10,7 @@
   "answer": {
     "summary": "The agent is working in the Open Bubble repo; focus next on the Flutter context request composer and the server context-requests endpoint.",
     "confidence": "medium",
+    "retrievalMode": "direct_duckdb",
     "localContextUsed": [
       "docs/specs/mobile-flutter.md",
       "docs/api/openapi.yaml"

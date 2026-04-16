@@ -14,6 +14,7 @@ open-bubble/
     mobile/          # Flutter Android app; native Android hooks via platform channels later
     server/          # App Server API + event relay later
     agent-adapters/  # Backend/Codex-agent adapters later
+    codex-agent/     # Spawn cwd for App Server-managed Codex context-answer agents
   docs/
     api/             # OpenAPI + event contracts
     specs/           # Product, mobile, server, and adapter specs

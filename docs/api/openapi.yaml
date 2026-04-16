@@ -107,8 +107,14 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateContextRequest'
       responses:
+        '200':
+          description: Context request answered immediately from local session or DuckDB context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextRequestResponse'
         '202':
-          description: Context request accepted
+          description: Context request accepted for asynchronous agent work
           content:
             application/json:
               schema:
@@ -415,6 +421,8 @@ components:
           $ref: '#/components/schemas/EventType'
         message:
           type: string
+        answer:
+          $ref: '#/components/schemas/ContextAnswer'
     ContextAnswer:
       type: object
       required: [summary]
@@ -430,6 +438,10 @@ components:
           type: array
           items:
             type: string
+        retrievalMode:
+          type: string
+          enum: [session_state, direct_duckdb, local_files, agent_reasoning, mixed]
+          description: Indicates whether the answer came from fast local context lookup or slower agent work.
         codeAssertionResult:
           type: object
           description: Present only for explicit code_assertion requests.
@@ -514,6 +526,7 @@ components:
         - session.started
         - session.context.updated
         - context.requested
+        - context.answer.partial
         - context.answer.ready
         - code.assertion.requested
         - code.assertion.ready

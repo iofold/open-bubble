@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-bubble.local/schemas/context-answer.schema.json",
+  "title": "Open Bubble Context Answer",
+  "type": "object",
+  "required": ["summary", "confidence", "retrievalMode", "localContextUsed"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "details": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "retrievalMode": {
+      "type": "string",
+      "enum": ["session_state", "direct_duckdb", "local_files", "agent_reasoning", "mixed"]
+    },
+    "localContextUsed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "codeAssertionResult": {
+      "type": "object",
+      "required": ["verdict", "reasoning", "evidence"],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": ["supported", "not_supported", "inconclusive"]
+        },
+        "reasoning": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

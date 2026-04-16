@@ -1,85 +1,79 @@
 ---
 name: codex-app-server
-description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+description: Use when working on the Open Bubble App Server, its REST/SSE contract, server specs, or Codex-agent integration paths under apps/server, docs/api, docs/specs/server.md, or apps/codex-agent.
 ---
 
 # Codex App Server
 
-## Overview
+Use this skill for Open Bubble App Server work: REST endpoints, SSE events, in-memory session/request state, backend-agent adapter boundaries, and the Codex context-answer launch path.
 
-[TODO: 1-2 sentences explaining what this skill enables]
+## Source of Truth
 
-## Structuring This Skill
+Read these before changing behavior:
 
-[TODO: Choose the structure that best fits this skill's purpose. Common patterns:
+- `docs/specs/server.md` — App Server responsibilities, storage stance, and context request semantics.
+- `docs/api/openapi.yaml` — REST contract.
+- `docs/api/events.md` — event names and payload rules.
+- `docs/api/examples/` — sample request, response, and event payloads.
+- `apps/codex-agent/AGENTS.md` — contract for spawned Codex context-answer agents.
 
-**1. Workflow-Based** (best for sequential processes)
-- Works well when there are clear step-by-step procedures
-- Example: DOCX skill with "Workflow Decision Tree" -> "Reading" -> "Creating" -> "Editing"
-- Structure: ## Overview -> ## Workflow Decision Tree -> ## Step 1 -> ## Step 2...
+## Contract-First Workflow
 
-**2. Task-Based** (best for tool collections)
-- Works well when the skill offers different operations/capabilities
-- Example: PDF skill with "Quick Start" -> "Merge PDFs" -> "Split PDFs" -> "Extract Text"
-- Structure: ## Overview -> ## Quick Start -> ## Task Category 1 -> ## Task Category 2...
+1. Identify whether the change affects REST shape, event shape, sample payloads, or implementation only.
+2. If behavior changes, update contracts first:
+   - `docs/api/openapi.yaml` for REST endpoints, schemas, status codes, or response bodies.
+   - `docs/api/events.md` for event names, producer/consumer behavior, or event payload semantics.
+   - `docs/api/examples/*.json` for affected sample payloads.
+   - `docs/specs/server.md` or related specs for behavior and architecture rationale.
+3. Only then edit `apps/server/` implementation files.
+4. Keep the first implementation simple: REST + SSE + in-memory state.
+5. Do not add auth, persistence, deployment infrastructure, queues, or new dependencies unless the demo explicitly requires them and the reason is documented.
 
-**3. Reference/Guidelines** (best for standards or specifications)
-- Works well for brand guidelines, coding standards, or requirements
-- Example: Brand styling with "Brand Guidelines" -> "Colors" -> "Typography" -> "Features"
-- Structure: ## Overview -> ## Guidelines -> ## Specifications -> ## Usage...
+## Context Request Rules
 
-**4. Capabilities-Based** (best for integrated systems)
-- Works well when the skill provides multiple interrelated features
-- Example: Product Management with "Core Capabilities" -> numbered capability list
-- Structure: ## Overview -> ## Core Capabilities -> ### 1. Feature -> ### 2. Feature...
+`POST /v1/sessions/{sessionId}/context-requests` is the primary phone-to-agent question flow.
 
-Patterns can be mixed and matched as needed. Most skills combine patterns (e.g., start with task-based, add workflow for complex operations).
+- Inputs are screenshot data/metadata plus audio transcript or typed prompt fallback.
+- The answer must be generated from selected session context: local state, local files, direct DuckDB context graph reads, or slower agent reasoning.
+- Return `200` with `answer` when a fast local/DuckDB answer is available.
+- Return `202` when slower adapter/Codex work is needed, then publish progress/final SSE events.
+- Use `context.answer.partial` only for intermediate visible answer updates.
+- Use `context.answer.ready` for normal final answers.
+- Use `code.assertion.requested` / `code.assertion.ready` only when the user explicitly requested code assertion, verification, safety checking, or claim checking.
 
-Delete this entire "Structuring This Skill" section when done - it's just guidance.]
+## Codex Agent Integration
 
-## [TODO: Replace with the first main section based on chosen structure]
+When the server needs a Codex-backed answer:
 
-[TODO: Add content here. See examples in existing skills:
-- Code samples for technical skills
-- Decision trees for complex workflows
-- Concrete examples with realistic user requests
-- References to scripts/templates/references as needed]
+1. Launch or manage Codex with `apps/codex-agent/` as the working directory.
+2. Pass request JSON through one of:
+   - `OPEN_BUBBLE_CONTEXT_REQUEST`
+   - `OPEN_BUBBLE_CONTEXT_REQUEST_FILE`
+3. Set `OPEN_BUBBLE_RESPONSE_FILE` when the server wants a file handoff; otherwise capture stdout.
+4. Optionally set `OPEN_BUBBLE_CONTEXT_DB` and `OPEN_BUBBLE_SESSION_ID`.
+5. Expect a JSON object compatible with the `ContextAnswer` schema.
 
-## Resources (optional)
+The MVP may read DuckDB directly from the server/agent context layer. Do not introduce a Bun CLI, bridge service, or durable tool protocol until direct access becomes too slow, repetitive, or hard to share.
 
-Create only the resource directories this skill actually needs. Delete this section if no resources are required.
+## Implementation Shape
 
-### scripts/
-Executable code (Python/Bash/etc.) that can be run directly to perform specific operations.
+Prefer these boundaries when server code exists:
 
-**Examples from other skills:**
-- PDF skill: `fill_fillable_fields.py`, `extract_form_field_info.py` - utilities for PDF manipulation
-- DOCX skill: `document.py`, `utilities.py` - Python modules for document processing
+- `api/` — route handlers and request/response mapping.
+- `domain/` — session, event, context-request models and validation.
+- `store/` — in-memory state for sessions, requests, and events.
+- `events/` or equivalent — SSE fan-out and event log.
+- `adapters/` — backend agent and Codex launch integration.
+- `context/` — direct local context and DuckDB lookup helpers.
 
-**Appropriate for:** Python scripts, shell scripts, or any executable code that performs automation, data processing, or specific operations.
+Keep mobile decoupled from backend agent runtimes; mobile talks to the App Server only.
 
-**Note:** Scripts may be executed without loading into context, but can still be read by Codex for patching or environment adjustments.
+## Verification
 
-### references/
-Documentation and reference material intended to be loaded into context to inform Codex's process and thinking.
+For docs-only changes:
 
-**Examples from other skills:**
-- Product management: `communication.md`, `context_building.md` - detailed workflow guides
-- BigQuery: API reference documentation and query examples
-- Finance: Schema documentation, company policies
+- Parse changed JSON examples.
+- Parse `docs/api/openapi.yaml` when touched.
+- Run `git diff --check`.
 
-**Appropriate for:** In-depth documentation, API references, database schemas, comprehensive guides, or any detailed information that Codex should reference while working.
-
-### assets/
-Files not intended to be loaded into context, but rather used within the output Codex produces.
-
-**Examples from other skills:**
-- Brand styling: PowerPoint template files (.pptx), logo files
-- Frontend builder: HTML/React boilerplate project directories
-- Typography: Font files (.ttf, .woff2)
-
-**Appropriate for:** Templates, boilerplate code, document templates, images, icons, fonts, or any files meant to be copied or used in the final output.
-
----
-
-**Not every skill requires all three types of resources.**
+For implementation changes, also run the server's formatter, typecheck, tests, and any contract tests once those scripts exist.

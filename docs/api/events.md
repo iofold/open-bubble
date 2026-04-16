@@ -16,6 +16,7 @@ data: {"id":"evt_123","type":"context.answer.ready","sessionId":"sess_123","cont
 | `session.started` | Agent adapter/server | Add or refresh session list |
 | `session.context.updated` | Agent adapter/server | Refresh passive/debug session context |
 | `context.requested` | Server | Mark a screenshot + audio prompt request as submitted |
+| `context.answer.partial` | Agent adapter/server | Update visible answer text while slower backend work continues |
 | `context.answer.ready` | Agent adapter/server | Show the answer in session detail and optionally the bubble |
 | `code.assertion.requested` | Server/adapter | Mark an explicitly requested code assertion as submitted |
 | `code.assertion.ready` | Agent adapter/server | Show code assertion result with confidence/uncertainty |
@@ -27,6 +28,10 @@ data: {"id":"evt_123","type":"context.answer.ready","sessionId":"sess_123","cont
 ## Code assertion guardrail
 
 `code.assertion.requested` and `code.assertion.ready` should only appear when the user's prompt explicitly asks for code assertion, verification, safety check, or claim checking. Generic context requests should use `context.requested` and `context.answer.ready`.
+
+## Fast answer path
+
+For MVP, the backend may answer context requests directly from local session state and an embedded DuckDB context graph. If the answer is available immediately, the REST response can include it inline and the server may also publish `context.answer.ready` for subscribers. If the answer needs slower skills or sub-agents, return an accepted request quickly and stream progress with `context.answer.partial`.
 
 ## Sample payloads
 
