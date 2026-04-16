@@ -8,8 +8,8 @@
 
 ## Journey 2: Submit a prompt
 
-1. User selects one image or video file.
-2. User optionally adds a short text prompt.
-3. Client sends both fields to `POST /prompt`.
+1. User selects one screenshot or screen recording file.
+2. User adds a short text prompt, records a raw audio prompt, or sends both.
+3. Client sends `screenMedia` plus at least one prompt field to `POST /prompt`.
 4. API returns JSON immediately.
 5. Client shows the answer and any media details it needs for display.

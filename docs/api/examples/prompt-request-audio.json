@@ -1,0 +1,11 @@
+{
+  "screenMedia": {
+    "filename": "screen-recording.mp4",
+    "mimeType": "video/mp4",
+    "kind": "video"
+  },
+  "promptAudio": {
+    "filename": "prompt.m4a",
+    "mimeType": "audio/mp4"
+  }
+}

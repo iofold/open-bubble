@@ -25,5 +25,6 @@ docs/
 - Keep Node.js, TypeScript, build, and test tooling inside `apps/api/`.
 - Use strict TypeScript for the API MVP.
 - Keep the API limited to `GET /health` and `POST /prompt` until the contract is updated.
+- `POST /prompt` uses multipart/form-data with required `screenMedia`, optional `promptText`, optional raw `promptAudio`, and at least one prompt field.
 - Keep docs brief and prefer removing stale scope over documenting old flows.
 - Update the API contract before changing API behavior.

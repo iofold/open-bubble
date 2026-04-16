@@ -20,7 +20,7 @@ paths:
   /prompt:
     post:
       summary: Submit a media prompt and receive a synchronous answer
-      description: Send one multipart file named `media` and an optional text prompt. The runtime accepts `image/*` and `video/*`; any other media type should return `415 Unsupported Media Type`.
+      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. Any unsupported media type should return `415 Unsupported Media Type`.
       requestBody:
         required: true
         content:
@@ -61,15 +61,22 @@ components:
           type: string
     PromptRequest:
       type: object
-      required: [media]
+      required: [screenMedia]
+      anyOf:
+        - required: [promptText]
+        - required: [promptAudio]
       properties:
-        media:
+        screenMedia:
           type: string
           format: binary
-          description: Upload one image/* or video/* file.
-        prompt:
+          description: Upload one screenshot or screen recording as an image/* or video/* file.
+        promptText:
           type: string
-          description: Optional text prompt sent with the uploaded media.
+          description: Optional text prompt sent with the uploaded screen media.
+        promptAudio:
+          type: string
+          format: binary
+          description: Optional raw audio prompt sent as audio/* and forwarded to the backend without client-side transcription.
       additionalProperties: false
     PromptMedia:
       type: object
@@ -84,13 +91,21 @@ components:
           enum: [image, video]
     PromptResponse:
       type: object
-      required: [answer, media, receivedAt]
+      required: [answer, screenMedia, receivedAt]
       properties:
         answer:
           type: string
-        prompt:
+        promptText:
           type: string
-        media:
+        promptAudio:
+          type: object
+          required: [filename, mimeType]
+          properties:
+            filename:
+              type: string
+            mimeType:
+              type: string
+        screenMedia:
           $ref: '#/components/schemas/PromptMedia'
         receivedAt:
           type: string

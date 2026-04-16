@@ -8,8 +8,9 @@ The API is the contract boundary for the Flutter app MVP. It stays intentionally
 
 - Provide `GET /health` for local server checks.
 - Accept multipart prompt submissions at `POST /prompt`.
-- Require one uploaded media file and allow an optional text prompt.
-- Accept `image/*` and `video/*` uploads.
+- Require one `screenMedia` file and at least one prompt field.
+- Accept `image/*` and `video/*` for screen media.
+- Accept raw `audio/*` in `promptAudio` without client-side transcription.
 - Return a synchronous JSON answer that the mobile app can render immediately.
 
 ## Transport

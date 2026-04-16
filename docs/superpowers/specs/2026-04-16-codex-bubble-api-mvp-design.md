@@ -2,7 +2,7 @@
 
 ## Goal
 
-Define and scaffold a very small local API server for Codex Bubble so the Android app can send a prompt plus screen media and receive a synchronous dummy text response.
+Define and scaffold a very small local API server for Codex Bubble so the Android app can send screen media plus text and/or raw audio and receive a synchronous dummy text response.
 
 ## Scope
 
@@ -33,7 +33,7 @@ Out of scope:
 
 The server lives in `apps/api` and runs locally as a small Fastify app. It exposes two routes and returns synchronous JSON responses only.
 
-The mobile client sends `multipart/form-data` to `POST /prompt` with one uploaded media file and an optional prompt string. The server validates that the media is an image or video, reads only the metadata needed for a dummy response, and returns a small JSON payload with a generated text answer.
+The mobile client sends `multipart/form-data` to `POST /prompt` with one required `screenMedia` file and at least one prompt field. The prompt can be text, raw audio, or both. The server validates that the screen media is an image or video, accepts raw audio without client-side transcription, reads only the metadata needed for a dummy response, and returns a small JSON payload with a generated text answer.
 
 OpenAPI remains the contract source of truth. The implementation should stay aligned with the spec and keep the docs short enough that a teammate can understand the whole API in one quick read.
 
@@ -70,12 +70,14 @@ Purpose:
 Request:
 
 - Content type: `multipart/form-data`
-- Required field: `media`
-- Optional field: `prompt`
+- Required field: `screenMedia`
+- Optional field: `promptText`
+- Optional field: `promptAudio`
 
 Media rules:
 
 - Accept `image/*` and `video/*`
+- Accept raw `audio/*` in `promptAudio` without client-side transcription
 - Reject unsupported media types
 - No authentication
 - No persistence
@@ -85,9 +87,10 @@ Response:
 - `200 OK` on success
 - JSON response with:
   - dummy answer text
-  - echoed prompt when provided
-  - media filename when available
-  - media MIME type
+  - echoed prompt text when provided
+  - prompt audio metadata when provided
+  - screen media filename when available
+  - screen media MIME type
   - coarse media category (`image` or `video`)
 
 Error cases:
