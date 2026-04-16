@@ -8,6 +8,7 @@ class ServiceStatus {
     required this.serviceConnected,
     required this.bubbleVisible,
     required this.systemShortcutAssigned,
+    required this.notificationsEnabled,
     required this.captureSupported,
     required this.windowScopedCaptureSupported,
     required this.sdkInt,
@@ -21,6 +22,7 @@ class ServiceStatus {
       serviceConnected = false,
       bubbleVisible = false,
       systemShortcutAssigned = false,
+      notificationsEnabled = false,
       captureSupported = false,
       windowScopedCaptureSupported = false,
       sdkInt = 0,
@@ -32,6 +34,7 @@ class ServiceStatus {
   final bool serviceConnected;
   final bool bubbleVisible;
   final bool systemShortcutAssigned;
+  final bool notificationsEnabled;
   final bool captureSupported;
   final bool windowScopedCaptureSupported;
   final int sdkInt;
@@ -45,6 +48,7 @@ class ServiceStatus {
       serviceConnected: map['serviceConnected'] as bool? ?? false,
       bubbleVisible: map['bubbleVisible'] as bool? ?? false,
       systemShortcutAssigned: map['systemShortcutAssigned'] as bool? ?? false,
+      notificationsEnabled: map['notificationsEnabled'] as bool? ?? false,
       captureSupported: map['captureSupported'] as bool? ?? false,
       windowScopedCaptureSupported:
           map['windowScopedCaptureSupported'] as bool? ?? false,
@@ -60,6 +64,7 @@ class ServiceStatus {
     bool? serviceConnected,
     bool? bubbleVisible,
     bool? systemShortcutAssigned,
+    bool? notificationsEnabled,
     bool? captureSupported,
     bool? windowScopedCaptureSupported,
     int? sdkInt,
@@ -73,6 +78,7 @@ class ServiceStatus {
       bubbleVisible: bubbleVisible ?? this.bubbleVisible,
       systemShortcutAssigned:
           systemShortcutAssigned ?? this.systemShortcutAssigned,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       captureSupported: captureSupported ?? this.captureSupported,
       windowScopedCaptureSupported:
           windowScopedCaptureSupported ?? this.windowScopedCaptureSupported,

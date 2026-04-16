@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:developer' as developer;
 import 'dart:io';
 
@@ -20,6 +21,8 @@ class OpenBubbleController extends ChangeNotifier {
 
   StreamSubscription<ServiceEvent>? _eventSubscription;
   final Set<String> _submittedRequestIds = <String>{};
+  final Set<String> _processedEventKeys = <String>{};
+  final Queue<String> _processedEventOrder = ListQueue<String>();
 
   bool _initialized = false;
   bool initializing = false;
@@ -120,7 +123,11 @@ class OpenBubbleController extends ChangeNotifier {
       return;
     }
 
-    await refreshServiceStatus();
+    await Future.wait<void>([
+      refreshServiceStatus(),
+      checkServerHealth(),
+      _hydrateRecentEvents(),
+    ]);
   }
 
   Future<void> checkServerHealth() async {
@@ -169,6 +176,21 @@ class OpenBubbleController extends ChangeNotifier {
     _addTimeline(
       title: 'Opened accessibility settings',
       detail: 'Enable the Open Bubble service, then return to refresh status.',
+      tone: TimelineTone.info,
+    );
+    notifyListeners();
+  }
+
+  Future<void> openNotificationSettings() async {
+    _log(
+      'open_notification_settings',
+      'Opening Android notification settings.',
+    );
+    await _bridge.openNotificationSettings();
+    _addTimeline(
+      title: 'Opened notification settings',
+      detail:
+          'Enable notifications if you want background bubble replies to raise a system alert in addition to copying the clipboard.',
       tone: TimelineTone.info,
     );
     notifyListeners();
@@ -366,7 +388,7 @@ class OpenBubbleController extends ChangeNotifier {
 
   Future<void> _hydrateRecentEvents() async {
     final recentEvents = await _bridge.getRecentEvents();
-    for (final event in recentEvents) {
+    for (final event in recentEvents.reversed) {
       _handlePlatformEvent(event, replayOnly: true);
     }
   }
@@ -414,6 +436,10 @@ class OpenBubbleController extends ChangeNotifier {
   }
 
   void _handlePlatformEvent(ServiceEvent event, {bool replayOnly = false}) {
+    if (!_markEventProcessed(event)) {
+      return;
+    }
+
     _log('platform_event', '${event.type} ${event.message ?? ''}');
     switch (event.type) {
       case 'service.connected':
@@ -445,21 +471,95 @@ class OpenBubbleController extends ChangeNotifier {
       case 'inspection.ready':
         latestInspection = WindowSnapshot.fromMap(event.payload);
         break;
+      case 'overlay.workflow.started':
+        final requestId = event.payload['requestId'] as String?;
+        final mode = event.payload['mode'] as String?;
+        final session = _sessionForMode(mode);
+        if (requestId != null && session != null) {
+          selectedSessionId = session.id;
+          _ensureRequest(
+            requestId: requestId,
+            session: session,
+            stage: mode == 'pull'
+                ? RequestStage.drafting
+                : RequestStage.capturing,
+            detail: mode == 'pull'
+                ? 'Reading the current screen and preparing a structured mock data pull.'
+                : 'Capturing the current external app and preparing a mocked reply.',
+            usesMockCapture: mode == 'pull',
+          );
+        }
+        break;
       case 'capture.ready':
         latestCapture = CaptureSnapshot.fromMap(event.payload);
+        final snapshotPayload = event.payload['windowSnapshot'];
+        if (snapshotPayload is Map) {
+          latestInspection = WindowSnapshot.fromMap(
+            snapshotPayload.map(
+              (key, value) => MapEntry(key.toString(), value),
+            ),
+          );
+        }
         _updateRequest(
           latestCapture!.requestId,
           stage: RequestStage.drafting,
           detail:
               'Screenshot persisted. Drafting a mocked server response now.',
         );
-        final sessionId = selectedSessionId ?? _firstSessionId;
-        if (sessionId != null) {
-          unawaited(
-            _submitLatestContext(
-              requestId: latestCapture!.requestId,
-              sessionId: sessionId,
-            ),
+        if (!_isOverlayManagedRequest(latestCapture!.requestId)) {
+          final sessionId = selectedSessionId ?? _firstSessionId;
+          if (sessionId != null) {
+            unawaited(
+              _submitLatestContext(
+                requestId: latestCapture!.requestId,
+                sessionId: sessionId,
+              ),
+            );
+          }
+        }
+        break;
+      case 'overlay.reply.ready':
+        final requestId = event.payload['requestId'] as String?;
+        final mode = event.payload['mode'] as String?;
+        final session = _sessionForMode(mode);
+        if (requestId != null && session != null) {
+          selectedSessionId = session.id;
+          latestReplyDraft = ReplyDraft(
+            requestId: requestId,
+            sessionId: session.id,
+            title: event.payload['title'] as String? ?? 'Overlay reply ready',
+            replyText:
+                event.payload['replyText'] as String? ??
+                'The native overlay prepared a background reply.',
+            fillSuggestion: event.payload['fillSuggestion'] as String? ?? '',
+            confidence: event.payload['confidence'] as String? ?? 'high',
+            warnings: (event.payload['warnings'] as List<dynamic>? ?? const [])
+                .map((item) => item.toString())
+                .toList(),
+            updatedAt:
+                event.payload['updatedAt'] as String? ??
+                DateTime.now().toIso8601String(),
+          );
+          _ensureRequest(
+            requestId: requestId,
+            session: session,
+            stage: RequestStage.ready,
+            detail: mode == 'pull'
+                ? 'Mock data is ready in the clipboard and available for review-before-fill.'
+                : 'Background capture reply is ready in the clipboard and available for review-before-fill.',
+            usesMockCapture: mode == 'pull',
+          );
+        }
+        break;
+      case 'overlay.workflow.failed':
+        final requestId = event.payload['requestId'] as String?;
+        if (requestId != null) {
+          unawaited(refreshServiceStatus());
+          _updateRequest(
+            requestId,
+            stage: RequestStage.failed,
+            detail:
+                'The background overlay workflow failed. Retry from the bubble or reopen the app for more detail.',
           );
         }
         break;
@@ -483,7 +583,10 @@ class OpenBubbleController extends ChangeNotifier {
         title: event.type,
         detail: event.message ?? 'Native platform event received.',
         tone: switch (event.type) {
-          'capture.failed' || 'fill.failed' => TimelineTone.error,
+          'capture.failed' ||
+          'fill.failed' ||
+          'overlay.workflow.failed' => TimelineTone.error,
+          'fill.completed' || 'overlay.reply.ready' => TimelineTone.success,
           'bubble.longPress' => TimelineTone.info,
           _ => TimelineTone.info,
         },
@@ -494,6 +597,86 @@ class OpenBubbleController extends ChangeNotifier {
   }
 
   String? get _firstSessionId => sessions.isEmpty ? null : sessions.first.id;
+
+  SessionSummary? _sessionForMode(String? mode) {
+    if (sessions.isEmpty) {
+      return null;
+    }
+
+    if (mode == 'pull') {
+      return _findSessionById('sess_hackathon_002') ??
+          selectedSession ??
+          sessions.first;
+    }
+
+    if (mode == 'capture') {
+      return selectedSession ??
+          _findSessionById('sess_hackathon_001') ??
+          sessions.first;
+    }
+
+    return selectedSession ?? sessions.first;
+  }
+
+  SessionSummary? _findSessionById(String sessionId) {
+    for (final session in sessions) {
+      if (session.id == sessionId) {
+        return session;
+      }
+    }
+
+    return null;
+  }
+
+  void _ensureRequest({
+    required String requestId,
+    required SessionSummary session,
+    required RequestStage stage,
+    required String detail,
+    required bool usesMockCapture,
+  }) {
+    final existing = requests.where(
+      (request) => request.requestId == requestId,
+    );
+    if (existing.isEmpty) {
+      _startRequest(
+        requestId: requestId,
+        sessionId: session.id,
+        sessionTitle: session.title,
+        stage: stage,
+        detail: detail,
+        usesMockCapture: usesMockCapture,
+      );
+      return;
+    }
+
+    _updateRequest(
+      requestId,
+      stage: stage,
+      detail: detail,
+      usesMockCapture: usesMockCapture,
+    );
+  }
+
+  bool _isOverlayManagedRequest(String requestId) {
+    return requestId.startsWith('orb_') || requestId.startsWith('pull_');
+  }
+
+  bool _markEventProcessed(ServiceEvent event) {
+    final requestId = event.payload['requestId'] as String? ?? '';
+    final fingerprint = '${event.type}|${event.timestamp}|$requestId';
+    if (_processedEventKeys.contains(fingerprint)) {
+      return false;
+    }
+
+    _processedEventKeys.add(fingerprint);
+    _processedEventOrder.addLast(fingerprint);
+    while (_processedEventOrder.length > 96) {
+      final stale = _processedEventOrder.removeFirst();
+      _processedEventKeys.remove(stale);
+    }
+    return true;
+  }
 
   void _startRequest({
     required String requestId,

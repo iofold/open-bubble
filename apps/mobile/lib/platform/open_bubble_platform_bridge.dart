@@ -37,6 +37,10 @@ class OpenBubblePlatformBridge {
     await _methodChannel.invokeMethod<void>('openAccessibilitySettings');
   }
 
+  Future<void> openNotificationSettings() async {
+    await _methodChannel.invokeMethod<void>('openNotificationSettings');
+  }
+
   Future<bool> showBubble() async {
     return await _methodChannel.invokeMethod<bool>('showBubble') ?? false;
   }

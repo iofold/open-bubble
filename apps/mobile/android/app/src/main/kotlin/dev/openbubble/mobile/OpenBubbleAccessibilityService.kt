@@ -1,23 +1,33 @@
 package dev.openbubble.mobile
 
+import android.Manifest
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.AccessibilityService.TakeScreenshotCallback
 import android.accessibilityservice.AccessibilityService.ScreenshotResult
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import java.io.File
 import java.time.Instant
 import java.util.ArrayDeque
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 
 class OpenBubbleAccessibilityService : AccessibilityService() {
@@ -25,13 +35,27 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     private val callbackExecutor = Executor { runnable ->
         Thread(runnable, "open-bubble-capture").start()
     }
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val pendingOverlayWorkflows = ConcurrentHashMap<String, OverlayWorkflow>()
 
     private var captureInFlight = false
+    private var lastExternalWindowId: Int? = null
+    private var lastExternalPackageName: String? = null
+    private val resetBubbleStatusRunnable =
+        Runnable {
+            if (::overlayController.isInitialized) {
+                overlayController.updateStatus(
+                    bubbleText = "OB",
+                    subtitle = getString(R.string.overlay_hint_subtitle),
+                )
+            }
+        }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         overlayController = BubbleOverlayController(this)
+        ensureNotificationChannel()
         Log.d(TAG, "onServiceConnected")
 
         OpenBubbleEventHub.emit(
@@ -41,8 +65,13 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // The MVP does not stream every event into Flutter. It only resolves
-        // fresh snapshots when explicitly asked to inspect or capture.
+        val packageName = event?.packageName?.toString() ?: return
+        if (packageName != applicationContext.packageName) {
+            lastExternalPackageName = packageName
+            if (event.windowId >= 0) {
+                lastExternalWindowId = event.windowId
+            }
+        }
     }
 
     override fun onInterrupt() {
@@ -99,8 +128,8 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
 
     fun inspectActiveWindow(): Map<String, Any?> {
-        val root = rootInActiveWindow ?: return emptyMap()
-        val snapshot = buildWindowSnapshot(root)
+        val target = resolveWindowContext(preferExternal = false) ?: return emptyMap()
+        val snapshot = buildWindowSnapshot(target.root)
         Log.d(TAG, "inspectActiveWindow: package=${snapshot["packageName"]}")
 
         OpenBubbleEventHub.emit(
@@ -112,12 +141,25 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         return snapshot
     }
 
-    fun fillFocusedField(text: String): Map<String, Any?> {
-        Log.d(TAG, "fillFocusedField: length=${text.length}")
-        val root = rootInActiveWindow
+    fun fillFocusedField(
+        text: String,
+        preferExternal: Boolean = false,
+    ): Map<String, Any?> {
+        val targetContext = resolveWindowContext(preferExternal = preferExternal)
             ?: return fillFailure("No active window is available.", "no_window")
-        val target = findEditableNode(root)
+        Log.d(
+            TAG,
+            "fillFocusedField: length=${text.length} target=${targetContext.packageName} preferExternal=$preferExternal",
+        )
+        val target = findEditableNode(targetContext.root)
             ?: return fillFailure("No focused editable field was found.", "no_target")
+
+        if (supportsAction(target, AccessibilityNodeInfo.ACTION_CLICK)) {
+            target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        }
+        if (supportsAction(target, AccessibilityNodeInfo.ACTION_FOCUS)) {
+            target.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        }
 
         if (supportsAction(target, AccessibilityNodeInfo.ACTION_SET_TEXT)) {
             val arguments = Bundle().apply {
@@ -130,9 +172,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
             return emitFillResult(success, if (success) "set_text" else "set_text_failed")
         }
 
-        val clipboard =
-            getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("Open Bubble", text))
+        copyTextToClipboard(text)
 
         target.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
         val pasted =
@@ -147,13 +187,95 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
 
     fun fillCachedSuggestion(): Map<String, Any?> {
         val text = cachedFillSuggestion?.takeIf { it.isNotBlank() }
-            ?: return fillFailure("No cached suggestion is available yet.", "no_cached_text")
+            ?: run {
+                overlayController.updateStatus(
+                    bubbleText = "!",
+                    subtitle = "No cached reply yet.",
+                )
+                scheduleBubbleStatusReset()
+                return fillFailure("No cached suggestion is available yet.", "no_cached_text")
+            }
         Log.d(TAG, "fillCachedSuggestion: length=${text.length}")
-        return fillFocusedField(text)
+        overlayController.updateStatus(
+            bubbleText = "...",
+            subtitle = "Filling focused field…",
+        )
+        val result = fillFocusedField(text, preferExternal = true)
+        val success = result["success"] as? Boolean ?: false
+        overlayController.updateStatus(
+            bubbleText = if (success) "OK" else "!",
+            subtitle =
+                if (success) {
+                    "Filled focused field."
+                } else {
+                    "Could not fill focused field."
+                },
+        )
+        scheduleBubbleStatusReset()
+        return result
     }
 
-    fun captureActiveWindow(requestId: String = newRequestId()): Map<String, Any?> {
-        Log.d(TAG, "captureActiveWindow: requestId=$requestId")
+    fun startOverlayCaptureWorkflow(): Map<String, Any?> {
+        val requestId = newRequestId("orb")
+        pendingOverlayWorkflows[requestId] = OverlayWorkflow.capture
+        overlayController.updateStatus(
+            bubbleText = "...",
+            subtitle = "Analyzing current app…",
+        )
+        OpenBubbleEventHub.emit(
+            type = "overlay.workflow.started",
+            message = "Background capture workflow started.",
+            payload = mapOf("requestId" to requestId, "mode" to "capture"),
+        )
+
+        val result = captureActiveWindow(requestId = requestId, preferExternal = true)
+        if (!(result["accepted"] as? Boolean ?: false)) {
+            pendingOverlayWorkflows.remove(requestId)
+            overlayController.updateStatus(
+                bubbleText = "!",
+                subtitle = "Capture could not start.",
+            )
+            scheduleBubbleStatusReset()
+            OpenBubbleEventHub.emit(
+                type = "overlay.workflow.failed",
+                message = "Background capture workflow failed to start.",
+                payload = mapOf(
+                    "requestId" to requestId,
+                    "mode" to "capture",
+                    "reason" to (result["reason"] ?: "unknown"),
+                ),
+            )
+        }
+
+        return result
+    }
+
+    fun startOverlayPullWorkflow() {
+        val requestId = newRequestId("pull")
+        val target = resolveWindowContext(preferExternal = true)
+        val snapshot = target?.let { buildWindowSnapshot(it.root) } ?: emptyMap()
+        pendingOverlayWorkflows[requestId] = OverlayWorkflow.pull
+        overlayController.updateStatus(
+            bubbleText = "...",
+            subtitle = "Fetching mock data…",
+        )
+        OpenBubbleEventHub.emit(
+            type = "overlay.workflow.started",
+            message = "Background pull workflow started.",
+            payload = mapOf("requestId" to requestId, "mode" to "pull"),
+        )
+
+        mainHandler.postDelayed({
+            pendingOverlayWorkflows.remove(requestId)
+            deliverOverlayReply(buildMockPullReply(requestId, snapshot))
+        }, 1100)
+    }
+
+    fun captureActiveWindow(
+        requestId: String = newRequestId(),
+        preferExternal: Boolean = false,
+    ): Map<String, Any?> {
+        Log.d(TAG, "captureActiveWindow: requestId=$requestId preferExternal=$preferExternal")
         if (captureInFlight) {
             return mapOf("accepted" to false, "reason" to "capture_in_flight")
         }
@@ -162,11 +284,11 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
             return mapOf("accepted" to false, "reason" to "sdk_too_low")
         }
 
-        val root = rootInActiveWindow
+        val targetContext = resolveWindowContext(preferExternal = preferExternal)
             ?: return mapOf("accepted" to false, "reason" to "no_window")
-        val snapshot = buildWindowSnapshot(root)
-        val packageName = snapshot["packageName"] as? String ?: ""
-        val windowId = root.window?.id ?: root.windowId
+        val snapshot = buildWindowSnapshot(targetContext.root)
+        val packageName = snapshot["packageName"] as? String ?: targetContext.packageName
+        val windowId = targetContext.windowId
         val shouldRestoreBubble =
             if (::overlayController.isInitialized &&
                 Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
@@ -210,6 +332,22 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                         message = "Capture ready for request $requestId.",
                         payload = payload + ("windowSnapshot" to snapshot),
                     )
+
+                    if (pendingOverlayWorkflows[requestId] == OverlayWorkflow.capture) {
+                        overlayController.updateStatus(
+                            bubbleText = "...",
+                            subtitle = "Drafting clipboard reply…",
+                        )
+                        mainHandler.postDelayed({
+                            pendingOverlayWorkflows.remove(requestId)
+                            deliverOverlayReply(
+                                buildMockCaptureReply(
+                                    requestId = requestId,
+                                    snapshot = snapshot,
+                                ),
+                            )
+                        }, 900)
+                    }
                 }
 
                 override fun onFailure(errorCode: Int) {
@@ -224,6 +362,23 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                             "errorCode" to errorCode,
                         ),
                     )
+
+                    if (pendingOverlayWorkflows.remove(requestId) == OverlayWorkflow.capture) {
+                        overlayController.updateStatus(
+                            bubbleText = "!",
+                            subtitle = "Capture failed.",
+                        )
+                        scheduleBubbleStatusReset()
+                        OpenBubbleEventHub.emit(
+                            type = "overlay.workflow.failed",
+                            message = "Background capture workflow failed.",
+                            payload = mapOf(
+                                "requestId" to requestId,
+                                "mode" to "capture",
+                                "errorCode" to errorCode,
+                            ),
+                        )
+                    }
                 }
             }
 
@@ -234,6 +389,241 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         }
 
         return mapOf("accepted" to true, "requestId" to requestId)
+    }
+
+    private fun resolveWindowContext(preferExternal: Boolean): ResolvedWindowContext? {
+        val ownPackage = applicationContext.packageName
+        val candidates =
+            windows
+                ?.filter { window -> window.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+                ?.mapNotNull { window ->
+                    val root = window.root ?: return@mapNotNull null
+                    ResolvedWindowContext(
+                        root = root,
+                        windowId = window.id,
+                        packageName = root.packageName?.toString() ?: "",
+                        focused = window.isFocused,
+                        active = window.isActive,
+                    )
+                }
+                .orEmpty()
+
+        val externalCandidates = candidates.filter { it.packageName != ownPackage }
+        if (preferExternal) {
+            pickBestWindowContext(externalCandidates)?.let { return it }
+        }
+
+        pickBestWindowContext(candidates)?.let { return it }
+
+        if (!preferExternal) {
+            pickBestWindowContext(externalCandidates)?.let { return it }
+        }
+
+        rootInActiveWindow?.let { root ->
+            return ResolvedWindowContext(
+                root = root,
+                windowId = root.window?.id ?: root.windowId,
+                packageName = root.packageName?.toString() ?: "",
+                focused = true,
+                active = true,
+            )
+        }
+
+        return null
+    }
+
+    private fun pickBestWindowContext(
+        candidates: List<ResolvedWindowContext>,
+    ): ResolvedWindowContext? {
+        return candidates
+            .sortedWith(
+                compareByDescending<ResolvedWindowContext> { it.windowId == lastExternalWindowId }
+                    .thenByDescending { it.packageName == lastExternalPackageName }
+                    .thenByDescending { it.focused }
+                    .thenByDescending { it.active },
+            ).firstOrNull()
+    }
+
+    private fun buildMockCaptureReply(
+        requestId: String,
+        snapshot: Map<String, Any?>,
+    ): OverlayReply {
+        val visibleSignal =
+            (snapshot["visibleText"] as? List<*>)
+                ?.map { it.toString() }
+                ?.take(2)
+                ?.joinToString(" · ")
+                ?.takeIf { it.isNotBlank() }
+                ?: "captured context"
+        val packageName = snapshot["packageName"] as? String ?: "the current app"
+        val fillSuggestion =
+            "I captured $packageName and saw \"$visibleSignal\". The mock server prepared a concise response and copied it so I can paste it here."
+        val replyText =
+            "Open Bubble captured the current screen, built a mock server reply, and cached the suggested response for background fill or paste."
+
+        return OverlayReply(
+            requestId = requestId,
+            workflow = "capture",
+            title = "Capture reply ready",
+            replyText = replyText,
+            fillSuggestion = fillSuggestion,
+            notificationText = "Capture reply copied to clipboard.",
+            targetPackage = packageName,
+        )
+    }
+
+    private fun buildMockPullReply(
+        requestId: String,
+        snapshot: Map<String, Any?>,
+    ): OverlayReply {
+        val visibleText =
+            (snapshot["visibleText"] as? List<*>)
+                ?.joinToString(" ") { it.toString() }
+                ?.lowercase()
+                ?: ""
+        val packageName = snapshot["packageName"] as? String ?: (lastExternalPackageName ?: "background app")
+
+        val fillSuggestion =
+            when {
+                "passport" in visibleText ->
+                    "Passport number: P1234567. Issue date: 11 Jan 2021. Expiry: 10 Jan 2031."
+                "aadhaar" in visibleText || "aadhar" in visibleText ->
+                    "Aadhaar: 1234 5678 9012. Name: Aadi Menon. Use only after confirming the request."
+                "insurance" in visibleText || "policy" in visibleText ->
+                    "Insurance policy: ACM-47-9981. Provider: Acme Mutual. Coverage: Comprehensive. Contact: +91 98765 43210."
+                else ->
+                    "Insurance policy: ACM-47-9981. Provider: Acme Mutual. Coverage: Comprehensive. Contact: +91 98765 43210."
+            }
+
+        return OverlayReply(
+            requestId = requestId,
+            workflow = "pull",
+            title = "Mock data ready",
+            replyText =
+                "Open Bubble inferred a structured data pull request from the current screen and prepared a clipboard-ready mock response.",
+            fillSuggestion = fillSuggestion,
+            notificationText = "Mock data copied to clipboard for paste.",
+            targetPackage = packageName,
+        )
+    }
+
+    private fun deliverOverlayReply(reply: OverlayReply) {
+        cachedFillSuggestion = reply.fillSuggestion
+        copyTextToClipboard(reply.fillSuggestion)
+        val notificationPosted = maybePostReadyNotification(reply)
+        overlayController.updateStatus(
+            bubbleText = "OK",
+            subtitle =
+                if (notificationPosted) {
+                    "Ready. Clipboard and notification updated."
+                } else {
+                    "Ready. Clipboard updated."
+                },
+        )
+        scheduleBubbleStatusReset()
+
+        OpenBubbleEventHub.emit(
+            type = "overlay.reply.ready",
+            message = reply.notificationText,
+            payload = mapOf(
+                "requestId" to reply.requestId,
+                "mode" to reply.workflow,
+                "title" to reply.title,
+                "replyText" to reply.replyText,
+                "fillSuggestion" to reply.fillSuggestion,
+                "confidence" to "high",
+                "warnings" to listOf(
+                    "Review before filling into another app.",
+                    "Sensitive or secure screens should be handled as unsupported.",
+                ),
+                "updatedAt" to Instant.now().toString(),
+                "notificationPosted" to notificationPosted,
+                "copiedToClipboard" to true,
+                "targetPackage" to reply.targetPackage,
+            ),
+        )
+    }
+
+    private fun copyTextToClipboard(text: String) {
+        val clipboard =
+            getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("Open Bubble", text))
+    }
+
+    private fun maybePostReadyNotification(reply: OverlayReply): Boolean {
+        if (!notificationsAllowed()) {
+            Log.d(TAG, "maybePostReadyNotification: notifications unavailable")
+            return false
+        }
+
+        val intent =
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP,
+                )
+                putExtra("source", "notification")
+                putExtra("requestId", reply.requestId)
+            }
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                reply.requestId.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+
+        val notification =
+            NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(reply.title)
+                .setContentText(reply.notificationText)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(reply.notificationText))
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .build()
+
+        NotificationManagerCompat.from(this).notify(reply.requestId.hashCode(), notification)
+        return true
+    }
+
+    private fun notificationsAllowed(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+
+        return NotificationManagerCompat.from(this).areNotificationsEnabled()
+    }
+
+    private fun ensureNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return
+        }
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        val existing = notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID)
+        if (existing != null) {
+            return
+        }
+
+        val channel =
+            NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                getString(R.string.notification_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = getString(R.string.notification_channel_description)
+            }
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    private fun scheduleBubbleStatusReset() {
+        mainHandler.removeCallbacks(resetBubbleStatusRunnable)
+        mainHandler.postDelayed(resetBubbleStatusRunnable, 3500)
     }
 
     private fun emitFillResult(success: Boolean, strategy: String): Map<String, Any?> {
@@ -415,12 +805,13 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         return node.actionList.any { action -> action.id == actionId }
     }
 
-    private fun newRequestId(): String {
-        return "req_${System.currentTimeMillis()}"
+    private fun newRequestId(prefix: String = "req"): String {
+        return "${prefix}_${System.currentTimeMillis()}"
     }
 
     companion object {
         private const val TAG = "OpenBubbleService"
+        private const val NOTIFICATION_CHANNEL_ID = "open_bubble_replies"
 
         @Volatile
         var cachedFillSuggestion: String? = null
@@ -428,4 +819,27 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         @Volatile
         var instance: OpenBubbleAccessibilityService? = null
     }
+}
+
+private data class ResolvedWindowContext(
+    val root: AccessibilityNodeInfo,
+    val windowId: Int,
+    val packageName: String,
+    val focused: Boolean,
+    val active: Boolean,
+)
+
+private data class OverlayReply(
+    val requestId: String,
+    val workflow: String,
+    val title: String,
+    val replyText: String,
+    val fillSuggestion: String,
+    val notificationText: String,
+    val targetPackage: String,
+)
+
+private enum class OverlayWorkflow {
+    capture,
+    pull,
 }

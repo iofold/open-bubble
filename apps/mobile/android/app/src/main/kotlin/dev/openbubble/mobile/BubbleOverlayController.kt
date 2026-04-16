@@ -26,10 +26,24 @@ class BubbleOverlayController(
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var panelView: View? = null
     private var panelParams: WindowManager.LayoutParams? = null
+    private var bubbleLabelView: TextView? = null
+    private var panelSubtitleView: TextView? = null
 
     private var visible = false
+    private var bubbleLabel = "OB"
+    private var statusSubtitle = service.getString(R.string.overlay_hint_subtitle)
 
     fun isVisible(): Boolean = visible
+
+    fun updateStatus(
+        bubbleText: String = bubbleLabel,
+        subtitle: String = statusSubtitle,
+    ) {
+        bubbleLabel = bubbleText
+        statusSubtitle = subtitle
+        bubbleLabelView?.text = bubbleLabel
+        panelSubtitleView?.text = statusSubtitle
+    }
 
     fun showBubble() {
         if (visible) {
@@ -50,6 +64,7 @@ class BubbleOverlayController(
             bubbleView = bubble
             bubbleParams = params
             visible = true
+            updateStatus()
             OpenBubbleEventHub.emit(
                 type = "bubble.shown",
                 message = "Open Bubble overlay is visible.",
@@ -68,6 +83,8 @@ class BubbleOverlayController(
         }
         bubbleView = null
         bubbleParams = null
+        bubbleLabelView = null
+        panelSubtitleView = null
         visible = false
         OpenBubbleEventHub.emit(
             type = "bubble.hidden",
@@ -104,12 +121,13 @@ class BubbleOverlayController(
         }
 
         val label = TextView(service).apply {
-            text = "OB"
+            text = bubbleLabel
             setTextColor(Color.WHITE)
             textSize = 19f
             gravity = Gravity.CENTER
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
+        bubbleLabelView = label
 
         container.addView(
             label,
@@ -142,7 +160,7 @@ class BubbleOverlayController(
                             type = "bubble.longPress",
                             message = "Bubble long pressed.",
                         )
-                        service.captureActiveWindow()
+                        service.startOverlayCaptureWorkflow()
                     }
                 },
             )
@@ -254,12 +272,16 @@ class BubbleOverlayController(
             )
             addView(
                 TextView(service).apply {
-                    text = service.getString(R.string.overlay_hint_subtitle)
+                    text = statusSubtitle
                     textSize = 12f
                     setTextColor(Color.parseColor("#5B6470"))
+                    maxLines = 2
                 },
             )
         }
+            .also { container ->
+                panelSubtitleView = container.getChildAt(1) as TextView
+            }
     }
 
     private fun createActionRow(): View {
@@ -272,18 +294,18 @@ class BubbleOverlayController(
                 },
             )
             addView(
+                createActionChip(service.getString(R.string.overlay_action_pull)) {
+                    service.startOverlayPullWorkflow()
+                },
+            )
+            addView(
                 createActionChip(service.getString(R.string.overlay_action_fill)) {
                     service.fillCachedSuggestion()
                 },
             )
             addView(
-                createActionChip(service.getString(R.string.overlay_action_inspect)) {
-                    service.inspectActiveWindow()
-                },
-            )
-            addView(
                 createActionChip(service.getString(R.string.overlay_action_capture)) {
-                    service.captureActiveWindow()
+                    service.startOverlayCaptureWorkflow()
                 },
             )
         }
@@ -295,7 +317,7 @@ class BubbleOverlayController(
             textSize = 13f
             setTextColor(Color.parseColor("#0E5A63"))
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(28, 18, 28, 18)
+            setPadding(22, 18, 22, 18)
             background = GradientDrawable().apply {
                 cornerRadius = 999f
                 setColor(Color.parseColor("#E9F3F3"))

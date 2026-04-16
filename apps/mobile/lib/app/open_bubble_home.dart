@@ -217,6 +217,12 @@ class _SetupPage extends StatelessWidget {
               detail: 'Rendered as a trusted accessibility overlay.',
             ),
             _MiniMetricCard(
+              title: 'Notifications',
+              value: status.notificationsEnabled ? 'On' : 'Off',
+              detail:
+                  'Optional for background alerts; clipboard delivery still works without them.',
+            ),
+            _MiniMetricCard(
               title: 'App Server',
               value: controller.serverHealthy ? 'Reachable' : 'Mocked',
               detail:
@@ -253,6 +259,11 @@ class _SetupPage extends StatelessWidget {
                 onPressed: controller.hideBubble,
                 icon: const Icon(Icons.cancel_presentation_rounded),
                 label: const Text('Hide Bubble'),
+              ),
+              OutlinedButton.icon(
+                onPressed: controller.openNotificationSettings,
+                icon: const Icon(Icons.notifications_active_rounded),
+                label: const Text('Notifications'),
               ),
               OutlinedButton.icon(
                 onPressed: controller.inspectActiveWindow,

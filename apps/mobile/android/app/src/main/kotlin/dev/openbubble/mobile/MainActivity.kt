@@ -5,9 +5,11 @@ import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.core.app.NotificationManagerCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -53,6 +55,11 @@ class MainActivity : FlutterActivity() {
             "getRecentEvents" -> result.success(OpenBubbleEventHub.snapshot())
             "openAccessibilitySettings" -> {
                 openAccessibilitySettings()
+                result.success(true)
+            }
+
+            "openNotificationSettings" -> {
+                openNotificationSettings()
                 result.success(true)
             }
 
@@ -127,6 +134,7 @@ class MainActivity : FlutterActivity() {
             "serviceConnected" to (service != null),
             "bubbleVisible" to (service?.isBubbleVisible() ?: false),
             "systemShortcutAssigned" to shortcutAssigned,
+            "notificationsEnabled" to areNotificationsEnabled(),
             "captureSupported" to (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R),
             "windowScopedCaptureSupported" to (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
             "sdkInt" to Build.VERSION.SDK_INT,
@@ -139,6 +147,15 @@ class MainActivity : FlutterActivity() {
     private fun openAccessibilitySettings() {
         startActivity(
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            },
+        )
+    }
+
+    private fun openNotificationSettings() {
+        startActivity(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             },
         )
@@ -162,6 +179,16 @@ class MainActivity : FlutterActivity() {
         val targets =
             Settings.Secure.getString(contentResolver, "accessibility_button_targets") ?: return false
         return targets.contains(componentName)
+    }
+
+    private fun areNotificationsEnabled(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+
+        return NotificationManagerCompat.from(this).areNotificationsEnabled()
     }
 
     private fun copyText(text: String) {
