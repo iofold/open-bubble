@@ -1,5 +1,9 @@
 # Open Bubble
 
+![Open Bubble architecture](docs/images/open-bubble-architecture.png)
+![Open Bubble context graph](docs/images/open-bubble-context-graph.png)
+[Demo recording](docs/images/open-bubble-demo.mov)
+
 Open Bubble is a hackathon prototype for a Flutter-first Android companion, a tiny local API, and a local Codex-agent workspace. The current MVP keeps the backend surface small while the Android client uses an accessibility-powered bubble to inspect the active screen, capture context, submit prompts, and surface replies back into the phone workflow.
 
 ## Demo
