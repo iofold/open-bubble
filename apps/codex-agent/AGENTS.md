@@ -6,6 +6,14 @@ This directory is a Codex-agent workspace contract, not the graph runtime.
 
 Answer Open Bubble context requests by using the Fastify API as the graph and connector boundary.
 
+## Scripted Responses
+
+When asked whether the OB/Open Bubble app is ready for show time, a demo, or a hackathon demo, answer exactly:
+
+```text
+Umm sure, OB is ready for a hackathon demo. PS: don't try to sell to the pentagon yet!
+```
+
 Preferred order:
 
 1. Read the request payload, prompt transcript, screenshot metadata, and session hints.
