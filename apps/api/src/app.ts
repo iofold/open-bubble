@@ -30,7 +30,8 @@ export const buildApp = async (
   loadRepoEnv();
 
   const app = fastify({
-    logger: false
+    logger: false,
+    bodyLimit: 50 * 1024 * 1024
   });
   const taskManager = await PromptTaskManager.create({
     ...options,
@@ -39,7 +40,12 @@ export const buildApp = async (
       (await createConfiguredClassifierExecutionTaskProcessor())
   });
 
-  await app.register(multipart);
+  await app.register(multipart, {
+    limits: {
+      fileSize: 50 * 1024 * 1024,
+      fieldSize: 1024 * 1024
+    }
+  });
 
   if (openApiExists()) {
     await app.register(swagger, {
@@ -59,15 +65,9 @@ export const buildApp = async (
 
   await app.register(healthRoute({ serviceVersion }));
   await app.register(appsRoute());
-  const contextGraphOptions: ContextGraphRouteOptions = {};
-  if (options.store) {
-    contextGraphOptions.store = options.store;
-  }
-  if (options.mcpToolClient) {
-    contextGraphOptions.mcpToolClient = options.mcpToolClient;
-  }
-
-  await app.register(contextGraphRoute(contextGraphOptions));
+  await app.register(contextGraphRoute(
+    options.store ? { store: options.store } : {}
+  ));
   await app.register(promptRoute({ taskManager }));
   await app.register(taskStatusRoute({ taskManager }));
 

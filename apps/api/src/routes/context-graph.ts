@@ -4,18 +4,9 @@ import * as path from 'node:path';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { ContextGraphStore, type Connector } from '../lib/context-graph-store.js';
 import { resolveFromRepoRoot } from '../lib/openapi.js';
-import {
-  ConnectorConfigurationError,
-  ConnectorInputError,
-  createMcpToolClientFromEnv,
-  dispatchConnectorTool,
-  type ConnectorDispatchRequest,
-  type McpToolClient
-} from '../lib/connectors/composio-mcp.js';
 
 export interface ContextGraphRouteOptions {
   store?: ContextGraphStore;
-  mcpToolClient?: McpToolClient;
 }
 
 const controlPanelRoot = (): string =>
@@ -76,19 +67,8 @@ const sendControlPanelFile = async (
   }
 };
 
-const connectorErrorReply = (reply: FastifyReply, error: unknown): FastifyReply => {
-  if (error instanceof ConnectorInputError || error instanceof ConnectorConfigurationError) {
-    return reply.code(error.statusCode).send({
-      error: error.statusCode === 400 ? 'bad_request' : 'connector_unavailable',
-      message: error.message
-    });
-  }
-  throw error;
-};
-
 export const contextGraphRoute = ({
-  store = new ContextGraphStore(),
-  mcpToolClient = createMcpToolClientFromEnv()
+  store = new ContextGraphStore()
 }: ContextGraphRouteOptions = {}): FastifyPluginAsync => {
   const route: FastifyPluginAsync = async (app) => {
     app.addHook('onRequest', async (_request, reply) => {
@@ -164,29 +144,19 @@ export const contextGraphRoute = ({
       return store.ingestContextRequest(payload);
     };
 
-    const dispatchConnectorHandler = async (request: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const dispatched = await dispatchConnectorTool(
-          request.body as ConnectorDispatchRequest,
-          mcpToolClient
-        );
-        if (dispatched.normalizedFetch) {
-          const ingest = await store.ingestMcp(dispatched.normalizedFetch);
-          return {
-            ...dispatched,
-            ingest
-          };
-        }
-        return dispatched;
-      } catch (error) {
-        return connectorErrorReply(reply, error);
-      }
-    };
-
     app.post('/context-graph/seed', seedHandler);
     app.post('/context-graph/ingest/mcp-results', ingestMcpHandler);
     app.post('/context-graph/ingest/context-request', ingestContextRequestHandler);
-    app.post('/context-graph/connectors', dispatchConnectorHandler);
+
+    app.get('/mobile-sim', async (_request, reply) => {
+      const mobileSimPath = resolveFromRepoRoot('apps', 'api', 'public', 'mobile-sim.html');
+      try {
+        const content = await readFile(mobileSimPath, 'utf8');
+        return reply.type('text/html; charset=utf-8').send(content);
+      } catch {
+        return reply.code(404).send({ error: 'mobile-sim.html not found' });
+      }
+    });
 
     app.get('/control-panel', async (_request, reply) =>
       reply.redirect('/control-panel/', 308));
