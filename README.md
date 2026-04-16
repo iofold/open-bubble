@@ -27,7 +27,11 @@ A user opens the Flutter app, grants Android overlay/screenshot permissions, see
 
 ## Team starting points
 
+- Read [`AGENTS.md`](AGENTS.md) for repo-specific agent and contributor guidance.
+- Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch/PR workflow.
 - Read [`docs/specs/product-scope.md`](docs/specs/product-scope.md) for MVP boundaries.
+- Read [`docs/specs/application-understanding.md`](docs/specs/application-understanding.md) for the current mental model of the app.
+- Read [`docs/specs/user-journeys.md`](docs/specs/user-journeys.md) for the expected user flows.
 - Read [`docs/specs/team-collaboration.md`](docs/specs/team-collaboration.md) for workstream ownership.
 - Use [`docs/api/openapi.yaml`](docs/api/openapi.yaml) and [`docs/api/events.md`](docs/api/events.md) as the shared contract between mobile, server, and agent adapters.
 - Log architectural decisions in [`docs/adr/`](docs/adr/).
