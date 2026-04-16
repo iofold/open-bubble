@@ -2,6 +2,12 @@
 
 Open Bubble is a hackathon prototype for a Flutter-first Android companion, a tiny local API, and a local Codex-agent workspace. The current MVP keeps the backend surface small while the Android client uses an accessibility-powered bubble to inspect the active screen, capture context, submit prompts, and surface replies back into the phone workflow.
 
+## Demo
+
+Open Bubble starts with OB confirming it is demo-ready by checking the live repository through the Codex server and verifying the latest build status.
+Next, in WhatsApp, OB understands that a message refers to next week’s meeting, connects to Gmail and Calendar through the backend, creates the event, and returns the event ID.
+Finally, when an email asks for an insurance policy number, OB retrieves it from memory.md, copies the answer to the clipboard, and prepares it to paste directly into the reply
+
 ## MVP
 
 - `apps/api` owns the local Fastify API.
