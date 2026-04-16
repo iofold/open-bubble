@@ -24,7 +24,11 @@ export interface McpFetchResult {
 }
 
 export interface McpToolClient {
-  callTool(toolName: string, args: Record<string, unknown>): Promise<unknown>;
+  callTool(
+    toolName: string,
+    args: Record<string, unknown>,
+    context?: { sessionId: string }
+  ): Promise<unknown>;
 }
 
 export interface ConnectorDispatchResult {
@@ -51,6 +55,14 @@ const allowedTools = {
   calendarFetch: 'GOOGLECALENDAR_EVENTS_LIST',
   draftEmail: 'GMAIL_CREATE_EMAIL_DRAFT',
   createCalendarEvent: 'GOOGLECALENDAR_CREATE_EVENT'
+} as const;
+
+const allowedToolkits = ['gmail', 'googledrive', 'googlecalendar'] as const;
+
+const composioToolkitTools = {
+  gmail: [allowedTools.gmailFetch, allowedTools.draftEmail],
+  googledrive: [allowedTools.driveFetch],
+  googlecalendar: [allowedTools.calendarFetch, allowedTools.createCalendarEvent]
 } as const;
 
 const isConnector = (value: unknown): value is Connector =>
@@ -244,22 +256,130 @@ export class HttpMcpToolClient implements McpToolClient {
   }
 }
 
+interface ComposioToolRouterSession {
+  session_id?: string;
+  mcp?: {
+    url?: string;
+  };
+}
+
+export class ComposioApiKeyMcpToolClient implements McpToolClient {
+  private readonly sessions = new Map<string, Promise<HttpMcpToolClient>>();
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly options: {
+      userId?: string;
+      baseUrl?: string;
+    } = {}
+  ) {}
+
+  async callTool(
+    toolName: string,
+    args: Record<string, unknown>,
+    context?: { sessionId: string }
+  ): Promise<unknown> {
+    void context;
+    const userId = this.options.userId;
+    if (!userId) {
+      throw new ConnectorConfigurationError('COMPOSIO_USER_ID is required when using COMPOSIO_API_KEY.');
+    }
+    const session = await this.sessionFor(userId);
+    return session.callTool(toolName, args);
+  }
+
+  private sessionFor(userId: string): Promise<HttpMcpToolClient> {
+    const cached = this.sessions.get(userId);
+    if (cached) return cached;
+    const created = this.createSession(userId);
+    this.sessions.set(userId, created);
+    return created;
+  }
+
+  private async createSession(userId: string): Promise<HttpMcpToolClient> {
+    const baseUrl = this.options.baseUrl ?? 'https://backend.composio.dev';
+    const endpoint = `${baseUrl.replace(/\/$/, '')}/api/v3.1/tool_router/session`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': this.apiKey
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        toolkits: {
+          enabled: allowedToolkits
+        },
+        tools: {
+          gmail: {
+            enabled: composioToolkitTools.gmail
+          },
+          googledrive: {
+            enabled: composioToolkitTools.googledrive
+          },
+          googlecalendar: {
+            enabled: composioToolkitTools.googlecalendar
+          }
+        },
+        workbench: {
+          enable: false,
+          proxy_execution_enabled: false
+        },
+        manage_connections: {
+          enable: true,
+          enable_wait_for_connections: false,
+          enable_connection_removal: false
+        }
+      })
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      throw new ConnectorConfigurationError(`Composio session creation failed with ${response.status}: ${text}`);
+    }
+
+    const payload = JSON.parse(text) as ComposioToolRouterSession;
+    const mcpUrl = payload.mcp?.url;
+    if (!mcpUrl) {
+      throw new ConnectorConfigurationError('Composio session response did not include an MCP URL.');
+    }
+
+    return new HttpMcpToolClient(mcpUrl, {
+      'x-api-key': this.apiKey
+    });
+  }
+}
+
 export const createMcpToolClientFromEnv = (): McpToolClient | undefined => {
   const url = optionalString(process.env['OPEN_BUBBLE_COMPOSIO_MCP_URL']);
-  if (!url) return undefined;
-  const headers: Record<string, string> = {};
-  const rawHeaders = optionalString(process.env['OPEN_BUBBLE_COMPOSIO_MCP_HEADERS']);
-  if (rawHeaders) {
-    const parsed = JSON.parse(rawHeaders) as Record<string, unknown>;
-    for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === 'string') headers[key] = value;
+  if (url) {
+    const headers: Record<string, string> = {};
+    const rawHeaders = optionalString(process.env['OPEN_BUBBLE_COMPOSIO_MCP_HEADERS']);
+    if (rawHeaders) {
+      const parsed = JSON.parse(rawHeaders) as Record<string, unknown>;
+      for (const [key, value] of Object.entries(parsed)) {
+        if (typeof value === 'string') headers[key] = value;
+      }
     }
+    const token = optionalString(process.env['OPEN_BUBBLE_COMPOSIO_MCP_TOKEN']);
+    if (token && !headers['authorization']) {
+      headers['authorization'] = `Bearer ${token}`;
+    }
+    return new HttpMcpToolClient(url, headers);
   }
-  const token = optionalString(process.env['OPEN_BUBBLE_COMPOSIO_MCP_TOKEN']);
-  if (token && !headers['authorization']) {
-    headers['authorization'] = `Bearer ${token}`;
+
+  const apiKey = optionalString(process.env['COMPOSIO_API_KEY']);
+  if (apiKey) {
+    const options: { userId?: string; baseUrl?: string } = {};
+    const userId =
+      optionalString(process.env['COMPOSIO_USER_ID']) ??
+      optionalString(process.env['OPEN_BUBBLE_COMPOSIO_USER_ID']);
+    const baseUrl = optionalString(process.env['OPEN_BUBBLE_COMPOSIO_API_BASE_URL']);
+    if (userId) options.userId = userId;
+    if (baseUrl) options.baseUrl = baseUrl;
+    return new ComposioApiKeyMcpToolClient(apiKey, options);
   }
-  return new HttpMcpToolClient(url, headers);
+  return undefined;
 };
 
 export const normalizeMcpFetch = (
@@ -294,7 +414,7 @@ export const dispatchConnectorTool = async (
   client: McpToolClient | undefined
 ): Promise<ConnectorDispatchResult> => {
   if (!client) {
-    throw new ConnectorConfigurationError('OPEN_BUBBLE_COMPOSIO_MCP_URL is required for connector dispatch.');
+    throw new ConnectorConfigurationError('COMPOSIO_API_KEY or OPEN_BUBBLE_COMPOSIO_MCP_URL is required for connector dispatch.');
   }
 
   if (request.connector !== undefined && !isConnector(request.connector)) {
@@ -323,9 +443,10 @@ export const dispatchConnectorTool = async (
 
   const tool = toolFor(connector, action);
   const args = defaultArguments(action, query, parameters);
-  const mcpResult = await client.callTool(tool, args);
+  const sessionId = requireString(request.sessionId, 'sessionId');
+  const mcpResult = await client.callTool(tool, args, { sessionId });
   const base = {
-    sessionId: requireString(request.sessionId, 'sessionId'),
+    sessionId,
     connector,
     action,
     tool,

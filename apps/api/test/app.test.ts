@@ -6,7 +6,10 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { buildApp, serviceVersion } from '../src/app.js';
-import type { McpToolClient } from '../src/lib/connectors/composio-mcp.js';
+import {
+  ComposioApiKeyMcpToolClient,
+  type McpToolClient
+} from '../src/lib/connectors/composio-mcp.js';
 import type {
   PromptTaskProcessorInput,
   PromptTaskProcessorOutcome,
@@ -843,6 +846,89 @@ void test('connector dispatch executes only the supported action tools', async (
     ]);
   } finally {
     await app.close();
+  }
+});
+
+void test('Composio API-key client creates a restricted MCP session before calling tools', async () => {
+  const originalFetch = globalThis.fetch;
+  const requests: Array<{ url: string; body: Record<string, unknown>; headers: Record<string, string> }> = [];
+  globalThis.fetch = (async (input, init) => {
+    const url = String(input);
+    const headers = new Headers(init?.headers);
+    const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+    requests.push({
+      url,
+      body,
+      headers: Object.fromEntries(headers.entries())
+    });
+
+    if (url.endsWith('/api/v3.1/tool_router/session')) {
+      return new Response(JSON.stringify({
+        session_id: 'trs_test',
+        mcp: {
+          url: 'https://app.composio.dev/tool_router/v3/trs_test/mcp'
+        }
+      }), {
+        status: 201,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
+    return new Response(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'call_1',
+      result: {
+        messages: []
+      }
+    }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    });
+  }) as typeof fetch;
+
+  try {
+    const client = new ComposioApiKeyMcpToolClient('test_api_key', {
+      userId: 'open-bubble-test-user',
+      baseUrl: 'https://backend.composio.test'
+    });
+    await client.callTool('GMAIL_FETCH_EMAILS', { query: 'launch email' }, {
+      sessionId: 'sess_live_001'
+    });
+
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0]?.url, 'https://backend.composio.test/api/v3.1/tool_router/session');
+    assert.equal(requests[0]?.headers['x-api-key'], 'test_api_key');
+    assert.deepEqual(requests[0]?.body, {
+      user_id: 'open-bubble-test-user',
+      toolkits: {
+        enabled: ['gmail', 'googledrive', 'googlecalendar']
+      },
+      tools: {
+        gmail: {
+          enabled: ['GMAIL_FETCH_EMAILS', 'GMAIL_CREATE_EMAIL_DRAFT']
+        },
+        googledrive: {
+          enabled: ['GOOGLEDRIVE_FIND_FILE']
+        },
+        googlecalendar: {
+          enabled: ['GOOGLECALENDAR_EVENTS_LIST', 'GOOGLECALENDAR_CREATE_EVENT']
+        }
+      },
+      workbench: {
+        enable: false,
+        proxy_execution_enabled: false
+      },
+      manage_connections: {
+        enable: true,
+        enable_wait_for_connections: false,
+        enable_connection_removal: false
+      }
+    });
+    assert.equal(requests[1]?.url, 'https://app.composio.dev/tool_router/v3/trs_test/mcp');
+    assert.equal(requests[1]?.headers['x-api-key'], 'test_api_key');
+    assert.equal(requests[1]?.body['method'], 'tools/call');
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });
 

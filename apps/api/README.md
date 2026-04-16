@@ -81,6 +81,8 @@ VITE_OPEN_BUBBLE_API_BASE_URL=http://localhost:3000 npm run dev -- --host 0.0.0.
 
 ## Composio MCP
 
-Set `OPEN_BUBBLE_COMPOSIO_MCP_URL` and either `OPEN_BUBBLE_COMPOSIO_MCP_HEADERS` or `OPEN_BUBBLE_COMPOSIO_MCP_TOKEN` to enable `POST /context-graph/connectors`.
+Set `COMPOSIO_API_KEY` and `COMPOSIO_USER_ID` to let the API create one restricted Composio Tool Router MCP session automatically. `OPEN_BUBBLE_COMPOSIO_USER_ID` is still accepted as a compatibility alias, but `COMPOSIO_USER_ID` is the canonical `.env` key.
+
+If a session is already created elsewhere, set `OPEN_BUBBLE_COMPOSIO_MCP_URL` and either `OPEN_BUBBLE_COMPOSIO_MCP_HEADERS` or `OPEN_BUBBLE_COMPOSIO_MCP_TOKEN`.
 
 Allowed tools are limited to Gmail fetch/draft, Drive fetch, and Calendar fetch/event creation.

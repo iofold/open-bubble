@@ -28,7 +28,7 @@ The action lane is intentionally narrow: Composio MCP credentials should expose 
 - There is one runtime graph implementation to test and evolve.
 - The Codex-agent workspace becomes instructions, schemas, fixtures, and references rather than a second application.
 - Docker can run the API, DuckDB, and built control panel consistently.
-- Live connector dispatch now depends on `OPEN_BUBBLE_COMPOSIO_MCP_URL` and its auth headers/token being configured.
+- Live connector dispatch now depends on `COMPOSIO_API_KEY` plus one configured `COMPOSIO_USER_ID`, or on a pre-created `OPEN_BUBBLE_COMPOSIO_MCP_URL` and its auth headers/token.
 
 Constraint: Do not put Google provider calls in Flutter.
 Constraint: Do not store Composio/OAuth credentials in DuckDB, logs, fixtures, or response payloads.

@@ -25,9 +25,9 @@ MCP connector data should be fetched only when the user prompt or session policy
 
 Configure the live connector endpoint with:
 
-- `OPEN_BUBBLE_COMPOSIO_MCP_URL`
-- `OPEN_BUBBLE_COMPOSIO_MCP_HEADERS` for the JSON headers returned with the Composio MCP session, or
-- `OPEN_BUBBLE_COMPOSIO_MCP_TOKEN` for a bearer token when the MCP URL expects bearer auth.
+- `COMPOSIO_API_KEY` and `COMPOSIO_USER_ID` to let the API create one restricted Composio Tool Router MCP session automatically.
+- `OPEN_BUBBLE_COMPOSIO_USER_ID` remains a compatibility alias, but `COMPOSIO_USER_ID` is the canonical `.env` key.
+- Or `OPEN_BUBBLE_COMPOSIO_MCP_URL` plus `OPEN_BUBBLE_COMPOSIO_MCP_HEADERS` / `OPEN_BUBBLE_COMPOSIO_MCP_TOKEN` when a session is created outside the API.
 
 ## Connector Capabilities
 

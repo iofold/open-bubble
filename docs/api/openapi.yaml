@@ -190,7 +190,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '503':
-          description: Composio MCP endpoint is not configured or unavailable
+          description: Composio API key or MCP endpoint is not configured or unavailable
           content:
             application/json:
               schema:
