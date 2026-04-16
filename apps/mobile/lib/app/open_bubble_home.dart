@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
@@ -51,14 +51,7 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
           );
         }
         final pages = <Widget>[
-          _HomePage(
-            controller: controller,
-            onOpenSettings: () {
-              setState(() {
-                _tabIndex = 2;
-              });
-            },
-          ),
+          _HomePage(controller: controller),
           _TasksPage(
             controller: controller,
             sandboxController: _sandboxController,
@@ -113,10 +106,9 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
 }
 
 class _HomePage extends StatelessWidget {
-  const _HomePage({required this.controller, required this.onOpenSettings});
+  const _HomePage({required this.controller});
 
   final OpenBubbleController controller;
-  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +136,7 @@ class _HomePage extends StatelessWidget {
           const _LargeLogoCoin(),
           const SizedBox(height: 32),
           Text(
-            'Welcome back, Adi',
+            'Welcome back, Aadi',
             style: theme.textTheme.displaySmall?.copyWith(
               color: Colors.white,
               fontSize: 42,
@@ -154,48 +146,24 @@ class _HomePage extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             online
-                ? 'Your OB side is connected to the Codex server.'
-                : 'Your OB side is waiting to reconnect to the Codex server.',
+                ? 'Your OB is live & connected to the Codex server.'
+                : 'Your OB is waiting to reconnect to the Codex server.',
             style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.84),
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            service.bubbleVisible
-                ? 'The orb is already floating above your apps.'
-                : 'Show the orb once, then let it stay out in front.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.62),
-            ),
-          ),
           const SizedBox(height: 26),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _DarkInfoChip(
-                label: service.serviceConnected
-                    ? 'runtime connected'
-                    : 'runtime waiting',
-              ),
-              _DarkInfoChip(
-                label: controller.serverHealthy
-                    ? 'codex server reachable'
-                    : 'server needs attention',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextButton.icon(
-            onPressed: onOpenSettings,
-            icon: const Icon(Icons.tune_rounded),
-            label: const Text('Open settings and tools'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white.withValues(alpha: 0.74),
-              padding: EdgeInsets.zero,
-            ),
+          _BubblePowerSwitch(
+            enabled: service.serviceConnected,
+            isOn: service.bubbleVisible,
+            onChanged: (value) async {
+              if (value) {
+                await controller.showBubble();
+              } else {
+                await controller.hideBubble();
+              }
+            },
           ),
           const Spacer(),
         ],
@@ -255,6 +223,72 @@ class _FloatingNavBar extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BubblePowerSwitch extends StatelessWidget {
+  const _BubblePowerSwitch({
+    required this.enabled,
+    required this.isOn,
+    required this.onChanged,
+  });
+
+  final bool enabled;
+  final bool isOn;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = isOn ? 'OB ON' : 'OB OFF';
+    final detail = enabled
+        ? (isOn ? 'Bubble is live.' : 'Turn on the floating orb.')
+        : 'Enable accessibility in Tools first.';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: isOn
+                        ? const Color(0xFF8EF0A8)
+                        : const Color(0xFFFF9B9B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  detail,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.62),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Opacity(
+            opacity: enabled ? 1 : 0.55,
+            child: CupertinoSwitch(
+              value: isOn,
+              onChanged: enabled ? onChanged : null,
+              activeTrackColor: const Color(0xFF59C378),
+              inactiveTrackColor: const Color(0xFFC45454),
+              thumbColor: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -359,30 +393,6 @@ class _LargeLogoCoin extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DarkInfoChip extends StatelessWidget {
-  const _DarkInfoChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: Colors.white.withValues(alpha: 0.82),
         ),
       ),
     );
@@ -615,7 +625,6 @@ class _TasksPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final session = controller.selectedSession;
     final recentRequests = controller.requests.take(5).toList();
 
     return ListView(
@@ -623,8 +632,7 @@ class _TasksPage extends StatelessWidget {
       children: [
         _SectionCard(
           title: 'Task stream',
-          subtitle:
-              'Recent requests, active session context, and the latest answer.',
+          subtitle: 'Recent requests moving through the Open Bubble pipeline.',
           accent: theme.colorScheme.primary,
           child: recentRequests.isEmpty
               ? const _EmptyState(
@@ -648,86 +656,6 @@ class _TasksPage extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         _SectionCard(
-          title: 'Active sessions',
-          subtitle:
-              'The session list is still here, just no longer the first thing you see.',
-          accent: const Color(0xFF6F6F6F),
-          child: Column(
-            children: [
-              for (final item in controller.sessions) ...[
-                _SessionTile(
-                  session: item,
-                  selected: item.id == controller.selectedSessionId,
-                  onTap: () => controller.selectSession(item.id),
-                ),
-                if (item != controller.sessions.last)
-                  const SizedBox(height: 10),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        if (session != null)
-          _SectionCard(
-            title: session.title,
-            subtitle: session.summary,
-            accent: const Color(0xFF8D8D8D),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Current task', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 6),
-                Text(session.currentTask),
-                const SizedBox(height: 12),
-                Text(
-                  'Use the floating bubble on top of another app: tap `Ask` or long-press, type your prompt, and send it. Open Bubble captures the screen, sends it, and waits for the answer.',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    FilledButton.tonalIcon(
-                      onPressed: controller.inspectActiveWindow,
-                      icon: const Icon(Icons.view_quilt_rounded),
-                      label: const Text('Inspect Now'),
-                    ),
-                    FilledButton.tonalIcon(
-                      onPressed: controller.showBubble,
-                      icon: const Icon(Icons.radio_button_checked_rounded),
-                      label: const Text('Show Bubble'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: controller.openNotificationSettings,
-                      icon: const Icon(Icons.notifications_active_rounded),
-                      label: const Text('Notifications'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        if (session != null) const SizedBox(height: 14),
-        if (controller.latestInspection != null)
-          _SectionCard(
-            title: 'Latest inspection',
-            subtitle:
-                'This snapshot comes from the accessibility runtime and shows what Open Bubble can read from the current window.',
-            accent: const Color(0xFF6C6C6C),
-            child: _InspectionPreview(snapshot: controller.latestInspection!),
-          ),
-        if (controller.latestInspection != null) const SizedBox(height: 14),
-        if (controller.latestCapture != null)
-          _SectionCard(
-            title: 'Latest capture',
-            subtitle:
-                'The native runtime reports the package, dimensions, request ID, and cached image path.',
-            accent: const Color(0xFF8A8A8A),
-            child: _CapturePreview(capture: controller.latestCapture!),
-          ),
-        if (controller.latestCapture != null) const SizedBox(height: 14),
-        _SectionCard(
           title: 'Latest reply',
           subtitle:
               'Review, copy, or verify fill from the freshest server response.',
@@ -745,7 +673,7 @@ class _TasksPage extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         _SectionCard(
-          title: 'Timeline',
+          title: 'History',
           subtitle: 'Recent app, bubble, and server events.',
           accent: const Color(0xFF858585),
           child: controller.timeline.isEmpty
@@ -962,99 +890,6 @@ class _ReplyDraftCard extends StatelessWidget {
   }
 }
 
-class _InspectionPreview extends StatelessWidget {
-  const _InspectionPreview({required this.snapshot});
-
-  final WindowSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _StatusPill(
-              label: snapshot.packageName,
-              color: const Color(0xFFD7EDE1),
-            ),
-            _StatusPill(
-              label: '${snapshot.windowCount} windows',
-              color: const Color(0xFFF3E8FF),
-            ),
-            if (snapshot.focusedField != null)
-              _StatusPill(
-                label: snapshot.focusedField!.label.isNotEmpty
-                    ? snapshot.focusedField!.label
-                    : snapshot.focusedField!.hint,
-                color: const Color(0xFFFDE7D5),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          snapshot.visibleText.isEmpty
-              ? 'No visible text was captured.'
-              : snapshot.visibleText.take(6).join('\n'),
-        ),
-      ],
-    );
-  }
-}
-
-class _CapturePreview extends StatelessWidget {
-  const _CapturePreview({required this.capture});
-
-  final CaptureSnapshot capture;
-
-  @override
-  Widget build(BuildContext context) {
-    final previewFile = capture.filePath.startsWith('/')
-        ? File(capture.filePath)
-        : null;
-    final canPreview = previewFile?.existsSync() ?? false;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _StatusPill(
-              label: capture.requestId,
-              color: const Color(0xFFD7EDE1),
-            ),
-            _StatusPill(
-              label: '${capture.width}×${capture.height}',
-              color: const Color(0xFFFDE7D5),
-            ),
-            _StatusPill(label: capture.source, color: const Color(0xFFF3E8FF)),
-            _StatusPill(
-              label: capture.packageName,
-              color: const Color(0xFFFAEBD7),
-            ),
-          ],
-        ),
-        if (canPreview) ...[
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Image.file(
-              previewFile!,
-              fit: BoxFit.cover,
-              height: 220,
-              width: double.infinity,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 class _RequestJobRow extends StatelessWidget {
   const _RequestJobRow({required this.request, required this.selected});
 
@@ -1177,70 +1012,6 @@ Color _requestStageColor(RequestStage stage) {
     RequestStage.ready => const Color(0xFFD8F0E0),
     RequestStage.failed => const Color(0xFFF0DDDD),
   };
-}
-
-class _SessionTile extends StatelessWidget {
-  const _SessionTile({
-    required this.session,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final SessionSummary session;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Ink(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF1F1EF) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected
-                ? theme.colorScheme.primary
-                : const Color(0x14000000),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    session.title,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                _StatusPill(
-                  label: session.status,
-                  color: selected
-                      ? const Color(0xFFE8E8E8)
-                      : const Color(0xFFF3F3F3),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(session.summary, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 8),
-            Text(
-              '${session.agentKind} • ${session.updatedAt}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF5B6470),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _SectionCard extends StatelessWidget {

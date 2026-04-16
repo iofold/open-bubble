@@ -1,5 +1,8 @@
 package dev.openbubble.mobile
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -46,6 +49,9 @@ class BubbleOverlayController(
     private var panelSubtitleView: TextView? = null
     private var composerSubtitleView: TextView? = null
     private var composerInputView: EditText? = null
+    private var bubblePulseView: View? = null
+    private var bubbleStatusBadgeView: TextView? = null
+    private var bubblePulseAnimator: AnimatorSet? = null
 
     private var visible = false
     private var bubbleLabel = "OB"
@@ -60,6 +66,7 @@ class BubbleOverlayController(
         bubbleLabel = bubbleText
         statusSubtitle = subtitle
         panelSubtitleView?.text = statusSubtitle
+        renderBubbleState()
     }
 
     fun updatePromptComposerStatus(
@@ -116,6 +123,10 @@ class BubbleOverlayController(
         bubbleView = null
         bubbleParams = null
         panelSubtitleView = null
+        bubblePulseView = null
+        bubbleStatusBadgeView = null
+        bubblePulseAnimator?.cancel()
+        bubblePulseAnimator = null
         visible = false
         OpenBubbleEventHub.emit(
             type = "bubble.hidden",
@@ -316,12 +327,51 @@ class BubbleOverlayController(
                 setPadding(0)
             }
 
+        val pulse =
+            View(service).apply {
+                background =
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(Color.parseColor("#38FFFFFF"))
+                    }
+                alpha = 0f
+                scaleX = 0.94f
+                scaleY = 0.94f
+                visibility = View.INVISIBLE
+            }
+        bubblePulseView = pulse
+
         val icon =
             ImageView(service).apply {
                 setImageResource(R.drawable.ob_logo)
                 scaleType = ImageView.ScaleType.CENTER_CROP
             }
 
+        val statusBadge =
+            TextView(service).apply {
+                textSize = 10f
+                setTextColor(colorSnow)
+                setTypeface(typeface, Typeface.BOLD)
+                gravity = Gravity.CENTER
+                setPadding(14, 8, 14, 8)
+                background =
+                    GradientDrawable().apply {
+                        cornerRadius = 999f
+                        setColor(Color.parseColor("#CC111111"))
+                        setStroke(2, Color.parseColor("#1FFFFFFF"))
+                    }
+                visibility = View.GONE
+            }
+        bubbleStatusBadgeView = statusBadge
+
+        container.addView(
+            pulse,
+            FrameLayout.LayoutParams(
+                168,
+                168,
+                Gravity.CENTER,
+            ),
+        )
         container.addView(
             icon,
             FrameLayout.LayoutParams(
@@ -330,9 +380,98 @@ class BubbleOverlayController(
                 Gravity.CENTER,
             ),
         )
+        container.addView(
+            statusBadge,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
+            ).apply {
+                bottomMargin = 12
+            },
+        )
 
         bindBubbleInteractions(container)
+        renderBubbleState()
         return container
+    }
+
+    private fun renderBubbleState() {
+        val badgeText =
+            when (bubbleLabel) {
+                "..." -> "WORKING"
+                "OK" -> "READY"
+                "!" -> "ERROR"
+                else -> null
+            }
+
+        bubbleStatusBadgeView?.let { badge ->
+            val background = badge.background as? GradientDrawable
+            if (badgeText == null) {
+                badge.visibility = View.GONE
+            } else {
+                badge.text = badgeText
+                badge.visibility = View.VISIBLE
+                background?.setColor(
+                    when (bubbleLabel) {
+                        "OK" -> Color.parseColor("#D9485F76")
+                        "!" -> Color.parseColor("#D97A2C2C")
+                        else -> Color.parseColor("#D9111111")
+                    },
+                )
+            }
+        }
+
+        if (bubbleLabel == "...") {
+            startBubblePulse()
+        } else {
+            stopBubblePulse()
+        }
+    }
+
+    private fun startBubblePulse() {
+        val pulse = bubblePulseView ?: return
+        if (bubblePulseAnimator?.isRunning == true) {
+            return
+        }
+
+        pulse.visibility = View.VISIBLE
+
+        val alphaAnimator =
+            ObjectAnimator.ofFloat(pulse, View.ALPHA, 0.10f, 0.38f).apply {
+                duration = 850
+                repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.REVERSE
+            }
+        val scaleXAnimator =
+            ObjectAnimator.ofFloat(pulse, View.SCALE_X, 0.94f, 1.14f).apply {
+                duration = 850
+                repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.REVERSE
+            }
+        val scaleYAnimator =
+            ObjectAnimator.ofFloat(pulse, View.SCALE_Y, 0.94f, 1.14f).apply {
+                duration = 850
+                repeatCount = ValueAnimator.INFINITE
+                repeatMode = ValueAnimator.REVERSE
+            }
+
+        bubblePulseAnimator =
+            AnimatorSet().apply {
+                playTogether(alphaAnimator, scaleXAnimator, scaleYAnimator)
+                start()
+            }
+    }
+
+    private fun stopBubblePulse() {
+        bubblePulseAnimator?.cancel()
+        bubblePulseAnimator = null
+        bubblePulseView?.apply {
+            alpha = 0f
+            scaleX = 0.94f
+            scaleY = 0.94f
+            visibility = View.INVISIBLE
+        }
     }
 
     private fun bindBubbleInteractions(bubble: View) {

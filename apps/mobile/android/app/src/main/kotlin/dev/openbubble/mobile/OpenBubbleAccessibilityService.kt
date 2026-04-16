@@ -716,7 +716,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                 mainHandler.post {
                     overlayController.updateStatus(
                         bubbleText = "...",
-                        subtitle = "Open Bubble is working... result will arrive in ~20s.",
+                        subtitle = "Pulling from your context graph. Please hold...",
                     )
                 }
 
