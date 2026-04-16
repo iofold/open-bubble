@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:delayed": "OPEN_BUBBLE_PROMPT_DELAY_MIN_MS=20000 OPEN_BUBBLE_PROMPT_DELAY_MAX_MS=25000 tsx watch src/server.ts",
+    "dev:demo": "OPEN_BUBBLE_DEMO_MODE=1 OPEN_BUBBLE_PROMPT_DELAY_MS=10000 tsx watch src/server.ts",
     "dev:ngrok": "tsx src/dev/start-api-ngrok.ts",
     "build": "npm --prefix ../codex-app-server run build && npm --prefix ../control-panel run build && tsc -p tsconfig.json",
     "build:api": "tsc -p tsconfig.json",

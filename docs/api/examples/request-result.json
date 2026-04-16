@@ -1,0 +1,18 @@
+{
+  "requestId": "req_capture_001",
+  "sessionId": "sess_hackathon_001",
+  "status": "awaiting_review",
+  "title": "Reply ready",
+  "message": "I found the bug and prepared the text to send back into the focused field.",
+  "replyText": "The calculator is dividing by zero in the result formatter. I prepared a patch and test notes.",
+  "fillSuggestion": {
+    "label": "Reply in current field",
+    "text": "The bug is caused by division by zero in the formatter. I prepared a patch and test notes.",
+    "copyText": "The bug is caused by division by zero in the formatter. I prepared a patch and test notes.",
+    "confidence": "high",
+    "warnings": [
+      "Review before filling into another app."
+    ]
+  },
+  "updatedAt": "2026-04-16T06:33:00Z"
+}

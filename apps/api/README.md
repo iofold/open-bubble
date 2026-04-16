@@ -10,6 +10,7 @@ Run everything from inside `apps/api/`, unless you want the repo-level launcher.
 npm install
 npm --prefix ../control-panel install
 npm run dev
+npm run dev:delayed
 npm run dev:ngrok
 npm test
 npm run typecheck
@@ -86,3 +87,25 @@ Set `COMPOSIO_API_KEY` and `COMPOSIO_USER_ID` to let the API create one restrict
 If a session is already created elsewhere, set `OPEN_BUBBLE_COMPOSIO_MCP_URL` and either `OPEN_BUBBLE_COMPOSIO_MCP_HEADERS` or `OPEN_BUBBLE_COMPOSIO_MCP_TOKEN`.
 
 Allowed tools are limited to Gmail fetch/draft, Drive fetch, and Calendar fetch/event creation.
+
+## Delayed task simulation
+
+For client testing, you can run a delayed version of the local API:
+
+```bash
+npm run dev:delayed
+```
+
+That keeps `POST /prompt` immediate, but holds tasks in `in_progress` for a randomized 20-25 seconds before returning `completed`.
+
+For canned demo-mode answers plus a shorter fixed delay:
+
+```bash
+npm run dev:demo
+```
+
+You can also override the delay manually:
+
+```bash
+OPEN_BUBBLE_PROMPT_DELAY_MS=22000 npm run dev
+```

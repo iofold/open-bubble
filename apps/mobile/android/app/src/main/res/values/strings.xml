@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Open Bubble</string>
+    <string name="accessibility_service_label">Open Bubble</string>
+    <string name="accessibility_service_description">Lets Open Bubble show a floating bubble, capture the current screen, send prompts, and help paste reviewed text back into the focused field.</string>
+    <string name="overlay_hint_title">Open Bubble</string>
+    <string name="overlay_hint_subtitle">Tap for actions. Hold to ask.</string>
+    <string name="overlay_action_open">Open</string>
+    <string name="overlay_action_ask">Ask</string>
+    <string name="overlay_action_fill">Fill</string>
+    <string name="overlay_action_copy">Copy</string>
+    <string name="overlay_action_cancel">Cancel</string>
+    <string name="overlay_action_send">Send</string>
+    <string name="overlay_recent_title">Recent replies</string>
+    <string name="overlay_recent_empty">No replies yet. Ask something and it will appear here.</string>
+    <string name="overlay_prompt_title">Ask Open Bubble</string>
+    <string name="overlay_prompt_subtitle">Type what you want. Open Bubble captures the current screen when you press Send.</string>
+    <string name="overlay_prompt_hint">Example: Please pull my insurance policy number.</string>
+    <string name="notification_channel_name">Open Bubble</string>
+    <string name="notification_channel_description">Replies and clipboard updates from Open Bubble.</string>
+</resources>

@@ -1,0 +1,24 @@
+{
+  "deviceId": "pixel8-demo",
+  "requestId": "req_capture_001",
+  "capturedAt": "2026-04-16T06:31:00Z",
+  "captureType": "screenshot_with_prompt",
+  "userPrompt": "Send this calculator error to my active Codex session and ask for a fix.",
+  "sourceApp": "Calculator Debug Build",
+  "sourcePackage": "dev.openbubble.calculator.debug",
+  "windowSnapshot": {
+    "packageName": "dev.openbubble.calculator.debug",
+    "className": "android.widget.FrameLayout",
+    "windowCount": 2,
+    "visibleText": [
+      "Division by zero",
+      "Try again",
+      "Send report"
+    ],
+    "editableLabels": []
+  },
+  "captureMetadata": {
+    "width": 1080,
+    "height": 2400
+  }
+}

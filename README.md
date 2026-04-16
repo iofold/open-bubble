@@ -1,6 +1,6 @@
 # Open Bubble
 
-Open Bubble is a docs-first hackathon repo for a Flutter Android companion, a tiny local API, and a local Codex-agent context graph workspace. The current MVP keeps the backend surface small so the team can build quickly and stay aligned.
+Open Bubble is a hackathon prototype for a Flutter-first Android companion, a tiny local API, and a local Codex-agent workspace. The current MVP keeps the backend surface small while the Android client uses an accessibility-powered bubble to inspect the active screen, capture context, submit prompts, and surface replies back into the phone workflow.
 
 ## MVP
 
@@ -56,3 +56,6 @@ open-bubble/
 - Keep the docs short and remove outdated detail instead of layering on new active scope.
 - Read `docs/specs/mcp-connectors.md` before changing Gmail/Drive/Calendar connector behavior.
 - Read `docs/specs/graph-control-panel.md` before changing the graph inspection UI.
+- Read `docs/specs/product-scope.md` for MVP boundaries.
+- Read `docs/specs/team-collaboration.md` for workstream ownership.
+- Log architectural decisions in `docs/adr/`.

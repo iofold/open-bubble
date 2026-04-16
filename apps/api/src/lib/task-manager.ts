@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { resolveFromRepoRoot } from './openapi.js';
 import type { SupportedAppName } from './supported-apps.js';
 
@@ -196,6 +197,114 @@ const buildDefaultClassification = (): RequestClassification => ({
     'The default fallback processor was used because no app-server task processor was supplied.'
 });
 
+const parseDelayMs = (value: string | undefined): number | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsedValue = Number.parseInt(value, 10);
+  return Number.isFinite(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : undefined;
+};
+
+const getSimulatedDelayMs = (): number => {
+  const exactDelay = parseDelayMs(process.env['OPEN_BUBBLE_PROMPT_DELAY_MS']);
+  if (exactDelay !== undefined) {
+    return exactDelay;
+  }
+
+  const minDelay = parseDelayMs(process.env['OPEN_BUBBLE_PROMPT_DELAY_MIN_MS']);
+  const maxDelay = parseDelayMs(process.env['OPEN_BUBBLE_PROMPT_DELAY_MAX_MS']);
+
+  if (minDelay !== undefined && maxDelay !== undefined) {
+    if (maxDelay <= minDelay) {
+      return minDelay;
+    }
+
+    return Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+  }
+
+  return 0;
+};
+
+const isDemoModeEnabled = (): boolean =>
+  process.env['OPEN_BUBBLE_DEMO_MODE'] === '1';
+
+const normalizePrompt = (promptText: string | undefined): string =>
+  promptText?.trim().toLowerCase() ?? '';
+
+const buildInsuranceAnswer = (): string =>
+  [
+    'Insurance policy details',
+    'Policy number: OBI-4837-1192-AX',
+    'Provider: Meridian Mutual Assurance',
+    'Plan: Premier Comprehensive',
+    'Member ID: MM-90214478',
+    'Support: +1 (800) 555-0148'
+  ].join('\n');
+
+const buildCalendarAnswer = (): string =>
+  [
+    'Calendar event created.',
+    'Title: Meeting with Abhinav',
+    'When: Wednesday, 3:00 PM',
+    'Calendar: Gmail / Google Calendar',
+    'Status: Confirmed and ready to send.'
+  ].join('\n');
+
+const buildDemoAnswer = (promptText: string | undefined): string | undefined => {
+  const normalizedPrompt = normalizePrompt(promptText);
+
+  if (!normalizedPrompt) {
+    return undefined;
+  }
+
+  if (normalizedPrompt.includes('are we ready to demo')) {
+    return "Umm... sure, ready for a demo. Just don't sell it to the Pentagon yet.";
+  }
+
+  const wantsCalendarAction =
+    normalizedPrompt.includes('book') ||
+    normalizedPrompt.includes('calendar') ||
+    normalizedPrompt.includes('add it') ||
+    normalizedPrompt.includes('add this');
+
+  if (wantsCalendarAction) {
+    return buildCalendarAnswer();
+  }
+
+  const wantsInsuranceDetails =
+    normalizedPrompt.includes('insurance') ||
+    normalizedPrompt.includes('policy') ||
+    normalizedPrompt.includes('policy number');
+
+  if (wantsInsuranceDetails) {
+    return buildInsuranceAnswer();
+  }
+
+  return undefined;
+};
+
+const buildAnswer = (payload: {
+  screenMedia: ScreenMediaMetadata;
+  promptText?: string;
+  promptAudio?: PromptAudioMetadata;
+}): string => {
+  const screenLabel =
+    payload.screenMedia.kind === 'image' ? 'screenshot' : 'screen recording';
+
+  if (payload.promptText && payload.promptAudio) {
+    return `Dummy response for ${screenLabel} with text and raw audio prompt input.`;
+  }
+
+  if (payload.promptAudio) {
+    return `Dummy response for ${screenLabel} with raw audio prompt input.`;
+  }
+
+  return `Dummy response for ${screenLabel} with text prompt input.`;
+};
+
 const buildDefaultHandoffPlan = (): PromptHandoffPlan => ({
   executionMode: 'context_graph_answer',
   finalResponseStyle: 'succinct_answer',
@@ -215,6 +324,15 @@ const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
   screenMedia,
   screenMediaPath
 }) => {
+  const simulatedDelayMs = getSimulatedDelayMs();
+
+  if (simulatedDelayMs > 0) {
+    await delay(simulatedDelayMs);
+  }
+
+  const demoAnswer = isDemoModeEnabled()
+    ? buildDemoAnswer(promptText)
+    : undefined;
   const classification = buildDefaultClassification();
   const handoffPlan = buildDefaultHandoffPlan();
   const executionTarget: RoutingExecutionTarget = {
@@ -227,7 +345,13 @@ const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
   return {
     status: 'completed',
     result: {
-      answer: 'Default prompt task processor is not configured.',
+      answer:
+        demoAnswer ??
+        buildAnswer({
+          screenMedia,
+          ...(promptText ? { promptText } : {}),
+          ...(promptAudio ? { promptAudio } : {})
+        }),
       classification,
       routingPayload: {
         ...(promptText ? { promptText } : {}),

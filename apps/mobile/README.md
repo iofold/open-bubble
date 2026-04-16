@@ -1,18 +1,30 @@
-# Mobile App Placeholder
+# Mobile App
 
 Flutter Android app lives here.
 
-Do not add major implementation until the team confirms:
+## Current direction
 
-1. `docs/api/openapi.yaml`
-2. `docs/api/events.md`
-3. `docs/specs/mobile-flutter.md`
+- Flutter owns onboarding, mocked server flows, session browsing, and review UI.
+- Native Android owns the `AccessibilityService`, accessibility overlay bubble, screen inspection, screenshot capture, and fill actions.
 
-Suggested first command once Flutter is installed:
+## Local development
 
 ```bash
 cd apps/mobile
-flutter create --platforms=android --org dev.openbubble .
+flutter pub get
+flutter run -d <android-device-or-emulator>
 ```
 
-After that, keep Flutter UI code in `lib/` and native Android platform-channel code in `android/app/src/main/kotlin/...`.
+## First-run checklist
+
+1. Launch the app.
+2. Open the setup tab.
+3. Enable the Open Bubble accessibility service in Android settings.
+4. Return to the app and confirm the service is connected.
+5. Show the bubble and background the app to verify the overlay stays alive.
+
+## Code layout
+
+- `lib/`: Flutter UI, mocked App Server flows, and the platform bridge.
+- `android/app/src/main/kotlin/...`: Android accessibility service, overlay controller, and method/event channels.
+- `android/app/src/main/res/xml/`: accessibility service metadata.

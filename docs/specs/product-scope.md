@@ -1,13 +1,16 @@
 # Product Scope
 
-The MVP proves that a small local API can accept screen media plus at least one prompt field, either text or raw audio, create a lightweight local task immediately, and expose a polling path for the eventual result.
+The MVP proves two things at the same time:
+
+1. A small local API can accept `screenMedia` plus at least one prompt field, create a lightweight task immediately, and expose a polling path for the eventual result.
+2. The Android client can capture the current screen through an accessibility runtime, collect an explicit user prompt from the bubble, submit both to the API, and return the answer through clipboard, notification, and review UI.
 
 ## Goals
 
 - Keep the active API surface limited to `GET /health`, `GET /apps`, `POST /prompt`, and `GET /tasks/{taskId}`.
 - Make the request shape easy to understand and easy to validate.
 - Keep the async task flow lightweight enough to run locally on one Mac without extra infrastructure.
-- Keep the docs small enough that another teammate can follow them quickly.
+- Keep the Android bubble flow explicit and user-driven.
 - Keep richer Codex-agent context graph work decoupled from API dispatch until the API contract changes.
 
 ## Adjacent Codex-Agent Goals
@@ -25,9 +28,15 @@ The MVP proves that a small local API can accept screen media plus at least one 
 - Mobile-owned Gmail, Drive, or Calendar integrations.
 - Automatic code assertion when the user did not explicitly request it.
 - Production graph dashboards.
+- App-store-ready compliance or policy work.
+- Full auth, multi-tenant accounts, or production-grade secret handling.
+- Durable cloud persistence.
+- Perfect cross-platform Flutter support. Android is the priority.
+- Silent autonomous actions inside third-party apps without explicit user review.
 
-## Success Criteria
+## Success criteria
 
-- A teammate can run the local API and mobile flow from a fresh checkout.
+- A teammate can run the local API and the Android client from a fresh checkout.
 - `POST /prompt` and `GET /tasks/{taskId}` remain aligned with `docs/api/openapi.yaml`.
-- Connector-derived context, when used, is local, minimized, and inspectable through the graph export/control panel.
+- The bubble can submit `screenMedia` plus `promptText`, poll the task, and return the answer through notification, clipboard, and review.
+- Connector-derived context, when used later, is local, minimized, and inspectable through the graph export/control panel.
