@@ -1,4 +1,5 @@
 import { buildApp } from './app.js';
+import { loadRepoEnv } from './lib/env.js';
 
 const defaultPort = 3000;
 const defaultHost = '127.0.0.1';
@@ -17,6 +18,7 @@ const getPort = (): number => {
 };
 
 const main = async (): Promise<void> => {
+  loadRepoEnv();
   const app = await buildApp();
 
   await app.listen({

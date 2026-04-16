@@ -8,6 +8,8 @@ Open Bubble is a docs-first hackathon repo for a Flutter Android companion, a ti
 - `GET /health` checks that the server is up.
 - `POST /prompt` accepts one required `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`, then creates a lightweight async task.
 - `GET /tasks/:taskId` lets the client poll task state and fetch the result later.
+- Completed prompt tasks now include a structured request classification plus a routing payload for later app-specific handling.
+- Coding classifications also record a default local fallback workspace under repo-root `tmp/` for a future execution handoff.
 - The frontend forwards raw audio without client-side transcription.
 - The API returns a task handle immediately instead of blocking for the final result.
 

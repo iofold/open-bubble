@@ -41,3 +41,4 @@ yarn-debug.log*
 logs/
 dist/
 apps/api/.local/
+tmp/

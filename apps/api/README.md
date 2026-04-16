@@ -45,4 +45,15 @@ The frontend forwards `promptAudio` bytes as-is. It does not transcribe them cli
 - The API validates the multipart payload and creates a lightweight local task.
 - The response is `202 Accepted` with a `taskId`, `status`, and `statusUrl`.
 - Clients poll `GET /tasks/:taskId` until the task reaches `completed`, `failed`, or `error`.
+- Completed tasks include a request classification (`coding_request`, `personal_context_request`, or `action_request`) plus a routing payload that points at the stored media file and carries the original prompt fields forward.
+- Coding classifications also persist a default fallback working directory under repo-root `tmp/` for a later execution handoff.
 - Task state is persisted locally under `apps/api/.local/tasks/`.
+
+## Classifier configuration
+
+Set `OPENAI_API_KEY` before running the classifier-backed prompt processor.
+
+Optional overrides:
+
+- `OPEN_BUBBLE_CLASSIFIER_MODEL` defaults to `gpt-5.4`
+- `OPEN_BUBBLE_CLASSIFIER_BASE_URL` defaults to `https://api.openai.com/v1`

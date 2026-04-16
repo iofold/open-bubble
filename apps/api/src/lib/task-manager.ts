@@ -2,9 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { resolveFromRepoRoot } from './openapi.js';
+import type { SupportedAppName } from './supported-apps.js';
 
 export type ScreenMediaKind = 'image' | 'video';
 export type TaskStatus = 'in_progress' | 'completed' | 'failed' | 'error';
+export type RequestType =
+  | 'coding_request'
+  | 'personal_context_request'
+  | 'action_request';
 
 export interface ScreenMediaMetadata {
   filename: string;
@@ -28,6 +33,22 @@ export interface ParsedPromptRequest {
   promptAudio?: UploadedBinary<PromptAudioMetadata>;
 }
 
+export interface RequestClassification {
+  requestType: RequestType;
+  relevantApps: SupportedAppName[];
+  rationale: string;
+}
+
+export interface RoutingPayload {
+  promptText?: string;
+  promptAudio?: PromptAudioMetadata;
+  promptAudioPath?: string;
+  screenMedia: ScreenMediaMetadata;
+  screenMediaPath: string;
+  classification: RequestClassification;
+  defaultCodingCwd?: string;
+}
+
 export interface TaskFailure {
   code: string;
   message: string;
@@ -47,6 +68,8 @@ export interface TaskResult {
   promptText?: string;
   promptAudio?: PromptAudioMetadata;
   screenMedia: ScreenMediaMetadata;
+  classification: RequestClassification;
+  routingPayload: RoutingPayload;
   completedAt: string;
 }
 
@@ -73,6 +96,7 @@ export interface PromptTaskProcessorInput {
   taskId: string;
   taskDir: string;
   screenMedia: ScreenMediaMetadata;
+  screenMediaBuffer: Buffer;
   screenMediaPath: string;
   promptText?: string;
   promptAudio?: PromptAudioMetadata;
@@ -89,7 +113,7 @@ export interface TaskProgressUpdate {
 export type PromptTaskProcessorOutcome =
   | {
       status: 'completed';
-      result?: {
+      result: {
         answer?: string;
         pullRequestUrl?: string;
         branchName?: string;
@@ -97,6 +121,8 @@ export type PromptTaskProcessorOutcome =
         repoId?: string;
         threadId?: string;
         turnId?: string;
+        classification: RequestClassification;
+        routingPayload: RoutingPayload;
       };
     }
   | {
@@ -121,48 +147,33 @@ const promptAudioFileName = 'prompt-audio.bin';
 const defaultTaskStoreRoot = (): string =>
   resolveFromRepoRoot('apps', 'api', '.local', 'tasks');
 
-const buildAnswer = (payload: {
-  screenMedia: ScreenMediaMetadata;
-  promptText?: string;
-  promptAudio?: PromptAudioMetadata;
-}): string => {
-  const screenLabel =
-    payload.screenMedia.kind === 'image' ? 'screenshot' : 'screen recording';
-
-  if (payload.promptText && payload.promptAudio) {
-    return `Dummy response for ${screenLabel} with text and raw audio prompt input.`;
-  }
-
-  if (payload.promptAudio) {
-    return `Dummy response for ${screenLabel} with raw audio prompt input.`;
-  }
-
-  return `Dummy response for ${screenLabel} with text prompt input.`;
-};
+const buildDefaultClassification = (): RequestClassification => ({
+  requestType: 'personal_context_request',
+  relevantApps: [],
+  rationale:
+    'The default fallback processor was used because no app-server task processor was supplied.'
+});
 
 const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
-  screenMedia,
   promptText,
   promptAudio,
-  updateTask
+  screenMedia,
+  screenMediaPath
 }) => {
-  await updateTask({
-    repoId: 'demo-repo',
-    threadId: 'demo-thread',
-    turnId: 'demo-turn'
-  });
+  const classification = buildDefaultClassification();
 
   return {
     status: 'completed',
     result: {
-      answer: buildAnswer({
-        screenMedia,
+      answer: 'Default prompt task processor is not configured.',
+      classification,
+      routingPayload: {
         ...(promptText ? { promptText } : {}),
-        ...(promptAudio ? { promptAudio } : {})
-      }),
-      repoId: 'demo-repo',
-      threadId: 'demo-thread',
-      turnId: 'demo-turn'
+        ...(promptAudio ? { promptAudio } : {}),
+        screenMedia,
+        screenMediaPath,
+        classification
+      }
     }
   };
 };
@@ -307,6 +318,7 @@ export class PromptTaskManager {
         taskId: task.taskId,
         taskDir,
         screenMedia: payload.screenMedia.metadata,
+        screenMediaBuffer: payload.screenMedia.buffer,
         screenMediaPath: path.join(taskDir, screenMediaFileName),
         ...(payload.promptText ? { promptText: payload.promptText } : {}),
         ...(payload.promptAudio

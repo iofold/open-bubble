@@ -30,7 +30,7 @@ paths:
   /prompt:
     post:
       summary: Submit a media prompt and create an async task
-      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. The API persists a lightweight local task, starts background processing, and returns a task id for polling. Any unsupported media type should return `415 Unsupported Media Type`.
+      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. Background processing classifies the request from the prompt plus request metadata into one of `coding_request`, `personal_context_request`, or `action_request`, and suggests relevant apps from the supported app list when appropriate. The API persists a lightweight local task, starts background classification, and returns a task id for polling. Any unsupported media type should return `415 Unsupported Media Type`.
       requestBody:
         required: true
         content:
@@ -192,6 +192,9 @@ components:
     AppName:
       type: string
       enum: [Codex, Gmail, Gcal, Slack, Notion]
+    RequestType:
+      type: string
+      enum: [coding_request, personal_context_request, action_request]
     AppsResponse:
       type: object
       required: [apps]
@@ -261,7 +264,7 @@ components:
       additionalProperties: false
     TaskResult:
       type: object
-      required: [screenMedia, completedAt]
+      required: [screenMedia, completedAt, classification, routingPayload]
       properties:
         answer:
           type: string
@@ -284,9 +287,47 @@ components:
           $ref: '#/components/schemas/PromptAudio'
         screenMedia:
           $ref: '#/components/schemas/PromptMedia'
+        classification:
+          $ref: '#/components/schemas/RequestClassification'
+        routingPayload:
+          $ref: '#/components/schemas/RoutingPayload'
         completedAt:
           type: string
           format: date-time
+      additionalProperties: false
+    RequestClassification:
+      type: object
+      required: [requestType, relevantApps, rationale]
+      properties:
+        requestType:
+          $ref: '#/components/schemas/RequestType'
+        relevantApps:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppName'
+        rationale:
+          type: string
+          description: Short explanation grounded in the prompt and available request metadata.
+      additionalProperties: false
+    RoutingPayload:
+      type: object
+      required: [screenMedia, screenMediaPath, classification]
+      properties:
+        promptText:
+          type: string
+        promptAudio:
+          $ref: '#/components/schemas/PromptAudio'
+        promptAudioPath:
+          type: string
+        screenMedia:
+          $ref: '#/components/schemas/PromptMedia'
+        screenMediaPath:
+          type: string
+        classification:
+          $ref: '#/components/schemas/RequestClassification'
+        defaultCodingCwd:
+          type: string
+          description: Default local fallback working directory for future coding-task handoff when no dedicated execution target is available.
       additionalProperties: false
     TaskFailure:
       type: object

@@ -6,7 +6,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { buildApp, serviceVersion } from '../src/app.js';
-import type { PromptTaskProcessor } from '../src/lib/task-manager.js';
+import type {
+  PromptTaskProcessorInput,
+  PromptTaskProcessorOutcome,
+  RequestClassification
+} from '../src/lib/task-manager.js';
 import { createMultipartPayload } from './helpers/multipart.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -19,32 +23,84 @@ const readFixture = async (name: string): Promise<Record<string, unknown>> =>
 const createTaskStoreRoot = async (): Promise<string> =>
   mkdtemp(path.join(os.tmpdir(), 'open-bubble-api-task-test-'));
 
-const createDummyTaskProcessor = (): PromptTaskProcessor =>
-  async ({ screenMedia, promptText, promptAudio, updateTask }) => {
-    await updateTask({
+const buildClassification = (
+  overrides: Partial<RequestClassification> = {}
+): RequestClassification => ({
+  requestType: overrides.requestType ?? 'coding_request',
+  relevantApps: overrides.relevantApps ?? ['Codex'],
+  rationale:
+    overrides.rationale ??
+    'The prompt and screen point to a software or product debugging workflow.'
+});
+
+const buildCompletedOutcome = (
+  input: PromptTaskProcessorInput,
+  overrides: {
+    answer?: string;
+    classification?: Partial<RequestClassification>;
+    pullRequestUrl?: string;
+    branchName?: string;
+    commitSha?: string;
+    repoId?: string;
+    threadId?: string;
+    turnId?: string;
+  } = {}
+): PromptTaskProcessorOutcome => {
+  const repoId = overrides.repoId ?? 'demo-repo';
+  const threadId = overrides.threadId ?? 'demo-thread';
+  const turnId = overrides.turnId ?? 'demo-turn';
+  const classification = buildClassification(overrides.classification);
+
+  return {
+    status: 'completed',
+    result: {
+      ...(overrides.answer ? { answer: overrides.answer } : {}),
+      ...(overrides.pullRequestUrl
+        ? { pullRequestUrl: overrides.pullRequestUrl }
+        : {}),
+      ...(overrides.branchName ? { branchName: overrides.branchName } : {}),
+      ...(overrides.commitSha ? { commitSha: overrides.commitSha } : {}),
+      repoId,
+      threadId,
+      turnId,
+      classification,
+      routingPayload: {
+        ...(input.promptText ? { promptText: input.promptText } : {}),
+        ...(input.promptAudio && input.promptAudioPath
+          ? {
+              promptAudio: input.promptAudio,
+              promptAudioPath: input.promptAudioPath
+            }
+          : {}),
+        screenMedia: input.screenMedia,
+        screenMediaPath: input.screenMediaPath,
+        classification,
+        ...(classification.requestType === 'coding_request'
+          ? { defaultCodingCwd: path.join(repoRoot, 'tmp') }
+          : {})
+      }
+    }
+  };
+};
+
+const createDummyTaskProcessor = () =>
+  async (input: PromptTaskProcessorInput): Promise<PromptTaskProcessorOutcome> => {
+    await input.updateTask({
       repoId: 'demo-repo',
       threadId: 'demo-thread',
       turnId: 'demo-turn'
     });
 
     const screenLabel =
-      screenMedia.kind === 'image' ? 'screenshot' : 'screen recording';
+      input.screenMedia.kind === 'image' ? 'screenshot' : 'screen recording';
     const answer =
-      promptText && promptAudio
+      input.promptText && input.promptAudio
         ? `Dummy response for ${screenLabel} with text and raw audio prompt input.`
-        : promptAudio
+        : input.promptAudio
           ? `Dummy response for ${screenLabel} with raw audio prompt input.`
           : `Dummy response for ${screenLabel} with text prompt input.`;
 
-    return {
-      status: 'completed',
-      result: {
-        answer,
-        repoId: 'demo-repo',
-        threadId: 'demo-thread',
-        turnId: 'demo-turn'
-      }
-    };
+    return buildCompletedOutcome(input, { answer });
   };
 
 const createTestApp = async (
@@ -201,14 +257,11 @@ void test('GET /apps returns the supported app list', async () => {
 
 void test('POST /prompt returns 202 with a task handle', async () => {
   const app = await createTestApp({
-    taskProcessor: async ({ screenMedia }) => {
+    taskProcessor: async (input) => {
       await delay(25);
-      return {
-        status: 'completed',
-        result: {
-          answer: `Processed ${screenMedia.kind}.`
-        }
-      };
+      return buildCompletedOutcome(input, {
+        answer: `Processed ${input.screenMedia.kind}.`
+      });
     }
   });
 
@@ -228,23 +281,20 @@ void test('POST /prompt returns 202 with a task handle', async () => {
 
 void test('GET /tasks/:taskId returns in_progress before background work finishes', async () => {
   const app = await createTestApp({
-    taskProcessor: async ({ screenMedia, updateTask }) => {
-      await updateTask({
+    taskProcessor: async (input) => {
+      await input.updateTask({
         repoId: 'supercom-backend',
         threadId: 'thr_in_progress',
         turnId: 'turn_in_progress'
       });
 
       await delay(50);
-      return {
-        status: 'completed',
-        result: {
-          answer: `Processed ${screenMedia.kind}.`,
-          repoId: 'supercom-backend',
-          threadId: 'thr_in_progress',
-          turnId: 'turn_in_progress'
-        }
-      };
+      return buildCompletedOutcome(input, {
+        answer: `Processed ${input.screenMedia.kind}.`,
+        repoId: 'supercom-backend',
+        threadId: 'thr_in_progress',
+        turnId: 'turn_in_progress'
+      });
     }
   });
 
@@ -325,6 +375,43 @@ void test('GET /tasks/:taskId returns completed prompt results for text and audi
       mimeType: 'video/mp4',
       kind: 'video'
     });
+    assert.deepEqual(completedTask.result.classification, {
+      requestType: 'coding_request',
+      relevantApps: ['Codex'],
+      rationale:
+        'The prompt and screen point to a software or product debugging workflow.'
+    });
+    assert.equal(
+      completedTask.result.routingPayload.promptText,
+      'What should I do next?'
+    );
+    assert.deepEqual(completedTask.result.routingPayload.promptAudio, {
+      filename: 'prompt.wav',
+      mimeType: 'audio/wav'
+    });
+    assert.match(
+      completedTask.result.routingPayload.promptAudioPath as string,
+      /prompt-audio\.bin$/
+    );
+    assert.deepEqual(completedTask.result.routingPayload.screenMedia, {
+      filename: 'recording.mp4',
+      mimeType: 'video/mp4',
+      kind: 'video'
+    });
+    assert.match(
+      completedTask.result.routingPayload.screenMediaPath as string,
+      /screen-media\.bin$/
+    );
+    assert.deepEqual(completedTask.result.routingPayload.classification, {
+      requestType: 'coding_request',
+      relevantApps: ['Codex'],
+      rationale:
+        'The prompt and screen point to a software or product debugging workflow.'
+    });
+    assert.equal(
+      completedTask.result.routingPayload.defaultCodingCwd,
+      path.join(repoRoot, 'tmp')
+    );
     assert.match(completedTask.result.completedAt as string, /^\d{4}-\d{2}-\d{2}T/);
     assert.equal(completedTask.result.repoId, 'demo-repo');
     assert.equal(completedTask.result.threadId, 'demo-thread');
@@ -394,7 +481,7 @@ void test('POST /prompt handles multiple background tasks in parallel', async ()
   let maxParallelTasks = 0;
 
   const app = await createTestApp({
-    taskProcessor: async ({ promptText }) => {
+    taskProcessor: async (input) => {
       activeTasks += 1;
       maxParallelTasks = Math.max(maxParallelTasks, activeTasks);
 
@@ -402,12 +489,9 @@ void test('POST /prompt handles multiple background tasks in parallel', async ()
 
       activeTasks -= 1;
 
-      return {
-        status: 'completed',
-        result: {
-          answer: `Finished ${promptText ?? 'task'}.`
-        }
-      };
+      return buildCompletedOutcome(input, {
+        answer: `Finished ${input.promptText ?? 'task'}.`
+      });
     }
   });
 
