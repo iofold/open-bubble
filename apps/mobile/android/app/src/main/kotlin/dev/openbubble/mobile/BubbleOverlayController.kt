@@ -307,57 +307,40 @@ class BubbleOverlayController(
                 background =
                     GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
-                        colors = intArrayOf(
-                            colorInk,
-                            colorGraphite,
-                        )
-                        setStroke(3, Color.parseColor("#50FFFFFF"))
+                        setColor(colorSnow)
+                        setStroke(2, Color.parseColor("#18000000"))
                     }
-                elevation = 22f
-                setPadding(20)
-            }
-
-        val halo =
-            FrameLayout(service).apply {
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(Color.parseColor("#18FFFFFF"))
-                }
                 clipToOutline = true
+                elevation = 26f
                 setPadding(10)
             }
 
         val icon =
             ImageView(service).apply {
                 setImageResource(R.mipmap.ic_launcher)
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                scaleType = ImageView.ScaleType.FIT_CENTER
             }
 
         val label =
             TextView(service).apply {
                 text = bubbleLabel
                 setTextColor(colorSnow)
-                textSize = 10f
+                textSize = 11f
                 gravity = Gravity.CENTER
-                alpha = 0.88f
                 setTypeface(typeface, Typeface.BOLD)
+                setPadding(14, 6, 14, 6)
+                background = GradientDrawable().apply {
+                    cornerRadius = 999f
+                    setColor(colorInk)
+                }
             }
         bubbleLabelView = label
 
-        halo.addView(
+        container.addView(
             icon,
             FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                Gravity.CENTER,
-            ),
-        )
-
-        container.addView(
-            halo,
-            FrameLayout.LayoutParams(
-                86,
-                86,
+                124,
+                124,
                 Gravity.CENTER,
             ),
         )
@@ -367,7 +350,9 @@ class BubbleOverlayController(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
-            ),
+            ).apply {
+                bottomMargin = 14
+            },
         )
 
         bindBubbleInteractions(container)
