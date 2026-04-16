@@ -4,7 +4,7 @@ This file gives coding agents and human teammates the shared operating rules for
 
 ## Project intent
 
-Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble. The mobile app should help a user see running backend agent sessions, send screenshot + audio prompts to be answered from local directory context, optionally request explicit outgoing code assertions, and receive answers/status/completion notifications through a bubble-style UI.
+Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble. The MVP now centers on a small API that accepts a media prompt and returns a synchronous answer.
 
 ## Current phase
 
@@ -17,7 +17,6 @@ We are in a docs-first scaffold phase. Prefer contract/spec updates before imple
 - User journeys: `docs/specs/user-journeys.md`
 - Team workstreams: `docs/specs/team-collaboration.md`
 - REST contract: `docs/api/openapi.yaml`
-- Event contract: `docs/api/events.md`
 - Demo script: `docs/specs/demo-plan.md`
 - Architecture decisions: `docs/adr/`
 
@@ -26,10 +25,10 @@ We are in a docs-first scaffold phase. Prefer contract/spec updates before imple
 ```text
 apps/
   mobile/          Flutter Android app placeholder
-  server/          App Server placeholder
+  api/             Fastify API MVP placeholder
   agent-adapters/  Backend/Codex-agent adapter placeholder
 docs/
-  api/             OpenAPI, event contracts, sample payloads
+  api/             OpenAPI, sample payloads
   specs/           Product, implementation, user journey, and collaboration specs
   adr/             Architecture decision records
 .github/           PR and collaboration hygiene
@@ -50,28 +49,27 @@ docs/
   - audio prompt capture or transcript fallback
 - If native overlay/screenshot/audio work is blocked, preserve the demo path with an in-app floating bubble plus sample screenshot/transcript fallback.
 
-### App Server (`apps/server/`)
+### API (`apps/api/`)
 
+- Keep all Node.js, TypeScript, build, and test tooling inside `apps/api/`.
+- Use strict TypeScript for the API MVP.
 - The API contract is `docs/api/openapi.yaml`; update it before changing endpoint behavior.
-- The event contract is `docs/api/events.md`; update it before adding/changing event names or payload shapes.
-- Use the Codex app server skill at `.agents/skills/codex-app-server/SKILL.md` whenever you need to work with the Codex app server.
-- Start with simple local development assumptions: REST + SSE + in-memory state.
-- Avoid persistence, auth, and deployment complexity unless the demo explicitly needs it.
+- Start with simple local development assumptions: REST and in-memory request handling only.
+- Avoid persistence, auth, SSE, and deployment complexity unless the demo explicitly needs it.
 
 ### Agent Adapters (`apps/agent-adapters/`)
 
-- Adapters connect backend agent runtimes to the App Server; mobile should not talk directly to agent runtimes.
-- Start with a demo adapter that can register a fake session, answer a screenshot + audio context request from local directory context, and publish `context.answer.ready` / `agent.done`.
-- Keep adapter payloads aligned with `docs/api/examples/`.
+- Adapters connect backend agent runtimes to the API; mobile should not talk directly to agent runtimes.
+- Keep adapter payloads aligned with `docs/api/examples/` if and when those examples are relevant to adapter work.
 
 ## Contract-change rule
 
-When changing API or event behavior:
+When changing API behavior:
 
-1. Update `docs/api/openapi.yaml` or `docs/api/events.md` first.
+1. Update `docs/api/openapi.yaml` first.
 2. Update sample payloads in `docs/api/examples/`.
 3. Update affected specs or demo steps.
-4. Then implement code in the relevant app directory.
+4. Then implement code in `apps/api/`.
 
 ## Git sync rule
 

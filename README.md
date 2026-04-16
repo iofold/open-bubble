@@ -1,21 +1,21 @@
 # Open Bubble
 
-Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble that can sit over the phone UI, talk to a local/team app server, send screenshot + audio prompts to be answered from local directory context, and surface agent-completion notifications as a floating bubble.
+Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble. The MVP keeps the API deliberately small: a health check and one synchronous prompt endpoint that accepts a media upload plus optional text.
 
 ## Current repo status
 
-This repo is intentionally docs-first right now. The first goal is to align the team on scope, API contracts, and ownership before writing app/server code.
+This repo is docs-first. The contract should stay small and clear until the API and mobile flows need more surface area.
 
 ## Proposed shape
 
 ```text
 open-bubble/
   apps/
+    api/             # Fastify API MVP, TypeScript, and local docs
     mobile/          # Flutter Android app; native Android hooks via platform channels later
-    server/          # App Server API + event relay later
     agent-adapters/  # Backend/Codex-agent adapters later
   docs/
-    api/             # OpenAPI + event contracts
+    api/             # OpenAPI contract and request/response examples
     specs/           # Product, mobile, server, and adapter specs
     adr/             # Architecture decision records
   .github/           # PR template / collaboration hygiene
@@ -23,7 +23,7 @@ open-bubble/
 
 ## MVP in one sentence
 
-A user opens the Flutter app, sees a draggable Open Bubble, sends a screenshot + audio prompt to the server, gets an answer grounded in the selected session's local directory context, and receives answer/status/done events back through the bubble.
+A user opens the Flutter app, uploads an image or video with an optional prompt, and gets a synchronous answer back from the local API.
 
 ## Team starting points
 
@@ -33,15 +33,14 @@ A user opens the Flutter app, sees a draggable Open Bubble, sends a screenshot +
 - Read [`docs/specs/application-understanding.md`](docs/specs/application-understanding.md) for the current mental model of the app.
 - Read [`docs/specs/user-journeys.md`](docs/specs/user-journeys.md) for the expected user flows.
 - Read [`docs/specs/team-collaboration.md`](docs/specs/team-collaboration.md) for workstream ownership.
-- Use [`docs/api/openapi.yaml`](docs/api/openapi.yaml) and [`docs/api/events.md`](docs/api/events.md) as the shared contract between mobile, server, and agent adapters.
+- Use [`docs/api/openapi.yaml`](docs/api/openapi.yaml) as the shared contract for the API MVP.
 - Log architectural decisions in [`docs/adr/`](docs/adr/).
 
 ## Suggested hackathon flow
 
 1. Agree on the API contract.
-2. Stub server responses against the contract.
+2. Stub API responses against the contract.
 3. Build Flutter UI screens against mocked/server data.
-4. Add the context request composer: screenshot + audio prompt with typed/mock fallbacks.
+4. Add the prompt composer: image or video upload with typed/mock fallbacks.
 5. Add Android platform-channel hooks for overlay, screenshot capture, and audio prompt capture as time allows.
-6. Wire agent/backend answers and status events into the server event stream.
-7. Run the demo script in [`docs/specs/demo-plan.md`](docs/specs/demo-plan.md).
+6. Run the demo script in [`docs/specs/demo-plan.md`](docs/specs/demo-plan.md).

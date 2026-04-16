@@ -1,51 +1,40 @@
-# App Server Spec
+# API MVP Spec
 
 ## Role
 
-The App Server is the contract boundary between the Flutter app and backend agents. It should be simple enough for the hackathon demo but structured so mobile, server, and adapter work can proceed independently.
+The API is the contract boundary for the Flutter app MVP. It stays intentionally small so the team can move quickly without carrying session or event machinery that the current demo does not need.
 
 ## Responsibilities
 
-- Maintain a list of active agent sessions.
-- Accept screenshot + audio/typed prompt context requests from mobile.
-- Route context requests to the relevant adapter/backend agent.
-- Return or stream answers produced from local directory context.
-- Preserve passive session context summaries for debug/session detail.
-- Relay backend agent status/completion events to mobile.
-- Provide stable sample payloads for mobile development.
+- Provide `GET /health` for local server checks.
+- Accept multipart prompt submissions at `POST /prompt`.
+- Require one uploaded media file and allow an optional text prompt.
+- Accept `image/*` and `video/*` uploads.
+- Return a synchronous JSON answer that the mobile app can render immediately.
 
-## Context request semantics
+## Transport
 
-`POST /v1/sessions/{sessionId}/context-requests` is the primary "fetch context" action. It represents the user asking a question with phone-side screenshot/audio prompt. The answer should be generated from the selected session's local directory context.
-
-The server should not treat every request as a code assertion. A request is a code assertion only when the user explicitly asks for assertion/verification in the audio prompt, transcript, or typed prompt.
-
-## MVP transport
-
-- REST for request/response actions.
-- Server-Sent Events (SSE) for one-way answer/status notifications to mobile.
-- JSON payloads only for the first pass.
-- Base64 media payloads are acceptable for the demo; optimize storage/uploads later if needed.
+- Use REST only for the MVP.
+- Keep request handling synchronous.
+- Keep the API surface limited to the documented endpoints until the contract changes.
 
 ## Storage
 
-Start with in-memory storage. Add file or database persistence only if the demo needs restart survival.
+Start with in-memory request handling. Add persistence only if a later demo needs it.
 
 ## Suggested server modules later
 
 ```text
-apps/server/
+apps/api/
   src/
-    index.*          # boot server
-    api/             # routes/controllers
-    domain/          # session/event/request models
-    adapters/        # backend agent integrations
-    store/           # in-memory persistence
-  test/              # API contract tests
+    server.ts
+    app.ts
+    routes/
+    lib/
+  test/
 ```
 
 ## Contract discipline
 
-- `docs/api/openapi.yaml` is the source of truth for REST endpoints.
-- `docs/api/events.md` is the source of truth for event names and payloads.
+- `docs/api/openapi.yaml` is the source of truth for the API MVP.
 - Server implementation should include contract tests before mobile depends on changed behavior.

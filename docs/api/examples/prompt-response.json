@@ -1,0 +1,10 @@
+{
+  "answer": "The prompt is handled synchronously, so you can show this result immediately in the bubble UI.",
+  "prompt": "What should I do next?",
+  "media": {
+    "filename": "screen-recording.mp4",
+    "mimeType": "video/mp4",
+    "kind": "video"
+  },
+  "receivedAt": "2026-04-16T06:45:00Z"
+}
