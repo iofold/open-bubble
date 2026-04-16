@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-bubble.local/schemas/context-request.schema.json",
+  "title": "Open Bubble Context Request",
+  "type": "object",
+  "required": ["deviceId", "createdAt", "screenshot", "prompt"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "requestId": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "deviceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "intent": {
+      "type": "string",
+      "enum": ["context_question", "code_assertion"]
+    },
+    "userExplicitlyRequestedCodeAssertion": {
+      "type": "boolean"
+    },
+    "screenshot": {
+      "type": "object",
+      "required": ["capturedAt"],
+      "properties": {
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "mimeType": {
+          "type": "string",
+          "enum": ["image/png", "image/jpeg", "image/webp"]
+        },
+        "imageBase64": {
+          "type": "string"
+        },
+        "screenMetadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "prompt": {
+      "type": "object",
+      "required": ["capturedAt"],
+      "properties": {
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "audioMimeType": {
+          "type": "string",
+          "enum": ["audio/aac", "audio/m4a", "audio/mp4", "audio/wav", "audio/webm"]
+        },
+        "audioBase64": {
+          "type": "string"
+        },
+        "transcript": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "localContextHints": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

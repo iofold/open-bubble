@@ -1,0 +1,17 @@
+{
+  "accepted": true,
+  "requestId": "ctx_req_001",
+  "status": "answered",
+  "eventType": "context.answer.ready",
+  "message": "Answered from fast local context.",
+  "answer": {
+    "summary": "The agent is using the Open Bubble repo context and should continue by wiring the context request endpoint.",
+    "confidence": "medium",
+    "retrievalMode": "direct_duckdb",
+    "localContextUsed": [
+      "duckdb:session_context",
+      "docs/api/openapi.yaml",
+      "docs/specs/server.md"
+    ]
+  }
+}

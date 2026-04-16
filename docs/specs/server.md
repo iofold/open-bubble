@@ -2,7 +2,7 @@
 
 ## Role
 
-The API is the contract boundary for the Flutter app MVP. It stays intentionally small so the team can move quickly without carrying session or event machinery that the current demo does not need.
+The API is the contract boundary for the Flutter app MVP. It stays intentionally small so the team can move quickly without carrying session or event machinery as active behavior before the current flow is stable.
 
 ## Responsibilities
 
@@ -15,9 +15,9 @@ The API is the contract boundary for the Flutter app MVP. It stays intentionally
 
 ## Transport
 
-- Use REST only for the MVP.
+- Use REST only for the active MVP.
 - Keep request handling synchronous.
-- Keep the API surface limited to the documented endpoints until the contract changes.
+- Keep the active API surface limited to the documented endpoints until the contract changes.
 
 ## Storage
 
@@ -34,6 +34,14 @@ apps/api/
     lib/
   test/
 ```
+
+## Codex agent cwd
+
+When the server later needs a real Codex-backed answer, spawn or manage Codex with `apps/codex-agent/` as the working directory. Pass the request through environment or file handoff only after the active `/prompt` MVP contract grows beyond the current synchronous path.
+
+## Future scope note
+
+The repository now also contains future-scope material for Codex agent integration, direct DuckDB context lookups, and async answer delivery. Treat those as next-step references, not active API behavior, until `docs/api/openapi.yaml` is expanded again.
 
 ## Contract discipline
 

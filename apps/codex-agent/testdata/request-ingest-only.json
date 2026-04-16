@@ -1,0 +1,19 @@
+{
+  "id": "ctx_req_ingest_001",
+  "sessionId": "sess_test_001",
+  "deviceId": "android_test_device",
+  "createdAt": "2026-04-16T07:11:00Z",
+  "intent": "context_question",
+  "userExplicitlyRequestedCodeAssertion": false,
+  "screenshot": {
+    "capturedAt": "2026-04-16T07:10:58Z",
+    "screenMetadata": {
+      "visibleText": "Save this state for later"
+    }
+  },
+  "prompt": {
+    "capturedAt": "2026-04-16T07:10:59Z",
+    "transcript": "Remember this screen for later.",
+    "language": "en-US"
+  }
+}

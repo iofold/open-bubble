@@ -1,0 +1,93 @@
+{
+  "sessionId": "sess_test_001",
+  "sessionContext": {
+    "current_task": "Implement context graph ingestion and frontend response generation",
+    "working_directory": "/home/ubuntu/workspace/open-bubble",
+    "last_status": "Adding deterministic tests for Codex agent context requests"
+  },
+  "episodes": [
+    {
+      "id": "episode_seed_status",
+      "type": "seed_context",
+      "source": "testdata/seed-context.json",
+      "content": "The agent is implementing context graph ingestion and frontend response generation.",
+      "metadata": {
+        "purpose": "test seed"
+      },
+      "createdAt": "2026-04-16T07:00:00Z"
+    }
+  ],
+  "entities": [
+    {
+      "id": "session:sess_test_001",
+      "type": "agent_session",
+      "name": "sess_test_001",
+      "description": "Test Open Bubble session"
+    },
+    {
+      "id": "task_context_graph_ingest",
+      "type": "task",
+      "name": "Context graph ingestion",
+      "description": "Implement context graph ingestion and frontend response generation"
+    },
+    {
+      "id": "file_apps_codex_agent_processor",
+      "type": "file",
+      "name": "apps/codex-agent/scripts/process-context-request.py",
+      "description": "Processor that ingests requests into DuckDB and produces ContextAnswer JSON"
+    },
+    {
+      "id": "claim_processor_outputs_answer",
+      "type": "claim",
+      "name": "Processor outputs ContextAnswer",
+      "description": "The processor writes structured ContextAnswer JSON for frontend response requests"
+    }
+  ],
+  "relations": [
+    {
+      "id": "rel_seed_session_task",
+      "sourceId": "session:sess_test_001",
+      "targetId": "task_context_graph_ingest",
+      "type": "current_task",
+      "fact": "Session is working on context graph ingestion",
+      "confidence": 0.95,
+      "sourceEpisodeId": "episode_seed_status"
+    },
+    {
+      "id": "rel_seed_task_file",
+      "sourceId": "task_context_graph_ingest",
+      "targetId": "file_apps_codex_agent_processor",
+      "type": "touches_file",
+      "fact": "Context graph ingestion touches the processor script",
+      "confidence": 0.9,
+      "sourceEpisodeId": "episode_seed_status"
+    },
+    {
+      "id": "rel_seed_file_claim",
+      "sourceId": "file_apps_codex_agent_processor",
+      "targetId": "claim_processor_outputs_answer",
+      "type": "supports_claim",
+      "fact": "Processor script supports structured ContextAnswer output",
+      "confidence": 0.8,
+      "sourceEpisodeId": "episode_seed_status"
+    }
+  ],
+  "chunks": [
+    {
+      "id": "chunk_seed_current_task",
+      "source": "seed:current_task",
+      "text": "Current task: implement context graph ingestion and frontend response generation.",
+      "metadata": {
+        "kind": "task_status"
+      }
+    },
+    {
+      "id": "chunk_seed_processor",
+      "source": "seed:processor",
+      "text": "The processor script ingests screenshot and voice prompt requests into DuckDB and returns ContextAnswer JSON.",
+      "metadata": {
+        "kind": "implementation_note"
+      }
+    }
+  ]
+}

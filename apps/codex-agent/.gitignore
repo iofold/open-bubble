@@ -1,0 +1,11 @@
+# Runtime handoff files
+requests/*
+!requests/.gitkeep
+responses/*
+!responses/.gitkeep
+data/*
+!data/.gitkeep
+
+# Local database files
+*.duckdb
+*.duckdb.wal
