@@ -268,6 +268,16 @@ components:
         pullRequestUrl:
           type: string
           format: uri
+        branchName:
+          type: string
+        commitSha:
+          type: string
+        repoId:
+          type: string
+        threadId:
+          type: string
+        turnId:
+          type: string
         promptText:
           type: string
         promptAudio:
@@ -286,6 +296,12 @@ components:
           type: string
         message:
           type: string
+        repoId:
+          type: string
+        threadId:
+          type: string
+        turnId:
+          type: string
       additionalProperties: false
     TaskStatusResponse:
       type: object
@@ -302,6 +318,12 @@ components:
         updatedAt:
           type: string
           format: date-time
+        repoId:
+          type: string
+        threadId:
+          type: string
+        turnId:
+          type: string
         result:
           $ref: '#/components/schemas/TaskResult'
         errorDetail:

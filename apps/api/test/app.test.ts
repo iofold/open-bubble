@@ -6,6 +6,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { buildApp, serviceVersion } from '../src/app.js';
+import type { PromptTaskProcessor } from '../src/lib/task-manager.js';
 import { createMultipartPayload } from './helpers/multipart.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -18,11 +19,40 @@ const readFixture = async (name: string): Promise<Record<string, unknown>> =>
 const createTaskStoreRoot = async (): Promise<string> =>
   mkdtemp(path.join(os.tmpdir(), 'open-bubble-api-task-test-'));
 
+const createDummyTaskProcessor = (): PromptTaskProcessor =>
+  async ({ screenMedia, promptText, promptAudio, updateTask }) => {
+    await updateTask({
+      repoId: 'demo-repo',
+      threadId: 'demo-thread',
+      turnId: 'demo-turn'
+    });
+
+    const screenLabel =
+      screenMedia.kind === 'image' ? 'screenshot' : 'screen recording';
+    const answer =
+      promptText && promptAudio
+        ? `Dummy response for ${screenLabel} with text and raw audio prompt input.`
+        : promptAudio
+          ? `Dummy response for ${screenLabel} with raw audio prompt input.`
+          : `Dummy response for ${screenLabel} with text prompt input.`;
+
+    return {
+      status: 'completed',
+      result: {
+        answer,
+        repoId: 'demo-repo',
+        threadId: 'demo-thread',
+        turnId: 'demo-turn'
+      }
+    };
+  };
+
 const createTestApp = async (
   options: Parameters<typeof buildApp>[0] = {}
 ): Promise<FastifyInstance> =>
   buildApp({
     taskStoreRoot: await createTaskStoreRoot(),
+    taskProcessor: options.taskProcessor ?? createDummyTaskProcessor(),
     ...options
   });
 
@@ -198,12 +228,21 @@ void test('POST /prompt returns 202 with a task handle', async () => {
 
 void test('GET /tasks/:taskId returns in_progress before background work finishes', async () => {
   const app = await createTestApp({
-    taskProcessor: async ({ screenMedia }) => {
+    taskProcessor: async ({ screenMedia, updateTask }) => {
+      await updateTask({
+        repoId: 'supercom-backend',
+        threadId: 'thr_in_progress',
+        turnId: 'turn_in_progress'
+      });
+
       await delay(50);
       return {
         status: 'completed',
         result: {
-          answer: `Processed ${screenMedia.kind}.`
+          answer: `Processed ${screenMedia.kind}.`,
+          repoId: 'supercom-backend',
+          threadId: 'thr_in_progress',
+          turnId: 'turn_in_progress'
         }
       };
     }
@@ -213,13 +252,24 @@ void test('GET /tasks/:taskId returns in_progress before background work finishe
     const submitResponse = await submitPrompt(app);
     const { taskId } = submitResponse.json();
 
-    const statusResponse = await app.inject({
+    let statusResponse = await app.inject({
       method: 'GET',
       url: `/tasks/${taskId as string}`
     });
 
+    if (statusResponse.json().repoId === undefined) {
+      await delay(25);
+      statusResponse = await app.inject({
+        method: 'GET',
+        url: `/tasks/${taskId as string}`
+      });
+    }
+
     assert.equal(statusResponse.statusCode, 200);
     assert.equal(statusResponse.json().status, 'in_progress');
+    assert.equal(statusResponse.json().repoId, 'supercom-backend');
+    assert.equal(statusResponse.json().threadId, 'thr_in_progress');
+    assert.equal(statusResponse.json().turnId, 'turn_in_progress');
 
     const completedTask = await waitForTaskStatus(
       app,
@@ -228,6 +278,9 @@ void test('GET /tasks/:taskId returns in_progress before background work finishe
     );
 
     assert.match(completedTask.result.answer as string, /Processed image/);
+    assert.equal(completedTask.result.repoId, 'supercom-backend');
+    assert.equal(completedTask.result.threadId, 'thr_in_progress');
+    assert.equal(completedTask.result.turnId, 'turn_in_progress');
   } finally {
     await app.close();
   }
@@ -259,6 +312,9 @@ void test('GET /tasks/:taskId returns completed prompt results for text and audi
       completedTask.result.answer as string,
       /text and raw audio prompt input/
     );
+    assert.equal(completedTask.repoId, 'demo-repo');
+    assert.equal(completedTask.threadId, 'demo-thread');
+    assert.equal(completedTask.turnId, 'demo-turn');
     assert.equal(completedTask.result.promptText, 'What should I do next?');
     assert.deepEqual(completedTask.result.promptAudio, {
       filename: 'prompt.wav',
@@ -270,6 +326,9 @@ void test('GET /tasks/:taskId returns completed prompt results for text and audi
       kind: 'video'
     });
     assert.match(completedTask.result.completedAt as string, /^\d{4}-\d{2}-\d{2}T/);
+    assert.equal(completedTask.result.repoId, 'demo-repo');
+    assert.equal(completedTask.result.threadId, 'demo-thread');
+    assert.equal(completedTask.result.turnId, 'demo-turn');
   } finally {
     await app.close();
   }

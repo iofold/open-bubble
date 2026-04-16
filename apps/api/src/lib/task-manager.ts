@@ -31,11 +31,19 @@ export interface ParsedPromptRequest {
 export interface TaskFailure {
   code: string;
   message: string;
+  repoId?: string;
+  threadId?: string;
+  turnId?: string;
 }
 
 export interface TaskResult {
   answer?: string;
   pullRequestUrl?: string;
+  branchName?: string;
+  commitSha?: string;
+  repoId?: string;
+  threadId?: string;
+  turnId?: string;
   promptText?: string;
   promptAudio?: PromptAudioMetadata;
   screenMedia: ScreenMediaMetadata;
@@ -47,6 +55,9 @@ export interface TaskStatusResponse {
   status: TaskStatus;
   createdAt: string;
   updatedAt: string;
+  repoId?: string;
+  threadId?: string;
+  turnId?: string;
   result?: TaskResult;
   errorDetail?: TaskFailure;
 }
@@ -66,6 +77,13 @@ export interface PromptTaskProcessorInput {
   promptText?: string;
   promptAudio?: PromptAudioMetadata;
   promptAudioPath?: string;
+  updateTask: (patch: TaskProgressUpdate) => Promise<void>;
+}
+
+export interface TaskProgressUpdate {
+  repoId?: string;
+  threadId?: string;
+  turnId?: string;
 }
 
 export type PromptTaskProcessorOutcome =
@@ -74,6 +92,11 @@ export type PromptTaskProcessorOutcome =
       result?: {
         answer?: string;
         pullRequestUrl?: string;
+        branchName?: string;
+        commitSha?: string;
+        repoId?: string;
+        threadId?: string;
+        turnId?: string;
       };
     }
   | {
@@ -120,17 +143,29 @@ const buildAnswer = (payload: {
 const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
   screenMedia,
   promptText,
-  promptAudio
-}) => ({
-  status: 'completed',
-  result: {
-    answer: buildAnswer({
-      screenMedia,
-      ...(promptText ? { promptText } : {}),
-      ...(promptAudio ? { promptAudio } : {})
-    })
-  }
-});
+  promptAudio,
+  updateTask
+}) => {
+  await updateTask({
+    repoId: 'demo-repo',
+    threadId: 'demo-thread',
+    turnId: 'demo-turn'
+  });
+
+  return {
+    status: 'completed',
+    result: {
+      answer: buildAnswer({
+        screenMedia,
+        ...(promptText ? { promptText } : {}),
+        ...(promptAudio ? { promptAudio } : {})
+      }),
+      repoId: 'demo-repo',
+      threadId: 'demo-thread',
+      turnId: 'demo-turn'
+    }
+  };
+};
 
 const writeJson = async (
   filePath: string,
@@ -186,6 +221,10 @@ export class PromptTaskManager {
     await this.persistTaskInput(taskDir, payload);
     await this.writeTask(taskId, initialTask);
 
+    console.info(
+      `[api] task ${taskId} persisted at ${taskDir} with screenMedia=${payload.screenMedia.metadata.kind}`
+    );
+
     void this.runTask(initialTask, taskDir, payload);
 
     return {
@@ -219,6 +258,21 @@ export class PromptTaskManager {
     await writeJson(this.getTaskFilePath(taskId), payload);
   }
 
+  private async mergeTask(
+    taskId: string,
+    patch: Partial<TaskStatusResponse>
+  ): Promise<TaskStatusResponse> {
+    const current = await readJson<TaskStatusResponse>(this.getTaskFilePath(taskId));
+    const next: TaskStatusResponse = {
+      ...current,
+      ...patch,
+      updatedAt: new Date().toISOString()
+    };
+
+    await this.writeTask(taskId, next);
+    return next;
+  }
+
   private async persistTaskInput(
     taskDir: string,
     payload: ParsedPromptRequest
@@ -248,6 +302,7 @@ export class PromptTaskManager {
     payload: ParsedPromptRequest
   ): Promise<void> {
     try {
+      console.info(`[api] task ${task.taskId} background execution started`);
       const outcome = await this.taskProcessor({
         taskId: task.taskId,
         taskDir,
@@ -260,24 +315,35 @@ export class PromptTaskManager {
               promptAudioPath: path.join(taskDir, promptAudioFileName)
             }
           : {})
+        ,
+        updateTask: async (patch) => {
+          await this.mergeTask(task.taskId, patch);
+        }
       });
 
       const completedAt = new Date().toISOString();
 
       if (outcome.status === 'failed') {
-        await this.writeTask(task.taskId, {
-          ...task,
+        console.warn(
+          `[api] task ${task.taskId} failed: ${outcome.errorDetail.code} ${outcome.errorDetail.message}`
+        );
+        await this.mergeTask(task.taskId, {
           status: 'failed',
-          updatedAt: completedAt,
+          ...(outcome.errorDetail.repoId ? { repoId: outcome.errorDetail.repoId } : {}),
+          ...(outcome.errorDetail.threadId
+            ? { threadId: outcome.errorDetail.threadId }
+            : {}),
+          ...(outcome.errorDetail.turnId ? { turnId: outcome.errorDetail.turnId } : {}),
           errorDetail: outcome.errorDetail
         });
         return;
       }
 
-      await this.writeTask(task.taskId, {
-        ...task,
+      await this.mergeTask(task.taskId, {
         status: 'completed',
-        updatedAt: completedAt,
+        ...(outcome.result?.repoId ? { repoId: outcome.result.repoId } : {}),
+        ...(outcome.result?.threadId ? { threadId: outcome.result.threadId } : {}),
+        ...(outcome.result?.turnId ? { turnId: outcome.result.turnId } : {}),
         result: {
           screenMedia: payload.screenMedia.metadata,
           completedAt,
@@ -288,13 +354,11 @@ export class PromptTaskManager {
           ...outcome.result
         }
       });
+      console.info(`[api] task ${task.taskId} completed`);
     } catch (error) {
-      const failedAt = new Date().toISOString();
-
-      await this.writeTask(task.taskId, {
-        ...task,
+      console.error(`[api] task ${task.taskId} crashed`, error);
+      await this.mergeTask(task.taskId, {
         status: 'error',
-        updatedAt: failedAt,
         errorDetail: {
           code: 'task_error',
           message: getErrorMessage(error)

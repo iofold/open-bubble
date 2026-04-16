@@ -1,0 +1,10 @@
+{
+  "repos": [
+    {
+      "id": "supercom-backend",
+      "cwd": "/Users/you/code/supercom/backend",
+      "aliases": ["supercom", "backend", "dispatch", "ops"],
+      "isDefault": true
+    }
+  ]
+}

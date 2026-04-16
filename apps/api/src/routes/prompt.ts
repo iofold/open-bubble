@@ -90,6 +90,10 @@ const parsePromptRequest = async (
   const parts: AsyncIterableIterator<Multipart> = request.parts();
 
   for await (const part of parts) {
+    console.info(
+      `[api] /prompt ${request.id} received multipart part ${part.fieldname} (${part.type})`
+    );
+
     if (part.type === 'file') {
       const filePart: MultipartFile = part;
 
@@ -211,13 +215,19 @@ export const promptRoute = ({
         request,
         reply
       ): Promise<PromptAcceptedResponse | FastifyReply> => {
+        console.info(`[api] /prompt ${request.id} start`);
         const parsed = await parsePromptRequest(request, reply);
 
         if (!parsed) {
+          console.warn(`[api] /prompt ${request.id} rejected during parsing`);
           return reply;
         }
 
+        console.info(`[api] /prompt ${request.id} parsed successfully`);
         const task = await taskManager.createTask(parsed);
+        console.info(
+          `[api] /prompt ${request.id} accepted task ${task.taskId}`
+        );
         return reply.code(202).send(task);
       }
     );

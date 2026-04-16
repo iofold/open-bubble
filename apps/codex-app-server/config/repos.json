@@ -1,0 +1,263 @@
+{
+  "repos": [
+    {
+      "id": "accountability-app",
+      "cwd": "/Users/neilsanghrajka/code/accountability-app",
+      "aliases": [
+        "accountability app",
+        "accountability-app"
+      ]
+    },
+    {
+      "id": "anthropic-cookbook",
+      "cwd": "/Users/neilsanghrajka/code/anthropic-cookbook",
+      "aliases": [
+        "anthropic cookbook",
+        "anthropic-cookbook"
+      ]
+    },
+    {
+      "id": "beeper-reverse-engineer",
+      "cwd": "/Users/neilsanghrajka/code/beeper-reverse-engineer",
+      "aliases": [
+        "beeper reverse engineer",
+        "beeper-reverse-engineer"
+      ]
+    },
+    {
+      "id": "call-reminder",
+      "cwd": "/Users/neilsanghrajka/code/call-reminder",
+      "aliases": [
+        "call reminder",
+        "call-reminder"
+      ]
+    },
+    {
+      "id": "cline",
+      "cwd": "/Users/neilsanghrajka/code/cline",
+      "aliases": [
+        "cline"
+      ]
+    },
+    {
+      "id": "codex-agent-team",
+      "cwd": "/Users/neilsanghrajka/code/codex-agent-team",
+      "aliases": [
+        "codex agent team",
+        "codex-agent-team"
+      ]
+    },
+    {
+      "id": "codex-bubble",
+      "cwd": "/Users/neilsanghrajka/code/codex-bubble",
+      "aliases": [
+        "codex bubble",
+        "codex-bubble"
+      ]
+    },
+    {
+      "id": "config-file-manager",
+      "cwd": "/Users/neilsanghrajka/code/config-file-manager",
+      "aliases": [
+        "config file manager",
+        "config-file-manager"
+      ]
+    },
+    {
+      "id": "context",
+      "cwd": "/Users/neilsanghrajka/code/Context",
+      "aliases": [
+        "context"
+      ]
+    },
+    {
+      "id": "context-keyboard",
+      "cwd": "/Users/neilsanghrajka/code/context-keyboard",
+      "aliases": [
+        "context keyboard",
+        "context-keyboard"
+      ]
+    },
+    {
+      "id": "daily-wallpaper",
+      "cwd": "/Users/neilsanghrajka/code/daily-wallpaper",
+      "aliases": [
+        "daily wallpaper",
+        "daily-wallpaper"
+      ]
+    },
+    {
+      "id": "debugger",
+      "cwd": "/Users/neilsanghrajka/code/debugger",
+      "aliases": [
+        "debugger"
+      ]
+    },
+    {
+      "id": "first-extension",
+      "cwd": "/Users/neilsanghrajka/code/first-extension",
+      "aliases": [
+        "first extension",
+        "first-extension"
+      ]
+    },
+    {
+      "id": "inbox-zero",
+      "cwd": "/Users/neilsanghrajka/code/inbox-zero",
+      "aliases": [
+        "inbox zero",
+        "inbox-zero"
+      ]
+    },
+    {
+      "id": "inboxai",
+      "cwd": "/Users/neilsanghrajka/code/inboxai",
+      "aliases": [
+        "inbox ai",
+        "inboxai"
+      ]
+    },
+    {
+      "id": "openai-apps-sdk-examples",
+      "cwd": "/Users/neilsanghrajka/code/openai-apps-sdk-examples",
+      "aliases": [
+        "openai apps sdk examples",
+        "openai-apps-sdk-examples"
+      ]
+    },
+    {
+      "id": "pm-gpt",
+      "cwd": "/Users/neilsanghrajka/code/pm-gpt",
+      "aliases": [
+        "pm gpt",
+        "pm-gpt"
+      ]
+    },
+    {
+      "id": "readhim",
+      "cwd": "/Users/neilsanghrajka/code/ReadHim",
+      "aliases": [
+        "read him",
+        "readhim"
+      ]
+    },
+    {
+      "id": "skill-seekers",
+      "cwd": "/Users/neilsanghrajka/code/Skill_Seekers",
+      "aliases": [
+        "skill seekers",
+        "skill-seekers",
+        "skill_seekers"
+      ]
+    },
+    {
+      "id": "slash",
+      "cwd": "/Users/neilsanghrajka/code/slash",
+      "aliases": [
+        "slash"
+      ]
+    },
+    {
+      "id": "supercom",
+      "cwd": "/Users/neilsanghrajka/code/supercom",
+      "aliases": [
+        "super com",
+        "supercom"
+      ]
+    },
+    {
+      "id": "supercom-backend",
+      "cwd": "/private/tmp/supercom-backend-appserver-test",
+      "aliases": [
+        "super com backend",
+        "super com back end",
+        "supercom backend",
+        "supercom-backend",
+        "supercom back end",
+        "sudo com backend",
+        "sudocom backend"
+      ]
+    },
+    {
+      "id": "supercom-ios",
+      "cwd": "/Users/neilsanghrajka/code/supercom-ios",
+      "aliases": [
+        "super com ios",
+        "supercom ios",
+        "supercom-ios"
+      ]
+    },
+    {
+      "id": "supercom-linkedin-prototype",
+      "cwd": "/Users/neilsanghrajka/code/supercom-linkedin-prototype",
+      "aliases": [
+        "super com linkedin prototype",
+        "supercom linkedin prototype",
+        "supercom-linkedin-prototype"
+      ]
+    },
+    {
+      "id": "supercom-website",
+      "cwd": "/Users/neilsanghrajka/code/supercom-website",
+      "aliases": [
+        "super com website",
+        "supercom website",
+        "supercom-website"
+      ]
+    },
+    {
+      "id": "superfeatures-cli",
+      "cwd": "/Users/neilsanghrajka/code/superfeatures-cli",
+      "aliases": [
+        "superfeatures cli",
+        "superfeatures-cli"
+      ]
+    },
+    {
+      "id": "tray",
+      "cwd": "/Users/neilsanghrajka/code/Tray",
+      "aliases": [
+        "tray"
+      ]
+    },
+    {
+      "id": "typing-test",
+      "cwd": "/Users/neilsanghrajka/code/typing-test",
+      "aliases": [
+        "typing test",
+        "typing-test"
+      ]
+    },
+    {
+      "id": "waha",
+      "cwd": "/Users/neilsanghrajka/code/waha",
+      "aliases": [
+        "waha"
+      ]
+    },
+    {
+      "id": "warmup-for-runners",
+      "cwd": "/Users/neilsanghrajka/code/Warmup for Runners",
+      "aliases": [
+        "warmup for runners",
+        "warmup-for-runners"
+      ]
+    },
+    {
+      "id": "warmupplus",
+      "cwd": "/Users/neilsanghrajka/code/WarmUpPlus",
+      "aliases": [
+        "warm up plus",
+        "warmupplus"
+      ]
+    },
+    {
+      "id": "workstream-codex",
+      "cwd": "/Users/neilsanghrajka/code/workstream-codex",
+      "aliases": [
+        "workstream codex",
+        "workstream-codex"
+      ]
+    }
+  ]
+}

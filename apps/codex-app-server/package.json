@@ -1,0 +1,29 @@
+{
+  "name": "@open-bubble/codex-app-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Codex App Server bridge for Open Bubble",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=25.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test test/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "generate:types": "codex app-server generate-ts --out ./generated/codex-app-server && codex app-server generate-json-schema --out ./generated/json-schema"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
