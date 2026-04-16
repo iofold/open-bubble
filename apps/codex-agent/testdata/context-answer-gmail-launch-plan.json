@@ -1,0 +1,25 @@
+{
+  "summary": "I ingested the request and attempted to fetch Gmail context for \"launch plan\".",
+  "details": "The graph contains the context request ctx_codex_001 for session sess_codex_001 and a Gmail fetch episode for query \"launch plan\". The Gmail connector did not return usable email content because Composio reported no active Gmail connection for this session. The API still normalized an empty Gmail message placeholder into the graph.",
+  "confidence": "medium",
+  "retrievalMode": "mixed",
+  "localContextUsed": [
+    "request",
+    "duckdb:context_requests",
+    "duckdb:context_chunks",
+    "mcp:gmail",
+    "screenshot:metadata",
+    "voice:transcript"
+  ],
+  "found": {
+    "sessionId": "sess_codex_001",
+    "sourceRequestId": "ctx_codex_001",
+    "query": "launch plan",
+    "emails": [],
+    "connectorStatus": "no_active_gmail_connection",
+    "graphEpisodes": [
+      "episode:ctx_codex_001",
+      "episode_3e978b9b0eb2697f"
+    ]
+  }
+}
