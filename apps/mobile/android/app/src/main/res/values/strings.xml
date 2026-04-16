@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Open Bubble</string>
-    <string name="accessibility_service_label">Open Bubble runtime</string>
-    <string name="accessibility_service_description">Lets Open Bubble inspect the active screen, capture context, show its floating bubble, and help fill reviewed text back into the focused field.</string>
+    <string name="accessibility_service_label">Open Bubble</string>
+    <string name="accessibility_service_description">Lets Open Bubble show a floating bubble, capture the current screen, send prompts, and help paste reviewed text back into the focused field.</string>
     <string name="overlay_hint_title">Open Bubble</string>
-    <string name="overlay_hint_subtitle">Tap for actions. Long press to prompt + capture.</string>
+    <string name="overlay_hint_subtitle">Tap for actions. Hold to ask.</string>
     <string name="overlay_action_open">Open</string>
     <string name="overlay_action_ask">Ask</string>
     <string name="overlay_action_fill">Fill</string>
     <string name="overlay_action_cancel">Cancel</string>
     <string name="overlay_action_send">Send</string>
-    <string name="overlay_prompt_title">Send prompt + screenshot</string>
-    <string name="overlay_prompt_subtitle">Type the prompt you want to send. Open Bubble will capture the current app when you press Send.</string>
-    <string name="overlay_prompt_hint">Example: Please pull my insurance policy number and copy it back for me.</string>
-    <string name="notification_channel_name">Open Bubble replies</string>
-    <string name="notification_channel_description">Clipboard-ready replies from background Open Bubble workflows.</string>
+    <string name="overlay_prompt_title">Ask Open Bubble</string>
+    <string name="overlay_prompt_subtitle">Type what you want. Open Bubble captures the current screen when you press Send.</string>
+    <string name="overlay_prompt_hint">Example: Please pull my insurance policy number.</string>
+    <string name="notification_channel_name">Open Bubble</string>
+    <string name="notification_channel_description">Replies and clipboard updates from Open Bubble.</string>
 </resources>

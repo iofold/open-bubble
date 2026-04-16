@@ -195,7 +195,7 @@ class OpenBubbleController extends ChangeNotifier {
     _addTimeline(
       title: 'Opened notification settings',
       detail:
-          'Enable notifications if you want background bubble replies to raise a system alert in addition to copying the clipboard.',
+          'Enable notifications if you want Open Bubble to alert you when a reply is ready.',
       tone: TimelineTone.info,
     );
     notifyListeners();
@@ -212,7 +212,7 @@ class OpenBubbleController extends ChangeNotifier {
     _addTimeline(
       title: shown ? 'Bubble shown' : 'Bubble unavailable',
       detail: shown
-          ? 'The accessibility overlay should now stay alive while the app is backgrounded.'
+          ? 'The bubble should now stay visible while the app is in the background.'
           : 'The service must be connected before the bubble can appear.',
       tone: shown ? TimelineTone.success : TimelineTone.warning,
     );
@@ -539,7 +539,7 @@ class OpenBubbleController extends ChangeNotifier {
             requestId,
             stage: RequestStage.drafting,
             detail:
-                'The App Server accepted the task. Open Bubble is polling for the result now.',
+                'Request accepted. Open Bubble is waiting for the response now.',
             usesMockCapture: false,
           );
         }
@@ -551,7 +551,7 @@ class OpenBubbleController extends ChangeNotifier {
             requestId,
             stage: RequestStage.ready,
             detail:
-                'The App Server completed the task. The answer was copied to the clipboard and synced into review.',
+                'Reply ready. Open Bubble copied it to the clipboard and synced it here.',
             usesMockCapture: false,
           );
         }

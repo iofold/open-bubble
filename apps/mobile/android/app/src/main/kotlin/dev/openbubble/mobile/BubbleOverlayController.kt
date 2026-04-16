@@ -318,7 +318,7 @@ class BubbleOverlayController(
 
         val icon =
             ImageView(service).apply {
-                setImageResource(R.mipmap.ic_launcher)
+                setImageResource(R.drawable.ob_logo)
                 scaleType = ImageView.ScaleType.CENTER_CROP
             }
 

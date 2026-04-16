@@ -152,9 +152,9 @@ class _SetupPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       children: [
         _SectionCard(
-          title: 'Accessibility-first runtime',
+          title: 'Runtime',
           subtitle:
-              'Open Bubble uses an Android accessibility service instead of MediaProjection. That keeps repeated inspect/capture/fill flows fast after the one-time setup.',
+              'Open Bubble runs through Android accessibility so the bubble can stay available over other apps.',
           accent: theme.colorScheme.primary,
           child: Wrap(
             spacing: 12,
@@ -234,7 +234,7 @@ class _SetupPage extends StatelessWidget {
               title: 'App Server',
               value: controller.serverHealthy ? 'Reachable' : 'Offline',
               detail:
-                  'The bubble submits to `/prompt` and polls `/tasks/{taskId}` when the server is reachable.',
+                  'Used for prompt uploads and task polling.',
             ),
           ],
         ),
@@ -285,7 +285,7 @@ class _SetupPage extends StatelessWidget {
         _SectionCard(
           title: 'Connection target',
           subtitle:
-              'This URL is persisted into the Android runtime. The bubble uses it while the app is backgrounded.',
+              'This URL is used by the bubble even when the app is in the background.',
           accent: const Color(0xFF6B8F71),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,7 +361,7 @@ class _SessionsPage extends StatelessWidget {
         _SectionCard(
           title: 'Active sessions',
           subtitle:
-              'These are local workflow lanes for the demo UI. The real network flow now comes from the bubble prompt composer and the App Server task API.',
+              'Use the bubble on top of any app, send a prompt, and watch the request appear here.',
           accent: theme.colorScheme.primary,
           child: Column(
             children: [
@@ -391,7 +391,7 @@ class _SessionsPage extends StatelessWidget {
                 Text(session.currentTask),
                 const SizedBox(height: 12),
                 Text(
-                  'Use the floating bubble on top of another app for the real prompt flow: tap `Ask` or long-press the bubble, type your prompt, then send it. Open Bubble captures the current screen, submits it to the App Server, and waits for the answer.',
+                  'Use the floating bubble on top of another app: tap `Ask` or long-press, type your prompt, and send it. Open Bubble captures the screen, sends it, and waits for the answer.',
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 12),
@@ -423,7 +423,7 @@ class _SessionsPage extends StatelessWidget {
         _SectionCard(
           title: 'Request pipeline',
           subtitle:
-              'This reflects the live bubble workflow: capture, upload to `/prompt`, poll `/tasks/{taskId}`, then review and copy/fill.',
+              'Capture, upload, wait, and reply.',
           accent: const Color(0xFF7C3AED),
           child: controller.requests.isEmpty
               ? const Text(
@@ -481,9 +481,9 @@ class _ReviewPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       children: [
         _SectionCard(
-          title: 'Review-before-fill',
+          title: 'Latest reply',
           subtitle:
-              'This is the safety rail for Open Bubble. The app prepares a suggested reply, but the user still chooses whether to fill it into the focused field or just copy it.',
+              'When a reply arrives, it lands here and is also copied to the clipboard.',
           accent: const Color(0xFF6B8F71),
           child: controller.latestReplyDraft == null
               ? const Text(
@@ -498,7 +498,7 @@ class _ReviewPage extends StatelessWidget {
         _SectionCard(
           title: 'Timeline',
           subtitle:
-              'The feed below mixes Flutter actions with native Android events from the bubble, capture pipeline, and App Server task flow.',
+              'Recent app, bubble, and server events.',
           accent: const Color(0xFF7C3AED),
           child: controller.timeline.isEmpty
               ? const Text('No activity yet.')
@@ -555,7 +555,7 @@ class _HeroDeck extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'A Flutter shell backed by a native Android accessibility runtime for overlay, prompt entry, capture, and review-before-fill flows.',
+            'A floating mobile copilot for prompt + screenshot capture, async replies, and quick paste-back.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.88),
             ),
@@ -659,7 +659,7 @@ class _ReplyDraftCard extends StatelessWidget {
         Text('Local fill sandbox', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         Text(
-          'This field is here to verify the native fill path while the main user journey stays centered on clipboard plus notification.',
+          'This field is only here to verify the native fill path quickly during the demo.',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 10),

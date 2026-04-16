@@ -252,7 +252,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         pendingPromptSubmissions[requestId] = PendingPromptSubmission(promptText = trimmedPrompt)
         overlayController.updateStatus(
             bubbleText = "...",
-            subtitle = "Capturing current app…",
+            subtitle = "Capturing screen…",
         )
         OpenBubbleEventHub.emit(
             type = "overlay.workflow.started",
@@ -665,7 +665,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
 
         overlayController.updateStatus(
             bubbleText = "...",
-            subtitle = "Uploading prompt…",
+            subtitle = "Sending to server…",
         )
 
         Thread {
@@ -680,7 +680,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
 
                 OpenBubbleEventHub.emit(
                     type = "task.accepted",
-                    message = "The App Server accepted the prompt task.",
+                    message = "Request accepted. Waiting for response.",
                     payload = mapOf(
                         "requestId" to requestId,
                         "taskId" to accepted.taskId,
@@ -696,7 +696,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                 mainHandler.post {
                     overlayController.updateStatus(
                         bubbleText = "...",
-                        subtitle = "Waiting for server reply…",
+                        subtitle = "Open Bubble is working... result will arrive in ~20s.",
                     )
                 }
 
@@ -713,7 +713,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                             ?: "The task completed without a textual answer."
                     OpenBubbleEventHub.emit(
                         type = "task.completed",
-                        message = "The App Server completed the prompt task.",
+                        message = "Open Bubble finished. Response copied to clipboard.",
                         payload = mapOf(
                             "requestId" to requestId,
                             "taskId" to outcome.taskId,
@@ -733,7 +733,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                             title = "Server reply ready",
                             replyText = answer,
                             fillSuggestion = answer,
-                            notificationText = "Server reply copied to clipboard.",
+                            notificationText = "Open Bubble finished. Response copied to clipboard.",
                             targetPackage = packageName,
                             taskId = outcome.taskId,
                             promptText = submission.promptText,
