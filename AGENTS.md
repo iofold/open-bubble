@@ -53,7 +53,7 @@ docs/
 
 - The API contract is `docs/api/openapi.yaml`; update it before changing endpoint behavior.
 - The event contract is `docs/api/events.md`; update it before adding/changing event names or payload shapes.
-- Refer to `.agents/skills/codex-app-server/SKILL.md` whenever you need to work with the app server.
+- Use the Codex app server skill at `.agents/skills/codex-app-server/SKILL.md` whenever you need to work with the Codex app server.
 - Start with simple local development assumptions: REST + SSE + in-memory state.
 - Avoid persistence, auth, and deployment complexity unless the demo explicitly needs it.
 
