@@ -1,0 +1,27 @@
+{
+  "deviceId": "android_demo_device_001",
+  "createdAt": "2026-04-16T06:40:00Z",
+  "intent": "context_question",
+  "userExplicitlyRequestedCodeAssertion": false,
+  "screenshot": {
+    "capturedAt": "2026-04-16T06:39:58Z",
+    "mimeType": "image/png",
+    "screenMetadata": {
+      "source": "demo-placeholder",
+      "appPackage": "dev.openbubble.demo"
+    }
+  },
+  "prompt": {
+    "capturedAt": "2026-04-16T06:39:59Z",
+    "audioMimeType": "audio/m4a",
+    "transcript": "What should I do next based on what the agent is working on?",
+    "language": "en-US"
+  },
+  "localContextHints": {
+    "workingDirectory": "/home/ubuntu/workspace/open-bubble",
+    "files": [
+      "docs/api/openapi.yaml",
+      "docs/specs/user-journeys.md"
+    ]
+  }
+}

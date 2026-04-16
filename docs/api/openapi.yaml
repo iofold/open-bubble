@@ -64,12 +64,13 @@ paths:
           $ref: '#/components/responses/NotFound'
   /v1/sessions/{sessionId}/context:
     get:
-      summary: Fetch current context summary for a session
+      summary: Fetch passive/debug local directory context summary for a session
+      description: This is not the primary user prompt flow. Use context-requests when the user asks a screenshot + audio question.
       parameters:
         - $ref: '#/components/parameters/SessionId'
       responses:
         '200':
-          description: Session context
+          description: Session context summary
           content:
             application/json:
               schema:
@@ -77,7 +78,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
     put:
-      summary: Replace or update context summary from an agent adapter
+      summary: Replace or update passive/debug context summary from an agent adapter
       parameters:
         - $ref: '#/components/parameters/SessionId'
       requestBody:
@@ -93,9 +94,63 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionContext'
+  /v1/sessions/{sessionId}/context-requests:
+    post:
+      summary: Submit a screenshot + audio prompt to be answered against local directory context
+      description: Primary "fetch context" action. Use intent=code_assertion only when the user's prompt explicitly asks for code assertion or verification.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContextRequest'
+      responses:
+        '202':
+          description: Context request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    get:
+      summary: List submitted context requests for a session
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Context requests
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requests]
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContextRequest'
+  /v1/sessions/{sessionId}/context-requests/{contextRequestId}:
+    get:
+      summary: Get one context request and answer status
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/ContextRequestId'
+      responses:
+        '200':
+          description: Context request detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/sessions/{sessionId}/screenshots:
     post:
       summary: Upload screenshot or screenshot metadata from mobile
+      description: Legacy/screenshot-only helper. Prefer context-requests for screenshot + audio prompts.
       parameters:
         - $ref: '#/components/parameters/SessionId'
       requestBody:
@@ -173,6 +228,12 @@ components:
       required: true
       schema:
         type: string
+    ContextRequestId:
+      in: path
+      name: contextRequestId
+      required: true
+      schema:
+        type: string
   responses:
     NotFound:
       description: Resource not found
@@ -241,6 +302,7 @@ components:
           type: string
         summary:
           type: string
+          description: Passive/debug summary of local directory context and current session state.
         currentTask:
           type: string
         workingDirectory:
@@ -273,6 +335,149 @@ components:
           type: array
           items:
             type: string
+    ContextRequestIntent:
+      type: string
+      enum: [context_question, code_assertion]
+      default: context_question
+      description: Use code_assertion only when the user explicitly asks to assert/verify code or an outgoing change.
+    ContextRequestStatus:
+      type: string
+      enum: [accepted, processing, answered, failed]
+    CreateContextRequest:
+      type: object
+      required: [deviceId, createdAt, screenshot, prompt]
+      properties:
+        deviceId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        intent:
+          $ref: '#/components/schemas/ContextRequestIntent'
+        userExplicitlyRequestedCodeAssertion:
+          type: boolean
+          default: false
+          description: Must be true only when the user explicitly mentions code assertion/verification in audio, transcript, or typed prompt.
+        screenshot:
+          $ref: '#/components/schemas/ScreenshotInput'
+        prompt:
+          $ref: '#/components/schemas/PromptInput'
+        localContextHints:
+          type: object
+          description: Optional hints for the backend local directory context resolver.
+          properties:
+            workingDirectory:
+              type: string
+            files:
+              type: array
+              items:
+                type: string
+            gitRef:
+              type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    ContextRequest:
+      type: object
+      required: [id, sessionId, status, intent, createdAt]
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContextRequestStatus'
+        intent:
+          $ref: '#/components/schemas/ContextRequestIntent'
+        userExplicitlyRequestedCodeAssertion:
+          type: boolean
+        promptTranscript:
+          type: string
+        answer:
+          $ref: '#/components/schemas/ContextAnswer'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ContextRequestResponse:
+      type: object
+      required: [accepted, requestId, status]
+      properties:
+        accepted:
+          type: boolean
+        requestId:
+          type: string
+        status:
+          $ref: '#/components/schemas/ContextRequestStatus'
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        message:
+          type: string
+    ContextAnswer:
+      type: object
+      required: [summary]
+      properties:
+        summary:
+          type: string
+        details:
+          type: string
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        localContextUsed:
+          type: array
+          items:
+            type: string
+        codeAssertionResult:
+          type: object
+          description: Present only for explicit code_assertion requests.
+          properties:
+            verdict:
+              type: string
+              enum: [supported, not_supported, inconclusive]
+            reasoning:
+              type: string
+            evidence:
+              type: array
+              items:
+                type: string
+    ScreenshotInput:
+      type: object
+      required: [capturedAt]
+      properties:
+        capturedAt:
+          type: string
+          format: date-time
+        mimeType:
+          type: string
+          enum: [image/png, image/jpeg, image/webp]
+        imageBase64:
+          type: string
+          description: Optional for MVP; may be omitted if sending metadata/manual placeholder only.
+        screenMetadata:
+          type: object
+          additionalProperties: true
+    PromptInput:
+      type: object
+      required: [capturedAt]
+      properties:
+        capturedAt:
+          type: string
+          format: date-time
+        audioMimeType:
+          type: string
+          enum: [audio/aac, audio/m4a, audio/mp4, audio/wav, audio/webm]
+        audioBase64:
+          type: string
+          description: Optional for MVP; may be omitted when using typed/mock transcript fallback.
+        transcript:
+          type: string
+          description: Transcript of the user's audio prompt, or typed fallback for demo.
+        language:
+          type: string
+          examples: [en-US]
     ScreenshotUploadRequest:
       type: object
       required: [deviceId, capturedAt]
@@ -308,6 +513,10 @@ components:
       enum:
         - session.started
         - session.context.updated
+        - context.requested
+        - context.answer.ready
+        - code.assertion.requested
+        - code.assertion.ready
         - screenshot.received
         - agent.input.requested
         - agent.done
@@ -322,6 +531,8 @@ components:
           $ref: '#/components/schemas/EventType'
         sessionId:
           type: string
+        contextRequestId:
+          type: string
         title:
           type: string
         message:
@@ -333,6 +544,8 @@ components:
         createdAt:
           type: string
           format: date-time
+        answer:
+          $ref: '#/components/schemas/ContextAnswer'
         action:
           type: object
           properties:
@@ -348,6 +561,8 @@ components:
           $ref: '#/components/schemas/EventType'
         sessionId:
           type: string
+        contextRequestId:
+          type: string
         title:
           type: string
         message:
@@ -355,6 +570,8 @@ components:
         severity:
           type: string
           enum: [info, success, warning, error]
+        answer:
+          $ref: '#/components/schemas/ContextAnswer'
         action:
           type: object
           properties:

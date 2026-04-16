@@ -5,8 +5,8 @@
 | Lane | Owner | Primary responsibility | Main paths |
 | --- | --- | --- | --- |
 | Flutter mobile | AM / Aaditya | Flutter UI, app state, Android permission UX, platform-channel boundary | `apps/mobile/`, `docs/specs/mobile-flutter.md` |
-| App Server | Teammate 2 | REST/SSE API, session store, screenshot/context intake, event fanout | `apps/server/`, `docs/specs/server.md`, `docs/api/` |
-| Agent adapters + demo | Teammate 3 | Adapter from running backend agents/Codex sessions into App Server events/context; demo script | `apps/agent-adapters/`, `docs/specs/agent-adapter.md`, `docs/specs/demo-plan.md` |
+| App Server | Teammate 2 | REST/SSE API, session store, screenshot + audio context-request intake, answer/event fanout | `apps/server/`, `docs/specs/server.md`, `docs/api/` |
+| Agent adapters + demo | Teammate 3 | Adapter from running backend agents/Codex sessions into local-directory-backed answers/events; demo script | `apps/agent-adapters/`, `docs/specs/agent-adapter.md`, `docs/specs/demo-plan.md` |
 
 Adjust names as soon as the team confirms exact ownership.
 

@@ -1,0 +1,22 @@
+{
+  "deviceId": "android_demo_device_001",
+  "createdAt": "2026-04-16T06:45:00Z",
+  "intent": "code_assertion",
+  "userExplicitlyRequestedCodeAssertion": true,
+  "screenshot": {
+    "capturedAt": "2026-04-16T06:44:58Z",
+    "mimeType": "image/png",
+    "screenMetadata": {
+      "source": "demo-placeholder",
+      "visibleText": "Outgoing patch claims to fix context request handling"
+    }
+  },
+  "prompt": {
+    "capturedAt": "2026-04-16T06:44:59Z",
+    "transcript": "Assert that this outgoing code change handles screenshot plus audio context requests correctly.",
+    "language": "en-US"
+  },
+  "localContextHints": {
+    "workingDirectory": "/home/ubuntu/workspace/open-bubble"
+  }
+}

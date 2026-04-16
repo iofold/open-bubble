@@ -4,7 +4,7 @@ This file gives coding agents and human teammates the shared operating rules for
 
 ## Project intent
 
-Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble. The mobile app should help a user see running backend agent sessions, fetch a session context summary, send phone context/screenshot information to the backend, and receive backend agent status/completion notifications through a bubble-style UI.
+Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble. The mobile app should help a user see running backend agent sessions, send screenshot + audio prompts to be answered from local directory context, optionally request explicit outgoing code assertions, and receive answers/status/completion notifications through a bubble-style UI.
 
 ## Current phase
 
@@ -47,7 +47,8 @@ docs/
   - foreground service
   - notification permission + notification display
   - MediaProjection screenshot capture
-- If native overlay work is blocked, preserve the demo path with an in-app floating bubble fallback.
+  - audio prompt capture or transcript fallback
+- If native overlay/screenshot/audio work is blocked, preserve the demo path with an in-app floating bubble plus sample screenshot/transcript fallback.
 
 ### App Server (`apps/server/`)
 
@@ -60,7 +61,7 @@ docs/
 ### Agent Adapters (`apps/agent-adapters/`)
 
 - Adapters connect backend agent runtimes to the App Server; mobile should not talk directly to agent runtimes.
-- Start with a demo adapter that can register a fake session, publish context, and publish `agent.done`.
+- Start with a demo adapter that can register a fake session, answer a screenshot + audio context request from local directory context, and publish `context.answer.ready` / `agent.done`.
 - Keep adapter payloads aligned with `docs/api/examples/`.
 
 ## Contract-change rule
@@ -71,6 +72,16 @@ When changing API or event behavior:
 2. Update sample payloads in `docs/api/examples/`.
 3. Update affected specs or demo steps.
 4. Then implement code in the relevant app directory.
+
+## Git sync rule
+
+Before starting any new task, pull the latest remote state first:
+
+```bash
+git pull --ff-only
+```
+
+If the working tree is dirty, finish/commit/stash the current work before pulling. Do not start implementation or docs edits from a stale branch. If `git pull --ff-only` fails because histories diverged, stop and resolve the branch state before continuing.
 
 ## Collaboration rules
 

@@ -30,7 +30,7 @@ These journeys describe the current intended behavior. They are not all implemen
 
 ## Journey 3: User views running backend sessions
 
-**Goal:** User sees which agents/sessions are active.
+**Goal:** User sees which agents/sessions are active before asking a contextual question.
 
 1. App loads the sessions screen.
 2. App calls `GET /v1/sessions`.
@@ -39,37 +39,53 @@ These journeys describe the current intended behavior. They are not all implemen
 
 **API touchpoints:** `GET /v1/sessions`, `GET /v1/sessions/{sessionId}`
 
-**Success:** User can identify the session they care about in a few seconds.
+**Success:** User can identify the session whose local directory context should answer the phone-side prompt.
 
-## Journey 4: User fetches context from a running agent session
+## Journey 4: User asks a context question with screenshot + audio
 
-**Goal:** User gets a compact summary of what an agent is doing.
+**Goal:** User asks something about what they are seeing/hearing on the phone, and the backend answers using local directory context.
 
 1. User opens a session detail screen.
-2. App calls `GET /v1/sessions/{sessionId}/context`.
-3. App displays current task, summary, relevant files, and recent messages.
-4. User decides whether to send more phone context.
+2. User captures a screenshot or chooses the current screen as visual context.
+3. User records an audio prompt such as "What should I do next here?" or "Why is this agent blocked?"
+4. App sends screenshot + audio prompt/transcript to the App Server.
+5. Server associates the request with the selected session.
+6. Adapter/backend agent answers using the local directory context maintained for that session.
+7. App shows the answer in the session detail and/or bubble.
 
-**API touchpoints:** `GET /v1/sessions/{sessionId}/context`
+**API/event touchpoints:** `POST /v1/sessions/{sessionId}/context-requests`, `context.requested`, `context.answer.ready`
 
-**Success:** User can understand the agent state without opening the backend terminal.
+**Success:** The answer reflects both the user's phone-side screenshot/audio intent and the backend's local directory context.
 
-## Journey 5: User sends screenshot or phone context to an agent
+## Journey 5: User explicitly asks for an outgoing code assertion
 
-**Goal:** User gives the backend agent phone-side context.
+**Goal:** User asks the backend to verify a code-related claim/change, and the system only enters this mode because the user explicitly requested it.
+
+1. User captures a screenshot and records or types the prompt as usual.
+2. User's audio prompt explicitly says they want a code assertion or verification, for example: "Assert this outgoing code change is safe" or "Verify this patch claim against the repo."
+3. Mobile marks the context request intent as `code_assertion`, or the backend classifies it only after explicit wording is present in the transcript.
+4. Adapter/backend agent checks the claim against local directory context and available session state.
+5. App shows the assertion result, including uncertainty or required follow-up if the claim cannot be verified.
+
+**API/event touchpoints:** `POST /v1/sessions/{sessionId}/context-requests`, `code.assertion.requested`, `code.assertion.ready`
+
+**Guardrail:** Do not perform or present code assertion as the default behavior. It must be user-mentioned.
+
+## Journey 6: User sends screenshot/audio context without full native support
+
+**Goal:** Preserve the main product loop while Android-native capture is still under development.
 
 1. User taps a capture/send-context action.
-2. Flutter asks native Android layer to capture screenshot or prepare context metadata.
-3. Native Android handles any required permission flow.
-4. App sends screenshot bytes or metadata to the App Server.
-5. Server accepts and associates it with the session.
-6. Adapter/agent can consume the new context.
+2. If screenshot capture is ready, native Android provides image bytes/metadata.
+3. If audio recording is ready, Flutter/native provides audio bytes and optional transcript.
+4. If either capture path is not ready, the app uses a manual placeholder, typed transcript, or sample payload.
+5. App sends the best available payload to the App Server.
 
-**API touchpoints:** `POST /v1/sessions/{sessionId}/screenshots`
+**API touchpoints:** `POST /v1/sessions/{sessionId}/context-requests`
 
-**Fallback:** If MediaProjection is not ready, send notes/metadata or a manually selected placeholder for the demo.
+**Fallback:** The demo can use metadata/manual screenshot and typed transcript while proving the server/adapter contract.
 
-## Journey 6: Agent completion appears in the bubble
+## Journey 7: Agent completion appears in the bubble
 
 **Goal:** User notices backend work finished without watching the backend directly.
 
@@ -84,29 +100,30 @@ These journeys describe the current intended behavior. They are not all implemen
 
 **Success:** User gets a visible, low-friction completion signal on the phone.
 
-## Journey 7: Agent asks for user input/context
+## Journey 8: Agent asks for user input/context
 
-**Goal:** Agent can pull the user back in when blocked or needing context.
+**Goal:** Agent can pull the user back in when blocked or needing phone-side context.
 
-1. Backend agent decides it needs user input or phone context.
+1. Backend agent decides it needs user input, screenshot context, or an audio clarification.
 2. Adapter publishes `agent.input.requested`.
 3. Bubble shows a prompt.
 4. User taps bubble to open session detail.
-5. User sends screenshot, note, or other context.
-6. Agent continues.
+5. User sends screenshot + audio/typed prompt.
+6. Agent continues with the user's prompt plus local directory context.
 
-**API/event touchpoints:** `agent.input.requested`, screenshot/context endpoint
+**API/event touchpoints:** `agent.input.requested`, `POST /v1/sessions/{sessionId}/context-requests`
 
 **Success:** The bubble feels like a lightweight agent handoff surface, not just a notification.
 
-## Journey 8: Hackathon demo fallback path
+## Journey 9: Hackathon demo fallback path
 
 **Goal:** Preserve a working demo even if native Android APIs take longer than expected.
 
 1. Use a fake/demo adapter to register `Hackathon Agent`.
 2. Use in-app floating bubble instead of true overlay.
-3. Use metadata/manual payload instead of real screenshot bytes.
-4. Publish sample `agent.done` event.
-5. Show that mobile/server/adapter contract works end-to-end.
+3. Use metadata/manual screenshot instead of real screenshot bytes.
+4. Use typed transcript instead of real audio recording if needed.
+5. Publish sample `context.answer.ready` and `agent.done` events.
+6. Show that mobile/server/adapter contract works end-to-end.
 
 **Success:** The story is demoable even before platform-channel polish is complete.

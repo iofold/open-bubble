@@ -1,6 +1,6 @@
 # Open Bubble
 
-Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble that can sit over the phone UI, talk to a local/team app server, fetch context from running backend agents, send screenshots or user context back to the backend, and surface agent-completion notifications as a floating bubble.
+Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble that can sit over the phone UI, talk to a local/team app server, send screenshot + audio prompts to be answered from local directory context, and surface agent-completion notifications as a floating bubble.
 
 ## Current repo status
 
@@ -23,7 +23,7 @@ open-bubble/
 
 ## MVP in one sentence
 
-A user opens the Flutter app, grants Android overlay/screenshot permissions, sees a draggable Open Bubble, sends a screenshot/context to the server, and receives agent status/done events back through the bubble.
+A user opens the Flutter app, sees a draggable Open Bubble, sends a screenshot + audio prompt to the server, gets an answer grounded in the selected session's local directory context, and receives answer/status/done events back through the bubble.
 
 ## Team starting points
 
@@ -41,6 +41,7 @@ A user opens the Flutter app, grants Android overlay/screenshot permissions, see
 1. Agree on the API contract.
 2. Stub server responses against the contract.
 3. Build Flutter UI screens against mocked/server data.
-4. Add Android platform-channel hooks for overlay and screenshot capture.
-5. Wire agent backend events into the server event stream.
-6. Run the demo script in [`docs/specs/demo-plan.md`](docs/specs/demo-plan.md).
+4. Add the context request composer: screenshot + audio prompt with typed/mock fallbacks.
+5. Add Android platform-channel hooks for overlay, screenshot capture, and audio prompt capture as time allows.
+6. Wire agent/backend answers and status events into the server event stream.
+7. Run the demo script in [`docs/specs/demo-plan.md`](docs/specs/demo-plan.md).
