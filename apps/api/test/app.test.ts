@@ -127,6 +127,24 @@ void test('GET /health returns ok service metadata', async () => {
   }
 });
 
+void test('GET /apps returns the supported app list', async () => {
+  const app = await createTestApp();
+
+  try {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/apps'
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.json(), {
+      apps: ['Codex', 'Gmail', 'Gcal', 'Slack', 'Notion']
+    });
+  } finally {
+    await app.close();
+  }
+});
+
 void test('POST /prompt returns 202 with a task handle', async () => {
   const app = await createTestApp({
     taskProcessor: async ({ screenMedia }) => {
@@ -460,6 +478,10 @@ void test('GET /openapi.json returns the current OpenAPI document', async () => 
 
     assert.equal(response.statusCode, 200);
     assert.equal(response.json().openapi, '3.1.0');
+    assert.equal(
+      response.json().paths['/apps'].get.summary,
+      'List supported apps'
+    );
     assert.equal(
       response.json().paths['/prompt'].post.summary,
       'Submit a media prompt and create an async task'

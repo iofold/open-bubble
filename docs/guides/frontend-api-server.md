@@ -32,6 +32,7 @@ The launcher keeps the API server and `ngrok` running until you stop it with `Ct
 The frontend reads `OPEN_BUBBLE_API_BASE_URL` from the repo-level `.env` and uses that as the base URL for:
 
 - `GET /health`
+- `GET /apps`
 - `POST /prompt`
 - `GET /tasks/:taskId`
 

@@ -3,6 +3,7 @@ import multipart from '@fastify/multipart';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { healthRoute } from './routes/health.js';
+import { appsRoute } from './routes/apps.js';
 import {
   type PromptTaskManagerOptions,
   PromptTaskManager
@@ -42,6 +43,7 @@ export const buildApp = async (
   }
 
   await app.register(healthRoute({ serviceVersion }));
+  await app.register(appsRoute());
   await app.register(promptRoute({ taskManager }));
   await app.register(taskStatusRoute({ taskManager }));
 

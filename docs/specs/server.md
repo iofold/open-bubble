@@ -3,8 +3,17 @@
 The current API contract is intentionally small:
 
 - `GET /health`
+- `GET /apps`
 - `POST /prompt`
 - `GET /tasks/{taskId}`
+
+`GET /apps` returns a static JSON list of supported apps:
+
+- `Codex`
+- `Gmail`
+- `Gcal`
+- `Slack`
+- `Notion`
 
 `POST /prompt` uses `multipart/form-data` with:
 

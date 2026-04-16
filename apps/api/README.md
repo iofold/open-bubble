@@ -20,6 +20,7 @@ From the repository root, `./scripts/start-api-ngrok.sh` installs missing API de
 ## Local endpoints
 
 - `GET /health`
+- `GET /apps`
 - `POST /prompt`
 - `GET /tasks/:taskId`
 - `GET /documentation`
