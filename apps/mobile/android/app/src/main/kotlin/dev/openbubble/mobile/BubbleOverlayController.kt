@@ -15,6 +15,7 @@ import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.setPadding
@@ -23,6 +24,14 @@ import kotlin.math.abs
 class BubbleOverlayController(
     private val service: OpenBubbleAccessibilityService,
 ) {
+    private val colorInk = Color.parseColor("#111111")
+    private val colorInkSoft = Color.parseColor("#1B1B1B")
+    private val colorGraphite = Color.parseColor("#2A2A2A")
+    private val colorFog = Color.parseColor("#B4B4B4")
+    private val colorMist = Color.parseColor("#E7E7E7")
+    private val colorPaper = Color.parseColor("#F7F7F7")
+    private val colorSnow = Color.parseColor("#FFFFFF")
+
     private val windowManager =
         service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val inputMethodManager =
@@ -62,9 +71,9 @@ class BubbleOverlayController(
         composerSubtitleView?.text = message
         composerSubtitleView?.setTextColor(
             if (isError) {
-                Color.parseColor("#B42318")
+                Color.parseColor("#FF7A7A")
             } else {
-                Color.parseColor("#5B6470")
+                colorFog
             },
         )
     }
@@ -147,20 +156,20 @@ class BubbleOverlayController(
         val composer =
             LinearLayout(service).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(26)
+                setPadding(30)
                 background = GradientDrawable().apply {
-                    cornerRadius = 44f
-                    setColor(Color.parseColor("#FFF7EF"))
-                    setStroke(3, Color.parseColor("#220E5A63"))
+                    cornerRadius = 40f
+                    setColor(colorInk)
+                    setStroke(2, Color.parseColor("#40FFFFFF"))
                 }
-                elevation = 24f
+                elevation = 30f
             }
 
         val title =
             TextView(service).apply {
                 text = service.getString(R.string.overlay_prompt_title)
-                textSize = 17f
-                setTextColor(Color.parseColor("#172026"))
+                textSize = 18f
+                setTextColor(colorSnow)
                 setTypeface(typeface, Typeface.BOLD)
             }
 
@@ -168,7 +177,7 @@ class BubbleOverlayController(
             TextView(service).apply {
                 text = service.getString(R.string.overlay_prompt_subtitle)
                 textSize = 13f
-                setTextColor(Color.parseColor("#5B6470"))
+                setTextColor(colorFog)
                 maxLines = 3
             }
         composerSubtitleView = subtitle
@@ -177,19 +186,20 @@ class BubbleOverlayController(
             EditText(service).apply {
                 hint = service.getString(R.string.overlay_prompt_hint)
                 inputType =
-                    InputType.TYPE_CLASS_TEXT or
+                        InputType.TYPE_CLASS_TEXT or
                         InputType.TYPE_TEXT_FLAG_MULTI_LINE or
                         InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
                 minLines = 3
                 maxLines = 5
-                setTextColor(Color.parseColor("#172026"))
-                setHintTextColor(Color.parseColor("#7C8790"))
-                textSize = 14f
-                setPadding(22)
+                setTextColor(colorSnow)
+                setHintTextColor(Color.parseColor("#7E7E7E"))
+                textSize = 15f
+                setPadding(24)
+                setLineSpacing(6f, 1f)
                 background = GradientDrawable().apply {
-                    cornerRadius = 30f
-                    setColor(Color.WHITE)
-                    setStroke(2, Color.parseColor("#DDE8E6"))
+                    cornerRadius = 28f
+                    setColor(colorInkSoft)
+                    setStroke(2, Color.parseColor("#33FFFFFF"))
                 }
                 setText(seedText)
             }
@@ -298,30 +308,64 @@ class BubbleOverlayController(
                     GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
                         colors = intArrayOf(
-                            Color.parseColor("#0E5A63"),
-                            Color.parseColor("#1B6C79"),
+                            colorInk,
+                            colorGraphite,
                         )
-                        setStroke(4, Color.parseColor("#D9F3EF"))
+                        setStroke(3, Color.parseColor("#50FFFFFF"))
                     }
-                elevation = 18f
-                setPadding(18)
+                elevation = 22f
+                setPadding(20)
+            }
+
+        val halo =
+            FrameLayout(service).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(Color.parseColor("#18FFFFFF"))
+                }
+                setPadding(10)
+            }
+
+        val icon =
+            ImageView(service).apply {
+                setImageResource(R.mipmap.ic_launcher)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
             }
 
         val label =
             TextView(service).apply {
                 text = bubbleLabel
-                setTextColor(Color.WHITE)
-                textSize = 19f
+                setTextColor(colorSnow)
+                textSize = 10f
                 gravity = Gravity.CENTER
+                alpha = 0.88f
                 setTypeface(typeface, Typeface.BOLD)
             }
         bubbleLabelView = label
 
-        container.addView(
-            label,
+        halo.addView(
+            icon,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER,
+            ),
+        )
+
+        container.addView(
+            halo,
+            FrameLayout.LayoutParams(
+                86,
+                86,
+                Gravity.CENTER,
+            ),
+        )
+        container.addView(
+            label,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
             ),
         )
 
@@ -413,14 +457,14 @@ class BubbleOverlayController(
         val panel =
             LinearLayout(service).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(20)
+                setPadding(22)
                 background =
                     GradientDrawable().apply {
-                        cornerRadius = 42f
-                        setColor(Color.parseColor("#FFF7EF"))
-                        setStroke(2, Color.parseColor("#220E5A63"))
+                        cornerRadius = 36f
+                        setColor(colorPaper)
+                        setStroke(2, Color.parseColor("#16000000"))
                     }
-                elevation = 20f
+                elevation = 24f
             }
 
         panel.addView(createPanelHeader())
@@ -458,7 +502,7 @@ class BubbleOverlayController(
                 TextView(service).apply {
                     text = service.getString(R.string.overlay_hint_title)
                     textSize = 16f
-                    setTextColor(Color.parseColor("#172026"))
+                    setTextColor(colorInk)
                     setTypeface(typeface, Typeface.BOLD)
                 },
             )
@@ -466,7 +510,7 @@ class BubbleOverlayController(
                 TextView(service).apply {
                     text = statusSubtitle
                     textSize = 12f
-                    setTextColor(Color.parseColor("#5B6470"))
+                    setTextColor(Color.parseColor("#666666"))
                     maxLines = 2
                 },
             )
@@ -479,7 +523,7 @@ class BubbleOverlayController(
     private fun createActionRow(): View {
         return LinearLayout(service).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 14, 0, 0)
+            setPadding(0, 16, 0, 0)
             addView(
                 createActionChip(service.getString(R.string.overlay_action_open)) {
                     openApp()
@@ -505,13 +549,15 @@ class BubbleOverlayController(
         return TextView(service).apply {
             text = label
             textSize = 13f
-            setTextColor(Color.parseColor("#0E5A63"))
+            setTextColor(colorInk)
             setTypeface(typeface, Typeface.BOLD)
-            setPadding(22, 18, 22, 18)
+            gravity = Gravity.CENTER
+            setPadding(24, 18, 24, 18)
             background =
                 GradientDrawable().apply {
                     cornerRadius = 999f
-                    setColor(Color.parseColor("#E9F3F3"))
+                    setColor(colorSnow)
+                    setStroke(2, Color.parseColor("#14000000"))
                 }
             setOnClickListener {
                 onTap()
@@ -535,18 +581,26 @@ class BubbleOverlayController(
         return TextView(service).apply {
             text = label
             textSize = 13f
-            setTextColor(if (filled) Color.WHITE else Color.parseColor("#0E5A63"))
+            setTextColor(if (filled) colorInk else colorSnow)
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
-            setPadding(24, 18, 24, 18)
+            setPadding(26, 18, 26, 18)
             background =
                 GradientDrawable().apply {
                     cornerRadius = 999f
                     setColor(
                         if (filled) {
-                            Color.parseColor("#0E5A63")
+                            colorSnow
                         } else {
-                            Color.parseColor("#E9F3F3")
+                            colorInkSoft
+                        },
+                    )
+                    setStroke(
+                        2,
+                        if (filled) {
+                            Color.parseColor("#0F0F0F")
+                        } else {
+                            Color.parseColor("#33FFFFFF")
                         },
                     )
                 }
