@@ -1,0 +1,14 @@
+{
+  "answer": "The API received the screen media plus a raw audio prompt, so the backend can handle the spoken request without client-side transcription.",
+  "promptText": "What should I do next?",
+  "promptAudio": {
+    "filename": "prompt.m4a",
+    "mimeType": "audio/mp4"
+  },
+  "screenMedia": {
+    "filename": "screen-recording.mp4",
+    "mimeType": "video/mp4",
+    "kind": "video"
+  },
+  "receivedAt": "2026-04-16T06:45:00Z"
+}

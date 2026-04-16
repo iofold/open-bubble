@@ -1,42 +1,25 @@
 # AGENTS.md — Open Bubble repo guidance
 
-This file gives coding agents and human teammates the shared operating rules for the Open Bubble repository. It applies to every file in this repo unless a deeper `AGENTS.md` is added later.
+Open Bubble is in a docs-first MVP phase. Keep the active story focused on the local API in `apps/api`, and do not expand behavior beyond the current contract unless the docs change first.
 
-## Project intent
+## Source of truth
 
-Open Bubble is a hackathon prototype for a Flutter-first Android companion bubble. The mobile app should help a user see running backend agent sessions, send screenshot + audio prompts to be answered from local directory context, optionally request explicit outgoing code assertions, and receive answers/status/completion notifications through a bubble-style UI.
+- `docs/api/openapi.yaml`
+- `docs/api/examples/`
+- `docs/specs/server.md`
 
-## Current phase
-
-We are in a docs-first scaffold phase. Prefer contract/spec updates before implementation. Do not add substantial app/server code until the relevant spec and API contract are updated.
-
-## Source-of-truth docs
-
-- Product boundaries: `docs/specs/product-scope.md`
-- Present system understanding: `docs/specs/application-understanding.md`
-- User journeys: `docs/specs/user-journeys.md`
-- Team workstreams: `docs/specs/team-collaboration.md`
-- REST contract: `docs/api/openapi.yaml`
-- Event contract: `docs/api/events.md`
-- Demo script: `docs/specs/demo-plan.md`
-- Architecture decisions: `docs/adr/`
-
-## Repository layout
+## Layout
 
 ```text
 apps/
+  api/             Fastify API MVP
   mobile/          Flutter Android app placeholder
-  server/          App Server placeholder
-  agent-adapters/  Backend/Codex-agent adapter placeholder
-  codex-agent/     Codex agent workspace spawned by App Server
 docs/
-  api/             OpenAPI, event contracts, sample payloads
-  specs/           Product, implementation, user journey, and collaboration specs
-  adr/             Architecture decision records
-.github/           PR and collaboration hygiene
+  api/             OpenAPI contract and examples
+  specs/           Short MVP notes
 ```
 
-## Workstream boundaries
+## Rules
 
 ### Mobile / Flutter (`apps/mobile/`)
 
@@ -48,37 +31,23 @@ docs/
   - foreground service
   - notification permission + notification display
   - MediaProjection screenshot capture
-  - audio prompt capture or transcript fallback
-- If native overlay/screenshot/audio work is blocked, preserve the demo path with an in-app floating bubble plus sample screenshot/transcript fallback.
+- For the current API MVP, mobile should submit `screenMedia` plus at least one of `promptText` or raw `promptAudio`.
+- The frontend must not transcribe `promptAudio`; send the bytes as-is.
 
-### App Server (`apps/server/`)
+### API (`apps/api/`)
 
-- The API contract is `docs/api/openapi.yaml`; update it before changing endpoint behavior.
-- The event contract is `docs/api/events.md`; update it before adding/changing event names or payload shapes.
-- Use the Codex app server skill at `.agents/skills/codex-app-server/SKILL.md` whenever you need to work with the Codex app server.
-- Start with simple local development assumptions: REST + SSE + in-memory state.
-- Avoid persistence, auth, and deployment complexity unless the demo explicitly needs it.
-
-### Agent Adapters (`apps/agent-adapters/`)
-
-- Adapters connect backend agent runtimes to the App Server; mobile should not talk directly to agent runtimes.
-- Start with a demo adapter that can register a fake session, answer a screenshot + audio context request from local directory context, and publish `context.answer.ready` / `agent.done`.
-- Keep adapter payloads aligned with `docs/api/examples/`.
-
-### Codex Agent Workspace (`apps/codex-agent/`)
-
-- This directory is the intended `cwd` for Codex agents spawned or managed by the App Server.
-- Keep runnable agent instructions in `apps/codex-agent/AGENTS.md`.
-- Put local Codex-compatible skills under `apps/codex-agent/.agents/skills/`.
-- Keep helper scripts lightweight and dependency-free unless a dependency is documented in this directory.
-- Runtime request/response payloads and local DuckDB files should stay ignored.
-- The MVP agent may read DuckDB directly for context answers; do not introduce a Bun CLI/tool bridge until the direct path is too slow or repetitive.
+- Keep Node.js, TypeScript, build, and test tooling inside `apps/api/`.
+- Use strict TypeScript for the API MVP.
+- Keep the active API limited to `GET /health` and `POST /prompt` until the contract is updated.
+- `POST /prompt` uses multipart/form-data with required `screenMedia`, optional `promptText`, optional raw `promptAudio`, and at least one prompt field.
+- Keep docs brief and prefer removing stale scope over documenting old flows as active behavior.
+- Update the API contract before changing API behavior.
 
 ## Contract-change rule
 
-When changing API or event behavior:
+When changing API behavior:
 
-1. Update `docs/api/openapi.yaml` or `docs/api/events.md` first.
+1. Update `docs/api/openapi.yaml` first.
 2. Update sample payloads in `docs/api/examples/`.
 3. Update affected specs or demo steps.
 4. Then implement code in the relevant app directory.
@@ -113,8 +82,7 @@ For docs-only changes:
 For later implementation changes:
 
 - Mobile: run Flutter format/analyze/tests once the Flutter project exists.
-- Server: run server tests and any contract tests once the server project exists.
-- Adapter: run demo script or adapter tests once adapter code exists.
+- API: run `apps/api` tests, typecheck, and build once the workspace exists.
 
 ## Commit guidance
 

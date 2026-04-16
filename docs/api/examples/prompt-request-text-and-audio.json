@@ -1,0 +1,12 @@
+{
+  "screenMedia": {
+    "filename": "screen-recording.webm",
+    "mimeType": "video/webm",
+    "kind": "video"
+  },
+  "promptText": "Is this ready to ship?",
+  "promptAudio": {
+    "filename": "prompt.wav",
+    "mimeType": "audio/wav"
+  }
+}

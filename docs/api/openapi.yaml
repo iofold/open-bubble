@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Open Bubble App Server API
+  title: Open Bubble API
   version: 0.1.0
-  summary: Contract between the Flutter Android companion app, App Server, and backend agent adapters.
+  summary: Minimal contract for the local prompt MVP.
 servers:
-  - url: http://localhost:8787
+  - url: http://localhost:3000
     description: Local development server
 paths:
   /health:
@@ -17,236 +17,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
-  /v1/sessions:
-    get:
-      summary: List active or recent agent sessions
-      responses:
-        '200':
-          description: Session list
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [sessions]
-                properties:
-                  sessions:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/SessionSummary'
+  /prompt:
     post:
-      summary: Register a demo/backend agent session
+      summary: Submit a media prompt and receive a synchronous answer
+      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. Any unsupported media type should return `415 Unsupported Media Type`.
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-      responses:
-        '201':
-          description: Created session
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SessionSummary'
-  /v1/sessions/{sessionId}:
-    get:
-      summary: Get one session
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
+              $ref: '#/components/schemas/PromptRequest'
       responses:
         '200':
-          description: Session detail
+          description: Prompt handled synchronously
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionDetail'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /v1/sessions/{sessionId}/context:
-    get:
-      summary: Fetch passive/debug local directory context summary for a session
-      description: This is not the primary user prompt flow. Use context-requests when the user asks a screenshot + audio question.
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      responses:
-        '200':
-          description: Session context summary
+                $ref: '#/components/schemas/PromptResponse'
+        '400':
+          description: Missing required media or invalid prompt payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionContext'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      summary: Replace or update passive/debug context summary from an agent adapter
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SessionContextUpdate'
-      responses:
-        '200':
-          description: Updated context
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Unsupported media type
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionContext'
-  /v1/sessions/{sessionId}/context-requests:
-    post:
-      summary: Submit a screenshot + audio prompt to be answered against local directory context
-      description: Primary "fetch context" action. Use intent=code_assertion only when the user's prompt explicitly asks for code assertion or verification.
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateContextRequest'
-      responses:
-        '200':
-          description: Context request answered immediately from local session or DuckDB context
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContextRequestResponse'
-        '202':
-          description: Context request accepted for asynchronous agent work
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContextRequestResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    get:
-      summary: List submitted context requests for a session
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      responses:
-        '200':
-          description: Context requests
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [requests]
-                properties:
-                  requests:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ContextRequest'
-  /v1/sessions/{sessionId}/context-requests/{contextRequestId}:
-    get:
-      summary: Get one context request and answer status
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-        - $ref: '#/components/parameters/ContextRequestId'
-      responses:
-        '200':
-          description: Context request detail
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContextRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /v1/sessions/{sessionId}/screenshots:
-    post:
-      summary: Upload screenshot or screenshot metadata from mobile
-      description: Legacy/screenshot-only helper. Prefer context-requests for screenshot + audio prompts.
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ScreenshotUploadRequest'
-      responses:
-        '202':
-          description: Screenshot accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ScreenshotUploadResponse'
-  /v1/events:
-    get:
-      summary: Poll recent events as a fallback to SSE
-      parameters:
-        - in: query
-          name: since
-          required: false
-          schema:
-            type: string
-            format: date-time
-      responses:
-        '200':
-          description: Recent events
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [events]
-                properties:
-                  events:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/BubbleEvent'
-    post:
-      summary: Publish an event from an agent adapter or demo script
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateEventRequest'
-      responses:
-        '202':
-          description: Event accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BubbleEvent'
-  /v1/events/stream:
-    get:
-      summary: Subscribe to bubble events with Server-Sent Events
-      parameters:
-        - in: query
-          name: deviceId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: SSE stream of BubbleEvent payloads
-          content:
-            text/event-stream:
-              schema:
-                type: string
+                $ref: '#/components/schemas/ErrorResponse'
 components:
-  parameters:
-    SessionId:
-      in: path
-      name: sessionId
-      required: true
-      schema:
-        type: string
-    ContextRequestId:
-      in: path
-      name: contextRequestId
-      required: true
-      schema:
-        type: string
-  responses:
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     HealthResponse:
       type: object
@@ -256,348 +56,65 @@ components:
           type: boolean
         service:
           type: string
-          const: open-bubble-server
+          const: open-bubble-api
         version:
           type: string
-    SessionStatus:
-      type: string
-      enum: [starting, running, waiting_for_input, done, error, unknown]
-    SessionSummary:
+    PromptRequest:
       type: object
-      required: [id, title, status, updatedAt]
+      required: [screenMedia]
+      anyOf:
+        - required: [promptText]
+        - required: [promptAudio]
       properties:
-        id:
+        screenMedia:
           type: string
-        title:
+          format: binary
+          description: Upload one screenshot or screen recording as an image/* or video/* file.
+        promptText:
           type: string
-        status:
-          $ref: '#/components/schemas/SessionStatus'
-        agentKind:
+          description: Optional text prompt sent with the uploaded screen media.
+        promptAudio:
           type: string
-          examples: [codex, demo]
-        updatedAt:
-          type: string
-          format: date-time
-    SessionDetail:
-      allOf:
-        - $ref: '#/components/schemas/SessionSummary'
-        - type: object
-          properties:
-            context:
-              $ref: '#/components/schemas/SessionContext'
-            lastEvent:
-              $ref: '#/components/schemas/BubbleEvent'
-    CreateSessionRequest:
+          format: binary
+          description: Optional raw audio prompt sent as audio/* and forwarded to the backend without client-side transcription.
+      additionalProperties: false
+    PromptMedia:
       type: object
-      required: [title]
+      required: [filename, mimeType, kind]
       properties:
-        title:
+        filename:
           type: string
-        agentKind:
-          type: string
-          default: demo
-        status:
-          $ref: '#/components/schemas/SessionStatus'
-        context:
-          $ref: '#/components/schemas/SessionContextUpdate'
-    SessionContext:
-      type: object
-      required: [sessionId, summary, updatedAt]
-      properties:
-        sessionId:
-          type: string
-        summary:
-          type: string
-          description: Passive/debug summary of local directory context and current session state.
-        currentTask:
-          type: string
-        workingDirectory:
-          type: string
-        files:
-          type: array
-          items:
-            type: string
-        recentMessages:
-          type: array
-          items:
-            type: string
-        updatedAt:
-          type: string
-          format: date-time
-    SessionContextUpdate:
-      type: object
-      properties:
-        summary:
-          type: string
-        currentTask:
-          type: string
-        workingDirectory:
-          type: string
-        files:
-          type: array
-          items:
-            type: string
-        recentMessages:
-          type: array
-          items:
-            type: string
-    ContextRequestIntent:
-      type: string
-      enum: [context_question, code_assertion]
-      default: context_question
-      description: Use code_assertion only when the user explicitly asks to assert/verify code or an outgoing change.
-    ContextRequestStatus:
-      type: string
-      enum: [accepted, processing, answered, failed]
-    CreateContextRequest:
-      type: object
-      required: [deviceId, createdAt, screenshot, prompt]
-      properties:
-        deviceId:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        intent:
-          $ref: '#/components/schemas/ContextRequestIntent'
-        userExplicitlyRequestedCodeAssertion:
-          type: boolean
-          default: false
-          description: Must be true only when the user explicitly mentions code assertion/verification in audio, transcript, or typed prompt.
-        screenshot:
-          $ref: '#/components/schemas/ScreenshotInput'
-        prompt:
-          $ref: '#/components/schemas/PromptInput'
-        localContextHints:
-          type: object
-          description: Optional hints for the backend local directory context resolver.
-          properties:
-            workingDirectory:
-              type: string
-            files:
-              type: array
-              items:
-                type: string
-            gitRef:
-              type: string
-        metadata:
-          type: object
-          additionalProperties: true
-    ContextRequest:
-      type: object
-      required: [id, sessionId, status, intent, createdAt]
-      properties:
-        id:
-          type: string
-        sessionId:
-          type: string
-        status:
-          $ref: '#/components/schemas/ContextRequestStatus'
-        intent:
-          $ref: '#/components/schemas/ContextRequestIntent'
-        userExplicitlyRequestedCodeAssertion:
-          type: boolean
-        promptTranscript:
-          type: string
-        answer:
-          $ref: '#/components/schemas/ContextAnswer'
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    ContextRequestResponse:
-      type: object
-      required: [accepted, requestId, status]
-      properties:
-        accepted:
-          type: boolean
-        requestId:
-          type: string
-        status:
-          $ref: '#/components/schemas/ContextRequestStatus'
-        eventType:
-          $ref: '#/components/schemas/EventType'
-        message:
-          type: string
-        answer:
-          $ref: '#/components/schemas/ContextAnswer'
-    ContextAnswer:
-      type: object
-      required: [summary]
-      properties:
-        summary:
-          type: string
-        details:
-          type: string
-        confidence:
-          type: string
-          enum: [low, medium, high]
-        localContextUsed:
-          type: array
-          items:
-            type: string
-        retrievalMode:
-          type: string
-          enum: [session_state, direct_duckdb, local_files, agent_reasoning, mixed]
-          description: Indicates whether the answer came from fast local context lookup or slower agent work.
-        codeAssertionResult:
-          type: object
-          description: Present only for explicit code_assertion requests.
-          properties:
-            verdict:
-              type: string
-              enum: [supported, not_supported, inconclusive]
-            reasoning:
-              type: string
-            evidence:
-              type: array
-              items:
-                type: string
-    ScreenshotInput:
-      type: object
-      required: [capturedAt]
-      properties:
-        capturedAt:
-          type: string
-          format: date-time
         mimeType:
           type: string
-          enum: [image/png, image/jpeg, image/webp]
-        imageBase64:
+        kind:
           type: string
-          description: Optional for MVP; may be omitted if sending metadata/manual placeholder only.
-        screenMetadata:
-          type: object
-          additionalProperties: true
-    PromptInput:
+          enum: [image, video]
+    PromptResponse:
       type: object
-      required: [capturedAt]
+      required: [answer, screenMedia, receivedAt]
       properties:
-        capturedAt:
-          type: string
-          format: date-time
-        audioMimeType:
-          type: string
-          enum: [audio/aac, audio/m4a, audio/mp4, audio/wav, audio/webm]
-        audioBase64:
-          type: string
-          description: Optional for MVP; may be omitted when using typed/mock transcript fallback.
-        transcript:
-          type: string
-          description: Transcript of the user's audio prompt, or typed fallback for demo.
-        language:
-          type: string
-          examples: [en-US]
-    ScreenshotUploadRequest:
-      type: object
-      required: [deviceId, capturedAt]
-      properties:
-        deviceId:
-          type: string
-        capturedAt:
-          type: string
-          format: date-time
-        mimeType:
-          type: string
-          enum: [image/png, image/jpeg, image/webp]
-        imageBase64:
-          type: string
-          description: Optional for MVP; may be omitted if sending metadata only.
-        notes:
-          type: string
-        screenMetadata:
-          type: object
-          additionalProperties: true
-    ScreenshotUploadResponse:
-      type: object
-      required: [accepted, screenshotId]
-      properties:
-        accepted:
-          type: boolean
-        screenshotId:
-          type: string
-        message:
-          type: string
-    EventType:
-      type: string
-      enum:
-        - session.started
-        - session.context.updated
-        - context.requested
-        - context.answer.partial
-        - context.answer.ready
-        - code.assertion.requested
-        - code.assertion.ready
-        - screenshot.received
-        - agent.input.requested
-        - agent.done
-        - agent.error
-    BubbleEvent:
-      type: object
-      required: [id, type, title, createdAt]
-      properties:
-        id:
-          type: string
-        type:
-          $ref: '#/components/schemas/EventType'
-        sessionId:
-          type: string
-        contextRequestId:
-          type: string
-        title:
-          type: string
-        message:
-          type: string
-        severity:
-          type: string
-          enum: [info, success, warning, error]
-          default: info
-        createdAt:
-          type: string
-          format: date-time
         answer:
-          $ref: '#/components/schemas/ContextAnswer'
-        action:
+          type: string
+        promptText:
+          type: string
+        promptAudio:
           type: object
+          required: [filename, mimeType]
           properties:
-            label:
+            filename:
               type: string
-            deepLink:
+            mimeType:
               type: string
-    CreateEventRequest:
-      type: object
-      required: [type, title]
-      properties:
-        type:
-          $ref: '#/components/schemas/EventType'
-        sessionId:
+        screenMedia:
+          $ref: '#/components/schemas/PromptMedia'
+        receivedAt:
           type: string
-        contextRequestId:
-          type: string
-        title:
-          type: string
-        message:
-          type: string
-        severity:
-          type: string
-          enum: [info, success, warning, error]
-        answer:
-          $ref: '#/components/schemas/ContextAnswer'
-        action:
-          type: object
-          properties:
-            label:
-              type: string
-            deepLink:
-              type: string
+          format: date-time
     ErrorResponse:
       type: object
-      required: [error]
+      required: [error, message]
       properties:
         error:
           type: string
-        details:
-          type: object
-          additionalProperties: true
+        message:
+          type: string
