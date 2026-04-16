@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
@@ -173,6 +175,15 @@ class _SetupPage extends StatelessWidget {
             ],
           ),
         ),
+        if (status.note?.isNotEmpty == true) ...[
+          const SizedBox(height: 12),
+          Text(
+            status.note!,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: const Color(0xFF5B6470),
+            ),
+          ),
+        ],
         const SizedBox(height: 14),
         _MetricsRow(
           children: [
@@ -366,6 +377,30 @@ class _SessionsPage extends StatelessWidget {
             ),
           ),
         if (session != null) const SizedBox(height: 14),
+        _SectionCard(
+          title: 'Request pipeline',
+          subtitle:
+              'This mirrors the lifecycle the real App Server will expose later: capture, correlate, draft, then review.',
+          accent: const Color(0xFF7C3AED),
+          child: controller.requests.isEmpty
+              ? const Text(
+                  'No requests yet. Capture the current window or generate a mocked reply to start the pipeline.',
+                )
+              : Column(
+                  children: [
+                    for (final request in controller.requests) ...[
+                      _RequestJobRow(
+                        request: request,
+                        selected:
+                            request.requestId == controller.activeRequestId,
+                      ),
+                      if (request != controller.requests.last)
+                        const Divider(height: 20),
+                    ],
+                  ],
+                ),
+        ),
+        const SizedBox(height: 14),
         if (controller.latestInspection != null)
           _SectionCard(
             title: 'Latest inspection',
@@ -637,18 +672,110 @@ class _CapturePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+    final previewFile = capture.filePath.startsWith('/')
+        ? File(capture.filePath)
+        : null;
+    final canPreview = previewFile?.existsSync() ?? false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _StatusPill(label: capture.requestId, color: const Color(0xFFD7EDE1)),
-        _StatusPill(
-          label: '${capture.width}×${capture.height}',
-          color: const Color(0xFFFDE7D5),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _StatusPill(
+              label: capture.requestId,
+              color: const Color(0xFFD7EDE1),
+            ),
+            _StatusPill(
+              label: '${capture.width}×${capture.height}',
+              color: const Color(0xFFFDE7D5),
+            ),
+            _StatusPill(label: capture.source, color: const Color(0xFFF3E8FF)),
+            _StatusPill(
+              label: capture.packageName,
+              color: const Color(0xFFFAEBD7),
+            ),
+          ],
         ),
-        _StatusPill(label: capture.source, color: const Color(0xFFF3E8FF)),
-        _StatusPill(label: capture.packageName, color: const Color(0xFFFAEBD7)),
+        if (canPreview) ...[
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.file(
+              previewFile!,
+              fit: BoxFit.cover,
+              height: 220,
+              width: double.infinity,
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+class _RequestJobRow extends StatelessWidget {
+  const _RequestJobRow({required this.request, required this.selected});
+
+  final RequestJob request;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = selected
+        ? const Color(0xFF7C3AED)
+        : const Color(0x14000000);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFF6F1FF) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  request.sessionTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              _StatusPill(
+                label: request.stageLabel,
+                color: _requestStageColor(request.stage),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(request.detail),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _StatusPill(
+                label: request.requestId,
+                color: const Color(0xFFE9F3F3),
+              ),
+              if (request.usesMockCapture)
+                const _StatusPill(
+                  label: 'mock capture',
+                  color: Color(0xFFFDE7D5),
+                ),
+              _StatusPill(
+                label: request.updatedAt,
+                color: const Color(0xFFF5F0E8),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -700,6 +827,17 @@ class _TimelineRow extends StatelessWidget {
       ],
     );
   }
+}
+
+Color _requestStageColor(RequestStage stage) {
+  return switch (stage) {
+    RequestStage.queued => const Color(0xFFE7E5E4),
+    RequestStage.capturing => const Color(0xFFFDE7D5),
+    RequestStage.uploading => const Color(0xFFE0F2FE),
+    RequestStage.drafting => const Color(0xFFF3E8FF),
+    RequestStage.ready => const Color(0xFFD7EDE1),
+    RequestStage.failed => const Color(0xFFF8D7DA),
+  };
 }
 
 class _SessionTile extends StatelessWidget {

@@ -29,7 +29,9 @@ class OpenBubbleController extends ChangeNotifier {
   String serverBaseUrl = 'http://10.0.2.2:8787';
   ServiceStatus serviceStatus = const ServiceStatus.initial();
   List<SessionSummary> sessions = const [];
+  List<RequestJob> requests = const [];
   String? selectedSessionId;
+  String? activeRequestId;
   WindowSnapshot? latestInspection;
   CaptureSnapshot? latestCapture;
   ReplyDraft? latestReplyDraft;
@@ -43,6 +45,20 @@ class OpenBubbleController extends ChangeNotifier {
     for (final session in sessions) {
       if (session.id == selectedSessionId) {
         return session;
+      }
+    }
+
+    return null;
+  }
+
+  RequestJob? get activeRequest {
+    if (activeRequestId == null) {
+      return null;
+    }
+
+    for (final request in requests) {
+      if (request.requestId == activeRequestId) {
+        return request;
       }
     }
 
@@ -218,6 +234,17 @@ class OpenBubbleController extends ChangeNotifier {
     final response = await _bridge.captureActiveWindow(requestId: requestId);
     final accepted = response['accepted'] as bool? ?? false;
 
+    _startRequest(
+      requestId: requestId,
+      sessionId: session.id,
+      sessionTitle: session.title,
+      stage: accepted ? RequestStage.capturing : RequestStage.uploading,
+      detail: accepted
+          ? 'Waiting for the Android accessibility service to finish the capture.'
+          : 'Native capture is unavailable, so the client is switching to mocked context.',
+      usesMockCapture: !accepted,
+    );
+
     if (accepted) {
       _addTimeline(
         title: 'Capture requested',
@@ -255,6 +282,14 @@ class OpenBubbleController extends ChangeNotifier {
     latestCapture = CaptureSnapshot.mock(
       requestId: requestId,
       packageName: latestInspection?.packageName ?? 'mock.package',
+    );
+    _startRequest(
+      requestId: requestId,
+      sessionId: session.id,
+      sessionTitle: session.title,
+      stage: RequestStage.drafting,
+      detail: 'Synthesizing a mocked request from the latest window context.',
+      usesMockCapture: true,
     );
 
     await _submitLatestContext(requestId: requestId, sessionId: session.id);
@@ -317,6 +352,11 @@ class OpenBubbleController extends ChangeNotifier {
 
     _submittedRequestIds.add(requestId);
     performingAction = true;
+    _updateRequest(
+      requestId,
+      stage: RequestStage.drafting,
+      detail: 'Submitting the latest context to the mocked App Server.',
+    );
     notifyListeners();
 
     final draft = await _mockAppServer.submitCapture(
@@ -327,6 +367,11 @@ class OpenBubbleController extends ChangeNotifier {
     );
 
     latestReplyDraft = draft;
+    _updateRequest(
+      requestId,
+      stage: RequestStage.ready,
+      detail: 'Draft ready for review-before-fill.',
+    );
     _addTimeline(
       title: 'Mocked reply ready',
       detail:
@@ -371,6 +416,12 @@ class OpenBubbleController extends ChangeNotifier {
         break;
       case 'capture.ready':
         latestCapture = CaptureSnapshot.fromMap(event.payload);
+        _updateRequest(
+          latestCapture!.requestId,
+          stage: RequestStage.drafting,
+          detail:
+              'Screenshot persisted. Drafting a mocked server response now.',
+        );
         final sessionId = selectedSessionId ?? _firstSessionId;
         if (sessionId != null) {
           unawaited(
@@ -378,6 +429,17 @@ class OpenBubbleController extends ChangeNotifier {
               requestId: latestCapture!.requestId,
               sessionId: sessionId,
             ),
+          );
+        }
+        break;
+      case 'capture.failed':
+        final requestId = event.payload['requestId'] as String?;
+        if (requestId != null) {
+          _updateRequest(
+            requestId,
+            stage: RequestStage.failed,
+            detail:
+                'Native capture failed. The next step is either retrying or switching to a mocked capture.',
           );
         }
         break;
@@ -401,6 +463,53 @@ class OpenBubbleController extends ChangeNotifier {
   }
 
   String? get _firstSessionId => sessions.isEmpty ? null : sessions.first.id;
+
+  void _startRequest({
+    required String requestId,
+    required String sessionId,
+    required String sessionTitle,
+    required RequestStage stage,
+    required String detail,
+    bool usesMockCapture = false,
+  }) {
+    final now = DateTime.now().toIso8601String();
+    activeRequestId = requestId;
+    requests = <RequestJob>[
+      RequestJob(
+        requestId: requestId,
+        sessionId: sessionId,
+        sessionTitle: sessionTitle,
+        stage: stage,
+        detail: detail,
+        createdAt: now,
+        updatedAt: now,
+        usesMockCapture: usesMockCapture,
+      ),
+      ...requests.where((request) => request.requestId != requestId),
+    ].take(8).toList();
+  }
+
+  void _updateRequest(
+    String requestId, {
+    RequestStage? stage,
+    String? detail,
+    bool? usesMockCapture,
+  }) {
+    final updatedAt = DateTime.now().toIso8601String();
+    requests = requests.map((request) {
+      if (request.requestId != requestId) {
+        return request;
+      }
+
+      return request.copyWith(
+        stage: stage,
+        detail: detail,
+        updatedAt: updatedAt,
+        usesMockCapture: usesMockCapture,
+      );
+    }).toList();
+    activeRequestId = requestId;
+  }
 
   void _addTimeline({
     required String title,

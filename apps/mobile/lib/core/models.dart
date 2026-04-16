@@ -1,5 +1,7 @@
 enum TimelineTone { info, success, warning, error }
 
+enum RequestStage { queued, capturing, uploading, drafting, ready, failed }
+
 class ServiceStatus {
   const ServiceStatus({
     required this.accessibilityEnabled,
@@ -278,6 +280,57 @@ class ReplyDraft {
   final String confidence;
   final List<String> warnings;
   final String updatedAt;
+}
+
+class RequestJob {
+  const RequestJob({
+    required this.requestId,
+    required this.sessionId,
+    required this.sessionTitle,
+    required this.stage,
+    required this.detail,
+    required this.createdAt,
+    required this.updatedAt,
+    this.usesMockCapture = false,
+  });
+
+  final String requestId;
+  final String sessionId;
+  final String sessionTitle;
+  final RequestStage stage;
+  final String detail;
+  final String createdAt;
+  final String updatedAt;
+  final bool usesMockCapture;
+
+  String get stageLabel {
+    return switch (stage) {
+      RequestStage.queued => 'queued',
+      RequestStage.capturing => 'capturing',
+      RequestStage.uploading => 'uploading',
+      RequestStage.drafting => 'drafting',
+      RequestStage.ready => 'ready',
+      RequestStage.failed => 'failed',
+    };
+  }
+
+  RequestJob copyWith({
+    RequestStage? stage,
+    String? detail,
+    String? updatedAt,
+    bool? usesMockCapture,
+  }) {
+    return RequestJob(
+      requestId: requestId,
+      sessionId: sessionId,
+      sessionTitle: sessionTitle,
+      stage: stage ?? this.stage,
+      detail: detail ?? this.detail,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      usesMockCapture: usesMockCapture ?? this.usesMockCapture,
+    );
+  }
 }
 
 class TimelineEntry {
