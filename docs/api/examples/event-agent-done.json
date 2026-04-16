@@ -1,13 +1,14 @@
 {
   "id": "evt_done_001",
-  "type": "agent.done",
+  "type": "assistant.reply.ready",
   "sessionId": "sess_hackathon_001",
-  "title": "Agent finished",
-  "message": "Server event relay is ready to test.",
+  "requestId": "req_capture_001",
+  "title": "Reply ready",
+  "message": "Insurance details prepared for review.",
   "severity": "success",
   "createdAt": "2026-04-16T06:35:00Z",
   "action": {
-    "label": "Open session",
-    "deepLink": "openbubble://sessions/sess_hackathon_001"
+    "label": "Review reply",
+    "deepLink": "openbubble://sessions/sess_hackathon_001?requestId=req_capture_001"
   }
 }

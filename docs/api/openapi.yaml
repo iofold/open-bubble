@@ -93,9 +93,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionContext'
-  /v1/sessions/{sessionId}/screenshots:
+  /v1/sessions/{sessionId}/captures:
     post:
-      summary: Upload screenshot or screenshot metadata from mobile
+      summary: Upload an accessibility capture from mobile
       parameters:
         - $ref: '#/components/parameters/SessionId'
       requestBody:
@@ -103,14 +103,28 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ScreenshotUploadRequest'
+              $ref: '#/components/schemas/CaptureSubmissionRequest'
       responses:
         '202':
-          description: Screenshot accepted
+          description: Capture accepted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ScreenshotUploadResponse'
+                $ref: '#/components/schemas/CaptureSubmissionResponse'
+  /v1/requests/{requestId}:
+    get:
+      summary: Get the latest status/result for a submitted mobile request
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: Request status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/events:
     get:
       summary: Poll recent events as a fallback to SSE
@@ -170,6 +184,12 @@ components:
     SessionId:
       in: path
       name: sessionId
+      required: true
+      schema:
+        type: string
+    RequestId:
+      in: path
+      name: requestId
       required: true
       schema:
         type: string
@@ -273,43 +293,151 @@ components:
           type: array
           items:
             type: string
-    ScreenshotUploadRequest:
+    CaptureSubmissionRequest:
       type: object
-      required: [deviceId, capturedAt]
+      required: [deviceId, requestId, capturedAt, captureType]
       properties:
         deviceId:
+          type: string
+        requestId:
           type: string
         capturedAt:
           type: string
           format: date-time
+        captureType:
+          type: string
+          enum: [inspect, screenshot, screenshot_with_prompt]
         mimeType:
           type: string
           enum: [image/png, image/jpeg, image/webp]
         imageBase64:
           type: string
           description: Optional for MVP; may be omitted if sending metadata only.
+        userPrompt:
+          type: string
+        sourceApp:
+          type: string
+        sourcePackage:
+          type: string
+        focusedField:
+          $ref: '#/components/schemas/FocusedField'
+        windowSnapshot:
+          $ref: '#/components/schemas/WindowSnapshot'
         notes:
           type: string
-        screenMetadata:
+        captureMetadata:
           type: object
           additionalProperties: true
-    ScreenshotUploadResponse:
+    CaptureSubmissionResponse:
       type: object
-      required: [accepted, screenshotId]
+      required: [accepted, requestId, status]
       properties:
         accepted:
           type: boolean
-        screenshotId:
+        requestId:
+          type: string
+        status:
+          $ref: '#/components/schemas/RequestStatus'
+        captureId:
           type: string
         message:
           type: string
+    FocusedField:
+      type: object
+      properties:
+        label:
+          type: string
+        hint:
+          type: string
+        bounds:
+          $ref: '#/components/schemas/ScreenBounds'
+        supportsSetText:
+          type: boolean
+        supportsPaste:
+          type: boolean
+    WindowSnapshot:
+      type: object
+      properties:
+        packageName:
+          type: string
+        className:
+          type: string
+        windowCount:
+          type: integer
+        visibleText:
+          type: array
+          items:
+            type: string
+        editableLabels:
+          type: array
+          items:
+            type: string
+        focusedField:
+          $ref: '#/components/schemas/FocusedField'
+    ScreenBounds:
+      type: object
+      properties:
+        left:
+          type: integer
+        top:
+          type: integer
+        right:
+          type: integer
+        bottom:
+          type: integer
+        width:
+          type: integer
+        height:
+          type: integer
+    RequestStatus:
+      type: string
+      enum: [queued, running, awaiting_review, completed, error]
+    FillSuggestion:
+      type: object
+      properties:
+        label:
+          type: string
+        text:
+          type: string
+        copyText:
+          type: string
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        warnings:
+          type: array
+          items:
+            type: string
+    RequestResult:
+      type: object
+      required: [requestId, status, updatedAt]
+      properties:
+        requestId:
+          type: string
+        sessionId:
+          type: string
+        status:
+          $ref: '#/components/schemas/RequestStatus'
+        title:
+          type: string
+        message:
+          type: string
+        replyText:
+          type: string
+        fillSuggestion:
+          $ref: '#/components/schemas/FillSuggestion'
+        updatedAt:
+          type: string
+          format: date-time
     EventType:
       type: string
       enum:
         - session.started
         - session.context.updated
-        - screenshot.received
-        - agent.input.requested
+        - capture.accepted
+        - request.updated
+        - assistant.reply.ready
+        - fill.preview.ready
         - agent.done
         - agent.error
     BubbleEvent:
@@ -321,6 +449,8 @@ components:
         type:
           $ref: '#/components/schemas/EventType'
         sessionId:
+          type: string
+        requestId:
           type: string
         title:
           type: string
@@ -347,6 +477,8 @@ components:
         type:
           $ref: '#/components/schemas/EventType'
         sessionId:
+          type: string
+        requestId:
           type: string
         title:
           type: string
