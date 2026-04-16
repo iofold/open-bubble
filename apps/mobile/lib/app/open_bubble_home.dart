@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -37,8 +38,6 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {
@@ -72,60 +71,33 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
 
         return Scaffold(
           body: DecoratedBox(
-            decoration: const BoxDecoration(color: Color(0xFFF2F1EC)),
+            decoration: const BoxDecoration(color: Color(0xFF111111)),
             child: Stack(
               children: [
                 const _BackdropOrbs(),
                 SafeArea(
-                  child: Column(
+                  child: Stack(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-                        child: _HeroDeck(controller: controller),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: SegmentedButton<int>(
-                          segments: const [
-                            ButtonSegment<int>(
-                              value: 0,
-                              icon: Icon(Icons.home_rounded),
-                              label: Text('Home'),
-                            ),
-                            ButtonSegment<int>(
-                              value: 1,
-                              icon: Icon(Icons.schedule_rounded),
-                              label: Text('Tasks'),
-                            ),
-                            ButtonSegment<int>(
-                              value: 2,
-                              icon: Icon(Icons.tune_rounded),
-                              label: Text('Settings'),
-                            ),
-                          ],
-                          selected: <int>{_tabIndex},
-                          onSelectionChanged: (selection) {
-                            setState(() {
-                              _tabIndex = selection.first;
-                            });
-                          },
-                          style: SegmentedButton.styleFrom(
-                            selectedBackgroundColor: theme.colorScheme.primary,
-                            selectedForegroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF202020),
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0x22000000)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Expanded(
+                      Positioned.fill(
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 250),
                           child: KeyedSubtree(
                             key: ValueKey<int>(_tabIndex),
                             child: pages[_tabIndex],
                           ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 20,
+                        right: 20,
+                        bottom: 16,
+                        child: _FloatingNavBar(
+                          selectedIndex: _tabIndex,
+                          onSelected: (index) {
+                            setState(() {
+                              _tabIndex = index;
+                            });
+                          },
                         ),
                       ),
                     ],
@@ -148,173 +120,271 @@ class _HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recentRequests = controller.requests.take(3).toList();
     final theme = Theme.of(context);
     final service = controller.serviceStatus;
     final online = controller.serverHealthy && service.serviceConnected;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-      children: [
-        _GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 116),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'READY // developer mode',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            letterSpacing: 0.8,
-                            color: const Color(0xFF777777),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Your orb is standing by.',
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Keep the app clean, keep the orb visible, and let the prompt + screenshot flow do the heavy lifting.',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFF4C4C4C),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const _LogoCoin(),
-                ],
+              const _HeaderTag(label: 'OBIE // mobile copilot'),
+              const Spacer(),
+              _PresencePill(
+                label: online ? 'online' : 'offline',
+                online: online,
+                compact: true,
               ),
-              const SizedBox(height: 22),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _PresencePill(
-                    label: online
-                        ? 'Codex server online'
-                        : 'Codex server offline',
-                    online: online,
-                  ),
-                  _QuietPill(
-                    label: service.bubbleVisible
-                        ? 'Bubble visible'
-                        : 'Bubble hidden',
-                  ),
-                  _QuietPill(
-                    label: controller.latestReplyDraft == null
-                        ? 'No fresh reply'
-                        : 'Reply ready',
-                  ),
-                ],
+            ],
+          ),
+          const Spacer(),
+          const _LargeLogoCoin(),
+          const SizedBox(height: 32),
+          Text(
+            'Welcome back, Adi',
+            style: theme.textTheme.displaySmall?.copyWith(
+              color: Colors.white,
+              fontSize: 42,
+              height: 0.98,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            online
+                ? 'Your OB side is connected to the Codex server.'
+                : 'Your OB side is waiting to reconnect to the Codex server.',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: Colors.white.withValues(alpha: 0.84),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            service.bubbleVisible
+                ? 'The orb is already floating above your apps.'
+                : 'Show the orb once, then let it stay out in front.',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: Colors.white.withValues(alpha: 0.62),
+            ),
+          ),
+          const SizedBox(height: 26),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _DarkInfoChip(
+                label: service.serviceConnected
+                    ? 'runtime connected'
+                    : 'runtime waiting',
               ),
-              const SizedBox(height: 18),
-              Text(
-                online
-                    ? 'Open Bubble is ready. Long-press the orb on any screen, send a prompt, and the reply will come back through notifications and clipboard.'
-                    : 'Finish runtime setup once, then this app can mostly stay out of the way while the orb handles the work.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: const Color(0xFF4C4C4C),
+              _DarkInfoChip(
+                label: controller.serverHealthy
+                    ? 'codex server reachable'
+                    : 'server needs attention',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: onOpenSettings,
+            icon: const Icon(Icons.tune_rounded),
+            label: const Text('Open settings and tools'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white.withValues(alpha: 0.74),
+              padding: EdgeInsets.zero,
+            ),
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+}
+
+class _FloatingNavBar extends StatelessWidget {
+  const _FloatingNavBar({
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    const items = <({IconData icon, String label})>[
+      (icon: Icons.home_rounded, label: 'Home'),
+      (icon: Icons.schedule_rounded, label: 'Tasks'),
+      (icon: Icons.tune_rounded, label: 'Tools'),
+    ];
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xCC181818),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: const Color(0x22FFFFFF)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x40000000),
+                blurRadius: 30,
+                offset: Offset(0, 18),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              for (var index = 0; index < items.length; index++) ...[
+                Expanded(
+                  child: _NavItem(
+                    icon: items[index].icon,
+                    label: items[index].label,
+                    selected: selectedIndex == index,
+                    onTap: () => onSelected(index),
+                  ),
+                ),
+                if (index != items.length - 1) const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? const Color(0xFF111111) : Colors.white;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: foreground),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: foreground),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: _QuickActionCard(
-                title: 'Show bubble',
-                subtitle: 'Put the orb on screen.',
-                icon: Icons.radio_button_checked_rounded,
-                onTap: controller.showBubble,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _QuickActionCard(
-                title: 'Refresh',
-                subtitle: 'Sync service + server.',
-                icon: Icons.sync_rounded,
-                onTap: () {
-                  controller.refreshServiceStatus();
-                  controller.checkServerHealth();
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _QuickActionCard(
-                title: 'Notifications',
-                subtitle: 'Turn alerts on.',
-                icon: Icons.notifications_active_rounded,
-                onTap: controller.openNotificationSettings,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _QuickActionCard(
-                title: 'Settings',
-                subtitle: 'Open tools and server config.',
-                icon: Icons.tune_rounded,
-                onTap: onOpenSettings,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        _SectionCard(
-          title: 'Recent tasks',
-          subtitle: 'The latest requests that Open Bubble handled.',
-          accent: const Color(0xFF2C2C2C),
-          child: recentRequests.isEmpty
-              ? const _EmptyState(
-                  title: 'No tasks yet',
-                  subtitle:
-                      'Use the orb on top of another app, send a prompt, and the task will appear here.',
-                )
-              : Column(
-                  children: [
-                    for (final request in recentRequests) ...[
-                      _TaskPreviewCard(request: request),
-                      if (request != recentRequests.last)
-                        const SizedBox(height: 10),
-                    ],
-                  ],
-                ),
-        ),
-        const SizedBox(height: 14),
-        if (controller.latestReplyDraft != null)
-          _SectionCard(
-            title: 'Latest answer',
-            subtitle: 'The newest response is already on your clipboard.',
-            accent: const Color(0xFF4F9D69),
-            child: _LatestAnswerStrip(controller: controller),
-          )
-        else
-          const _SectionCard(
-            title: 'Latest answer',
-            subtitle: 'Nothing has landed yet.',
-            accent: Color(0xFF858585),
-            child: _EmptyState(
-              title: 'Clipboard stays clean for now',
-              subtitle:
-                  'As soon as a task finishes, the reply will appear here and get copied automatically.',
-            ),
+      ),
+    );
+  }
+}
+
+class _LargeLogoCoin extends StatelessWidget {
+  const _LargeLogoCoin();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 110,
+      height: 110,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F5),
+        borderRadius: BorderRadius.circular(34),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 30,
+            offset: Offset(0, 20),
           ),
-      ],
+        ],
+      ),
+      child: Container(
+        margin: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0D0D),
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '<•>',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -2.1,
+              ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'OB',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DarkInfoChip extends StatelessWidget {
+  const _DarkInfoChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: Colors.white.withValues(alpha: 0.82),
+        ),
+      ),
     );
   }
 }
@@ -334,7 +404,7 @@ class _SettingsPage extends StatelessWidget {
     final status = controller.serviceStatus;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
       children: [
         _SectionCard(
           title: 'Connection',
@@ -549,7 +619,7 @@ class _TasksPage extends StatelessWidget {
     final recentRequests = controller.requests.take(5).toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
       children: [
         _SectionCard(
           title: 'Task stream',
@@ -695,220 +765,6 @@ class _TasksPage extends StatelessWidget {
   }
 }
 
-class _HeroDeck extends StatelessWidget {
-  const _HeroDeck({required this.controller});
-
-  final OpenBubbleController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final service = controller.serviceStatus;
-    final connected = controller.serverHealthy && service.serviceConnected;
-
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF131313), Color(0xFF2A2A2A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 34,
-            offset: Offset(0, 18),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: _HeaderTag(label: 'OBIE // mobile copilot'),
-              ),
-              const SizedBox(width: 12),
-              _PresencePill(
-                label: connected ? 'online' : 'offline',
-                online: connected,
-                compact: true,
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Expanded(
-                child: _IdentityBlock(
-                  eyebrow: 'Open Bubble',
-                  title: 'Welcome back, Adi',
-                  subtitle:
-                      'A quiet home base for the orb, your recent tasks, and a live server connection.',
-                ),
-              ),
-              const SizedBox(width: 16),
-              const _LogoCoin(),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _StatusPill(
-                label: service.serviceConnected
-                    ? 'Runtime connected'
-                    : 'Runtime waiting',
-                color: service.serviceConnected
-                    ? const Color(0xFFB8F0C8)
-                    : const Color(0xFFE9D2A2),
-              ),
-              _StatusPill(
-                label: controller.serverHealthy
-                    ? 'Codex server reachable'
-                    : 'Server needs attention',
-                color: controller.serverHealthy
-                    ? const Color(0xFFE6E6E6)
-                    : const Color(0xFFD6D6D6),
-              ),
-              _StatusPill(
-                label: controller.latestReplyDraft == null
-                    ? 'Waiting for a reply'
-                    : 'Latest reply ready',
-                color: const Color(0xFFF3F3F3),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlassCard extends StatelessWidget {
-  const _GlassCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0x16000000)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 24,
-            offset: Offset(0, 14),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-
-class _IdentityBlock extends StatelessWidget {
-  const _IdentityBlock({
-    required this.eyebrow,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String eyebrow;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          eyebrow,
-          style: theme.textTheme.labelLarge?.copyWith(
-            letterSpacing: 0.8,
-            color: Colors.white.withValues(alpha: 0.64),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          style: theme.textTheme.displaySmall?.copyWith(color: Colors.white),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: Colors.white.withValues(alpha: 0.82),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LogoCoin extends StatelessWidget {
-  const _LogoCoin();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 74,
-      height: 74,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Container(
-        margin: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: const Color(0xFF121212),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '<•>',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -1.5,
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'OB',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _PresencePill extends StatelessWidget {
   const _PresencePill({
     required this.label,
@@ -970,187 +826,6 @@ class _PresencePill extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _QuietPill extends StatelessWidget {
-  const _QuietPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F4F2),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0x14000000)),
-      ),
-      child: Text(label, style: Theme.of(context).textTheme.labelLarge),
-    );
-  }
-}
-
-class _QuickActionCard extends StatelessWidget {
-  const _QuickActionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Ink(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0x15000000)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFF171717),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-            const SizedBox(height: 16),
-            Text(title, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF575757),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TaskPreviewCard extends StatelessWidget {
-  const _TaskPreviewCard({required this.request});
-
-  final RequestJob request;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F6),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0x14000000)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  request.sessionTitle,
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-              _StatusPill(
-                label: request.stageLabel,
-                color: _requestStageColor(request.stage),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            request.detail,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF575757),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  request.updatedAt,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF7A7A7A),
-                  ),
-                ),
-              ),
-              Text(
-                '#${request.requestId.substring(0, 8)}',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: const Color(0xFF7A7A7A),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LatestAnswerStrip extends StatelessWidget {
-  const _LatestAnswerStrip({required this.controller});
-
-  final OpenBubbleController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final draft = controller.latestReplyDraft!;
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(draft.title, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 10),
-        Text(
-          draft.replyText,
-          maxLines: 4,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: const Color(0xFF4A4A4A),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            FilledButton.icon(
-              onPressed: controller.copyLatestSuggestion,
-              icon: const Icon(Icons.content_copy_rounded),
-              label: const Text('Copy'),
-            ),
-            FilledButton.tonalIcon(
-              onPressed: controller.fillLatestSuggestion,
-              icon: const Icon(Icons.edit_rounded),
-              label: const Text('Fill'),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }
