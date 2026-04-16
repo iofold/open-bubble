@@ -323,6 +323,7 @@ class BubbleOverlayController(
                     shape = GradientDrawable.OVAL
                     setColor(Color.parseColor("#18FFFFFF"))
                 }
+                clipToOutline = true
                 setPadding(10)
             }
 
