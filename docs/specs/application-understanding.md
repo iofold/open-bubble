@@ -1,10 +1,13 @@
 # MVP Understanding
 
-The current MVP is a local Fastify API in `apps/api` with three endpoints:
+The current MVP is a local Fastify API in `apps/api` with four endpoints:
 
 - `GET /health`
+- `GET /apps`
 - `POST /prompt`
 - `GET /tasks/{taskId}`
+
+`GET /apps` returns a static list of supported app names: `Codex`, `Gmail`, `Gcal`, `Slack`, and `Notion`.
 
 `POST /prompt` accepts one `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`, then returns a task handle immediately. The client does not transcribe audio; it forwards the bytes as-is and polls `GET /tasks/{taskId}` for `in_progress`, `completed`, `failed`, or `error`.
 
@@ -34,7 +37,7 @@ The graph control panel is a local developer/operator view for inspecting DuckDB
 | --- | --- |
 | Flutter mobile app | Captures screen media and prompt text/audio, then calls `apps/api`. |
 | Native Android layer | Handles Android-only capabilities behind Flutter platform channels. |
-| API | Local Fastify API with `GET /health`, `POST /prompt`, and `GET /tasks/{taskId}`. |
+| API | Local Fastify API with `GET /health`, `GET /apps`, `POST /prompt`, and `GET /tasks/{taskId}`. |
 | Codex agent workspace | Local graph/context experiments, connector normalization, graph export, and future answer generation path. |
 | MCP connectors | Local backend-side sources for Gmail, Drive, and Calendar context. |
 | Graph control panel | Local static UI for inspecting exported context graph JSON. |

@@ -17,6 +17,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+  /apps:
+    get:
+      summary: List supported apps
+      responses:
+        '200':
+          description: Static list of apps supported by the MVP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppsResponse'
   /prompt:
     post:
       summary: Submit a media prompt and create an async task
@@ -82,6 +92,18 @@ components:
           const: open-bubble-api
         version:
           type: string
+    AppName:
+      type: string
+      enum: [Codex, Gmail, Gcal, Slack, Notion]
+    AppsResponse:
+      type: object
+      required: [apps]
+      properties:
+        apps:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppName'
+      additionalProperties: false
     PromptRequest:
       type: object
       required: [screenMedia]

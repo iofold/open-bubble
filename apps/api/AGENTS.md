@@ -12,7 +12,8 @@ This directory owns the local API MVP.
 - Build the compiled server with `npm run build`.
 - Start the compiled server with `npm run start`.
 - Use `GET /documentation` for the local Swagger UI and `GET /openapi.json` for the current parsed contract.
+- `GET /apps` returns the current static list of supported apps for the MVP.
 - `POST /prompt` is multipart/form-data with required `screenMedia`, optional `promptText`, optional raw `promptAudio`, and at least one prompt field.
 - `POST /prompt` creates a lightweight local task and `GET /tasks/:taskId` is the polling endpoint for task status and results.
-- Keep the API limited to `GET /health`, `POST /prompt`, and `GET /tasks/:taskId` unless `docs/api/openapi.yaml` changes first.
+- Keep the API limited to `GET /health`, `GET /apps`, `POST /prompt`, and `GET /tasks/:taskId` unless `docs/api/openapi.yaml` changes first.
 - Prefer strict TypeScript and small route modules.

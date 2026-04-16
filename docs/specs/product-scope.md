@@ -4,7 +4,7 @@ The MVP proves that a small local API can accept screen media plus at least one 
 
 ## Goals
 
-- Keep the active API surface limited to `GET /health`, `POST /prompt`, and `GET /tasks/{taskId}`.
+- Keep the active API surface limited to `GET /health`, `GET /apps`, `POST /prompt`, and `GET /tasks/{taskId}`.
 - Make the request shape easy to understand and easy to validate.
 - Keep the async task flow lightweight enough to run locally on one Mac without extra infrastructure.
 - Keep the docs small enough that another teammate can follow them quickly.
