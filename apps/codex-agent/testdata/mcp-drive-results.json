@@ -1,0 +1,38 @@
+{
+  "sessionId": "sess_test_001",
+  "connector": "drive",
+  "operation": "search",
+  "query": "Open Bubble context graph",
+  "fetchedAt": "2026-04-16T08:01:00Z",
+  "sourceRequestId": "ctx_req_fetch_001",
+  "results": [
+    {
+      "id": "drive_file_001",
+      "name": "Open Bubble Context Graph Notes",
+      "mimeType": "application/vnd.google-apps.document",
+      "webUrl": "https://drive.google.com/file/d/drive_file_001",
+      "snippet": "The control panel should show episodes, entities, facts, source connector, and answer traces.",
+      "owner": {
+        "name": "Yash Gupta",
+        "email": "yash@example.com"
+      },
+      "sharedWith": [
+        {
+          "name": "Priya Rao",
+          "email": "priya@example.com"
+        }
+      ],
+      "folder": {
+        "id": "drive_folder_open_bubble",
+        "name": "Open Bubble"
+      },
+      "sections": [
+        {
+          "id": "drive_file_001_section_control_panel",
+          "title": "Control panel",
+          "text": "Use a graph canvas, filters, inspector, and answer trace."
+        }
+      ]
+    }
+  ]
+}

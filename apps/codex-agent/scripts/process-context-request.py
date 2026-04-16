@@ -816,6 +816,18 @@ def rows_to_dicts(cursor: duckdb.DuckDBPyConnection) -> list[dict[str, Any]]:
     return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
 
 
+def parse_json_object(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if not isinstance(value, str) or not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
 def load_session_context(conn: duckdb.DuckDBPyConnection, session_id: str) -> dict[str, str]:
     cursor = conn.execute(
         "SELECT key, value FROM session_context WHERE session_id = ? ORDER BY updated_at DESC",
@@ -838,6 +850,15 @@ def build_answer(
         return None
 
     context_used = ["request", "duckdb:context_requests", "duckdb:context_chunks"]
+    connectors_used = sorted(
+        {
+            str(parse_json_object(chunk.get("metadata")).get("connector"))
+            for chunk in relevant_chunks
+            if parse_json_object(chunk.get("metadata")).get("connector")
+        }
+    )
+    for connector in connectors_used:
+        context_used.append(f"mcp:{connector}")
     if session_context:
         context_used.append("duckdb:session_context")
     if screenshot_analysis["summary"]:

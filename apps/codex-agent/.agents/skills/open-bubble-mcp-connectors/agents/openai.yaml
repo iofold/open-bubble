@@ -1,0 +1,3 @@
+display_name: Open Bubble MCP Connectors
+short_description: Normalize Gmail, Drive, and Calendar MCP context into the local graph.
+default_prompt: Fetch prompt-relevant MCP connector context and ingest minimized results into the Open Bubble context graph.

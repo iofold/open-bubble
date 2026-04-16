@@ -52,6 +52,14 @@ For explicit code assertion requests only, include `codeAssertionResult`.
 - Do not create a production tool bridge here yet.
 - If DuckDB is missing or the schema is unknown, fall back to request/session/local-file context and explain the gap in `details`.
 
+## MCP Connector Policy
+
+- Gmail, Google Drive, and Google Calendar are optional local MCP-backed context sources.
+- Query them only when the request prompt makes them relevant.
+- Store minimized connector snippets in the DuckDB context graph as episodes/entities/facts/chunks.
+- Never store OAuth tokens or connector secrets in DuckDB, logs, fixtures, or responses.
+- Prefer connector fixtures in tests before live MCP calls.
+
 ## Local Skills
 
 Use local skills under `.agents/skills/` when relevant:
@@ -59,6 +67,7 @@ Use local skills under `.agents/skills/` when relevant:
 - `open-bubble-ingest-request`: ingest screenshot + voice prompt context into DuckDB and answer when requested.
 - `open-bubble-context-answer`: answer a frontend context request.
 - `open-bubble-context-graph`: inspect local DuckDB context graph data.
+- `open-bubble-mcp-connectors`: normalize Gmail, Drive, and Calendar MCP connector results into the graph.
 
 ## Files
 
@@ -69,3 +78,4 @@ Use local skills under `.agents/skills/` when relevant:
 - `schemas/`: JSON Schemas for frontend/App Server handoff.
 - `testdata/`: deterministic seed and request fixtures.
 - `tests/`: local processor tests.
+- `control-panel/`: dependency-free static graph explorer for exported graph JSON.

@@ -41,6 +41,25 @@ Run the local processor tests:
 python3 -m unittest discover -s tests
 ```
 
+Ingest MCP connector fixture data:
+
+```bash
+./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-gmail-results.json
+./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-drive-results.json
+./scripts/ingest-mcp-results.py --db /tmp/open-bubble-context.duckdb --input testdata/mcp-calendar-results.json
+```
+
+Export graph data for the control panel:
+
+```bash
+./scripts/export-context-graph.py \
+  --db /tmp/open-bubble-context.duckdb \
+  --session-id sess_test_001 \
+  --out control-panel/graph.sample.json
+```
+
+Open `control-panel/index.html` in a browser, or use the `Load JSON` button with any exported graph file.
+
 ## Layout
 
 ```text
@@ -51,6 +70,7 @@ apps/codex-agent/
   schemas/
   testdata/
   tests/
+  control-panel/
   requests/
   responses/
   scripts/
