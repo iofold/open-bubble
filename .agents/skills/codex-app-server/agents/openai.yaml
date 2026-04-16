@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex App Server"
+  short_description: "Reference for Codex app-server integration"
+  default_prompt: "Use $codex-app-server to work on Codex app-server integration or protocol details."
