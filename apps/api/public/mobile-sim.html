@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Bubble Mobile Simulator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --phone-bg: #1e1e1e;
+            --accent-color: #6C63FF;
+            --accent-hover: #5a52d6;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --border-color: #333333;
+            --error-color: #ff5252;
+            --success-color: #4caf50;
+            --bubble-size: 56px;
+            --border-radius: 24px;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Phone Container */
+        .phone-container {
+            width: 375px;
+            height: 812px; /* iPhone X dimensions */
+            background-color: var(--phone-bg);
+            border-radius: 40px;
+            border: 8px solid #000;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            height: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .status-icons {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Screen Content */
+        .screen-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px; /* Space for bubble */
+        }
+
+        .placeholder-app {
+            background-color: #2a2a2a;
+            border-radius: 16px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            border: 1px dashed var(--border-color);
+        }
+
+        /* Chat Area */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-bubble {
+            background-color: #2a2a2a;
+            padding: 16px;
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            max-width: 90%;
+            align-self: flex-start;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .chat-bubble.error {
+            background-color: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error-color);
+            color: #ff8a80;
+        }
+
+        .chat-bubble.user {
+            background-color: var(--accent-color);
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 4px;
+            align-self: flex-end;
+        }
+
+        .pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .pill {
+            background-color: rgba(108, 99, 255, 0.2);
+            color: #b3afff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Debug Section */
+        .debug-section {
+            margin-top: 12px;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .debug-header {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            background-color: #222;
+        }
+
+        .debug-content {
+            padding: 12px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #a5d6ff;
+            white-space: pre-wrap;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .debug-content.open {
+            display: block;
+        }
+
+        /* Floating Bubble */
+        .floating-bubble {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            width: var(--bubble-size);
+            height: var(--bubble-size);
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
+            z-index: 100;
+            transition: transform 0.2s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .floating-bubble:active {
+            transform: scale(0.95);
+        }
+
+        .floating-bubble svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        /* Bottom Sheet */
+        .bottom-sheet-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 150;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .bottom-sheet-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .bottom-sheet {
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            background-color: #252525;
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
+            padding: 24px;
+            z-index: 200;
+            transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .bottom-sheet.active {
+            bottom: 0;
+        }
+
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background-color: var(--border-color);
+            border-radius: 2px;
+            margin: 0 auto 20px auto;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: #1e1e1e;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: var(--font-family);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .file-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background-color: #1e1e1e;
+            border: 1px dashed var(--border-color);
+            color: var(--text-secondary);
+            padding: 12px;
+            border-radius: 12px;
+            width: 100%;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .file-btn.has-file {
+            border-color: var(--accent-color);
+            border-style: solid;
+            color: var(--accent-color);
+            background-color: rgba(108, 99, 255, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            background-color: #333;
+            color: #777;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .processing-state {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 12px;
+            background-color: #2a2a2a;
+            border-radius: 16px;
+            align-self: flex-start;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(108, 99, 255, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(108, 99, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(108, 99, 255, 0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <div class="status-bar">
+            <div id="clock">9:41</div>
+            <div class="status-icons">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Signal</title><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Wifi</title><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Battery</title><rect x="1" y="6" width="18" height="12" rx="2" ry="2"/><line x1="23" y1="13" x2="23" y2="11"/></svg>
+            </div>
+        </div>
+
+        <div class="screen-content" id="screenContent">
+            <div class="placeholder-app">
+                <div>Fake App Content</div>
+            </div>
+            <div class="chat-area" id="chatArea">
+            </div>
+        </div>
+
+        <div class="floating-bubble" id="bubbleBtn">
+            <svg viewBox="0 0 24 24">
+                <title>Bubble</title>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+            </svg>
+        </div>
+
+        <div class="bottom-sheet-overlay" id="sheetOverlay"></div>
+
+        <div class="bottom-sheet" id="bottomSheet">
+            <div class="sheet-handle"></div>
+            
+            <div class="form-group">
+                <label class="form-label">Prompt Text</label>
+                <input type="text" id="promptText" class="form-input" placeholder="Ask about anything on screen...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Screen Media (Required)</label>
+                <div class="file-input-wrapper">
+                    <div class="file-btn" id="screenMediaBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><title>Image</title><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span id="screenMediaLabel">Select Image/Video</span>
+                    </div>
+                    <input type="file" id="screenMedia" accept="image/png, image/jpeg, image/webp, video/mp4, video/webm">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Audio Prompt (Optional)</label>
+                <div class="file-input-wrapper">
+                    <div class="file-btn" id="promptAudioBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><title>Audio</title><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        <span id="promptAudioLabel">Select Audio</span>
+                    </div>
+                    <input type="file" id="promptAudio" accept="audio/wav, audio/webm, audio/mp4">
+                </div>
+            </div>
+
+            <button type="button" class="btn-primary" id="sendBtn" disabled>Send to Open Bubble</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.origin;
+        
+        // DOM Elements
+        const bubbleBtn = document.getElementById('bubbleBtn');
+        const bottomSheet = document.getElementById('bottomSheet');
+        const sheetOverlay = document.getElementById('sheetOverlay');
+        const promptText = document.getElementById('promptText');
+        const screenMedia = document.getElementById('screenMedia');
+        const promptAudio = document.getElementById('promptAudio');
+        const screenMediaLabel = document.getElementById('screenMediaLabel');
+        const promptAudioLabel = document.getElementById('promptAudioLabel');
+        const screenMediaBtn = document.getElementById('screenMediaBtn');
+        const promptAudioBtn = document.getElementById('promptAudioBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatArea = document.getElementById('chatArea');
+        const screenContent = document.getElementById('screenContent');
+        const clock = document.getElementById('clock');
+
+        // Update clock
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            hours = hours % 12 || 12;
+            minutes = minutes < 10 ? `0${minutes}` : minutes;
+            clock.textContent = `${hours}:${minutes}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Bottom Sheet Logic
+        function openSheet() {
+            bottomSheet.classList.add('active');
+            sheetOverlay.classList.add('active');
+            bubbleBtn.style.transform = 'scale(0)';
+        }
+
+        function closeSheet() {
+            bottomSheet.classList.remove('active');
+            sheetOverlay.classList.remove('active');
+            bubbleBtn.style.transform = 'scale(1)';
+        }
+
+        bubbleBtn.addEventListener('click', openSheet);
+        sheetOverlay.addEventListener('click', closeSheet);
+
+        // Form Validation
+        function validateForm() {
+            const hasScreenMedia = screenMedia.files.length > 0;
+            const hasText = promptText.value.trim().length > 0;
+            const hasAudio = promptAudio.files.length > 0;
+            
+            sendBtn.disabled = !(hasScreenMedia && (hasText || hasAudio));
+        }
+
+        promptText.addEventListener('input', validateForm);
+
+        screenMedia.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                screenMediaLabel.textContent = e.target.files[0].name;
+                screenMediaBtn.classList.add('has-file');
+            } else {
+                screenMediaLabel.textContent = 'Select Image/Video';
+                screenMediaBtn.classList.remove('has-file');
+            }
+            validateForm();
+        });
+
+        promptAudio.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                promptAudioLabel.textContent = e.target.files[0].name;
+                promptAudioBtn.classList.add('has-file');
+            } else {
+                promptAudioLabel.textContent = 'Select Audio';
+                promptAudioBtn.classList.remove('has-file');
+            }
+            validateForm();
+        });
+
+        // UI Helpers
+        function scrollToBottom() {
+            screenContent.scrollTop = screenContent.scrollHeight;
+        }
+
+        function addUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'chat-bubble user';
+            div.textContent = text || 'Sent media/audio prompt';
+            chatArea.appendChild(div);
+            scrollToBottom();
+        }
+
+        function addProcessingState() {
+            const div = document.createElement('div');
+            div.className = 'processing-state';
+            div.id = 'processingState';
+            div.innerHTML = '<div class="spinner"></div> Processing...';
+            chatArea.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function removeProcessingState() {
+            const el = document.getElementById('processingState');
+            if (el) el.remove();
+        }
+
+        function addErrorMessage(message) {
+            removeProcessingState();
+            const div = document.createElement('div');
+            div.className = 'chat-bubble error';
+            div.textContent = message || 'An error occurred';
+            chatArea.appendChild(div);
+            scrollToBottom();
+        }
+
+        function toggleDebug(headerEl) {
+            const content = headerEl.nextElementSibling;
+            const icon = headerEl.querySelector('.toggle-icon');
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.textContent = '▼';
+            } else {
+                content.classList.add('open');
+                icon.textContent = '▲';
+            }
+        }
+
+        function addSuccessMessage(result) {
+            removeProcessingState();
+            
+            const div = document.createElement('div');
+            div.className = 'chat-bubble';
+            
+            // Answer text
+            const answerText = document.createElement('div');
+            answerText.textContent = result.answer || 'Task completed successfully.';
+            div.appendChild(answerText);
+            
+            // Pills
+            if (result.classification) {
+                const pillsDiv = document.createElement('div');
+                pillsDiv.className = 'pills';
+                
+                if (result.classification.requestType) {
+                    const typePill = document.createElement('span');
+                    typePill.className = 'pill';
+                    typePill.textContent = result.classification.requestType;
+                    pillsDiv.appendChild(typePill);
+                }
+                
+                if (result.classification.relevantApps && result.classification.relevantApps.length > 0) {
+                    result.classification.relevantApps.forEach(app => {
+                        const appPill = document.createElement('span');
+                        appPill.className = 'pill';
+                        appPill.textContent = app;
+                        pillsDiv.appendChild(appPill);
+                    });
+                }
+                
+                if (pillsDiv.children.length > 0) {
+                    div.appendChild(pillsDiv);
+                }
+            }
+            
+            // Debug section
+            const debugSection = document.createElement('div');
+            debugSection.className = 'debug-section';
+            
+            const debugHeader = document.createElement('div');
+            debugHeader.className = 'debug-header';
+            debugHeader.innerHTML = '<span>Debug Info</span><span class="toggle-icon">▼</span>';
+            debugHeader.onclick = function() { toggleDebug(this); };
+            
+            const debugContent = document.createElement('div');
+            debugContent.className = 'debug-content';
+            
+            const debugData = {
+                classification: result.classification,
+                routingPayload: result.routingPayload
+            };
+            debugContent.textContent = JSON.stringify(debugData, null, 2);
+            
+            debugSection.appendChild(debugHeader);
+            debugSection.appendChild(debugContent);
+            div.appendChild(debugSection);
+            
+            chatArea.appendChild(div);
+            scrollToBottom();
+        }
+
+        // API Interaction
+        async function pollTask(taskId) {
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${taskId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'completed') {
+                    addSuccessMessage(data.result);
+                } else if (data.status === 'failed' || data.status === 'error') {
+                    addErrorMessage(data.errorDetail?.message || 'Task failed');
+                } else if (data.status === 'in_progress') {
+                    // Continue polling
+                    setTimeout(() => pollTask(taskId), 1500);
+                } else {
+                    addErrorMessage(`Unknown status: ${data.status}`);
+                }
+            } catch (error) {
+                addErrorMessage(`Polling error: ${error.message}`);
+            }
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            const text = promptText.value.trim();
+            addUserMessage(text);
+            closeSheet();
+            addProcessingState();
+            
+            const formData = new FormData();
+            formData.append('screenMedia', screenMedia.files[0]);
+            
+            if (text) {
+                formData.append('promptText', text);
+            }
+            
+            if (promptAudio.files.length > 0) {
+                formData.append('promptAudio', promptAudio.files[0]);
+            }
+            
+            // Reset form
+            promptText.value = '';
+            screenMedia.value = '';
+            promptAudio.value = '';
+            screenMediaLabel.textContent = 'Select Image/Video';
+            promptAudioLabel.textContent = 'Select Audio';
+            screenMediaBtn.classList.remove('has-file');
+            promptAudioBtn.classList.remove('has-file');
+            validateForm();
+            
+            try {
+                const response = await fetch(`${API_BASE}/prompt`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.status === 202) {
+                    const data = await response.json();
+                    setTimeout(() => pollTask(data.taskId), 1500);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    addErrorMessage(errorData.message || `Server returned ${response.status}`);
+                }
+            } catch (error) {
+                addErrorMessage(`Connection error: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
