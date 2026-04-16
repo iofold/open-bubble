@@ -164,6 +164,9 @@ class _HomePage extends StatelessWidget {
                 await controller.hideBubble();
               }
             },
+            onDisabledTap: () async {
+              await controller.openAccessibilitySettings();
+            },
           ),
           const Spacer(),
         ],
@@ -233,11 +236,13 @@ class _BubblePowerSwitch extends StatelessWidget {
     required this.enabled,
     required this.isOn,
     required this.onChanged,
+    required this.onDisabledTap,
   });
 
   final bool enabled;
   final bool isOn;
   final ValueChanged<bool> onChanged;
+  final Future<void> Function() onDisabledTap;
 
   @override
   Widget build(BuildContext context) {
@@ -246,49 +251,60 @@ class _BubblePowerSwitch extends StatelessWidget {
         ? (isOn ? 'Bubble is live.' : 'Turn on the floating orb.')
         : 'Enable accessibility in Tools first.';
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isOn
-                        ? const Color(0xFF8EF0A8)
-                        : const Color(0xFFFF9B9B),
+    return GestureDetector(
+      onTap: enabled
+          ? () => onChanged(!isOn)
+          : () {
+              onDisabledTap();
+            },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: isOn
+                          ? const Color(0xFF8EF0A8)
+                          : const Color(0xFFFF9B9B),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  detail,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.62),
+                  const SizedBox(height: 6),
+                  Text(
+                    detail,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.62),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Opacity(
-            opacity: enabled ? 1 : 0.55,
-            child: CupertinoSwitch(
-              value: isOn,
-              onChanged: enabled ? onChanged : null,
-              activeTrackColor: const Color(0xFF59C378),
-              inactiveTrackColor: const Color(0xFFC45454),
-              thumbColor: Colors.white,
+            const SizedBox(width: 12),
+            Opacity(
+              opacity: enabled ? 1 : 0.55,
+              child: CupertinoSwitch(
+                value: isOn,
+                onChanged: enabled
+                    ? onChanged
+                    : (_) {
+                        onDisabledTap();
+                      },
+                activeTrackColor: const Color(0xFF59C378),
+                inactiveTrackColor: const Color(0xFFC45454),
+                thumbColor: Colors.white,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

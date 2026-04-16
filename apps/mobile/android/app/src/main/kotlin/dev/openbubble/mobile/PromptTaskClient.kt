@@ -31,6 +31,15 @@ data class PromptTaskOutcome(
     val errorMessage: String?,
 )
 
+data class CalendarTriggerResult(
+    val status: String,
+    val message: String,
+    val title: String?,
+    val date: String?,
+    val time: String?,
+    val calendar: String?,
+)
+
 class PromptTaskException(
     val code: String,
     override val message: String,
@@ -40,6 +49,7 @@ object PromptTaskClient {
     private const val TAG = "PromptTaskClient"
     private const val CONNECT_TIMEOUT_MS = 8_000
     private const val READ_TIMEOUT_MS = 8_000
+    private const val LOCAL_CALENDAR_TRIGGER_URL = "http://10.0.2.2:54931/trigger"
 
     fun submitPrompt(
         baseUrl: String,
@@ -119,6 +129,44 @@ object PromptTaskClient {
             code = "poll_timeout",
             message = "The server accepted the task but did not finish before the polling timeout.",
         )
+    }
+
+    fun triggerLocalCalendarPrompt(promptText: String): CalendarTriggerResult {
+        val connection = openConnection(URL(LOCAL_CALENDAR_TRIGGER_URL)).apply {
+            requestMethod = "POST"
+            doOutput = true
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("Content-Type", "text/plain; charset=UTF-8")
+        }
+
+        try {
+            DataOutputStream(connection.outputStream).use { output ->
+                output.write(promptText.toByteArray(UTF_8))
+                output.flush()
+            }
+
+            val responseCode = connection.responseCode
+            val body = readResponseBody(connection)
+            if (responseCode !in 200..299) {
+                throw PromptTaskException(
+                    code = "calendar_trigger_failed",
+                    message = parseErrorMessage(body, "Calendar trigger failed with HTTP $responseCode."),
+                )
+            }
+
+            val json = JSONObject(body)
+            val event = json.optJSONObject("event")
+            return CalendarTriggerResult(
+                status = json.optString("status"),
+                message = json.optString("message"),
+                title = event?.optString("title")?.takeIf { it.isNotBlank() },
+                date = event?.optString("date")?.takeIf { it.isNotBlank() },
+                time = event?.optString("time")?.takeIf { it.isNotBlank() },
+                calendar = event?.optString("calendar")?.takeIf { it.isNotBlank() },
+            )
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun fetchTask(url: URL): PromptTaskOutcome {

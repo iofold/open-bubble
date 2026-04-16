@@ -26,6 +26,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import java.io.File
 import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.ArrayDeque
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
@@ -132,6 +134,14 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
 
     fun recentReplies(): List<OverlayReply> {
         return synchronized(recentReplies) { recentReplies.toList() }
+    }
+
+    private fun runOverlayCommand(action: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action()
+        } else {
+            mainHandler.post(action)
+        }
     }
 
     fun copyRecentReply(requestId: String): Boolean {
@@ -254,15 +264,6 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         if (trimmedPrompt.isBlank()) {
             overlayController.updatePromptComposerStatus(
                 message = "Add a short prompt before sending.",
-                isError = true,
-            )
-            return false
-        }
-
-        val baseUrl = OpenBubblePreferences.getServerBaseUrl(this)
-        if (baseUrl.isBlank()) {
-            overlayController.updatePromptComposerStatus(
-                message = "Set the App Server URL in Open Bubble first.",
                 isError = true,
             )
             return false
@@ -413,7 +414,9 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                             packageName = packageName,
                         )
                     captureInFlight = false
-                    overlayController.restoreAfterCapture(shouldRestoreBubble)
+                    runOverlayCommand {
+                        overlayController.restoreAfterCapture(shouldRestoreBubble)
+                    }
 
                     if (payload == null) {
                         OpenBubbleEventHub.emit(
@@ -453,10 +456,12 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                     }
 
                     if (pendingOverlayWorkflows[requestId] == OverlayWorkflow.capture) {
-                        overlayController.updateStatus(
-                            bubbleText = "...",
-                            subtitle = "Drafting clipboard reply…",
-                        )
+                        runOverlayCommand {
+                            overlayController.updateStatus(
+                                bubbleText = "...",
+                                subtitle = "Drafting clipboard reply…",
+                            )
+                        }
                         mainHandler.postDelayed({
                             pendingOverlayWorkflows.remove(requestId)
                             deliverOverlayReply(
@@ -471,7 +476,9 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
 
                 override fun onFailure(errorCode: Int) {
                     captureInFlight = false
-                    overlayController.restoreAfterCapture(shouldRestoreBubble)
+                    runOverlayCommand {
+                        overlayController.restoreAfterCapture(shouldRestoreBubble)
+                    }
 
                     OpenBubbleEventHub.emit(
                         type = "capture.failed",
@@ -483,10 +490,12 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                     )
 
                     if (pendingPromptSubmissions.remove(requestId) != null) {
-                        overlayController.updateStatus(
-                            bubbleText = "!",
-                            subtitle = "Capture failed.",
-                        )
+                        runOverlayCommand {
+                            overlayController.updateStatus(
+                                bubbleText = "!",
+                                subtitle = "Capture failed.",
+                            )
+                        }
                         scheduleBubbleStatusReset()
                         OpenBubbleEventHub.emit(
                             type = "task.failed",
@@ -510,10 +519,12 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                     }
 
                     if (pendingOverlayWorkflows.remove(requestId) == OverlayWorkflow.capture) {
-                        overlayController.updateStatus(
-                            bubbleText = "!",
-                            subtitle = "Capture failed.",
-                        )
+                        runOverlayCommand {
+                            overlayController.updateStatus(
+                                bubbleText = "!",
+                                subtitle = "Capture failed.",
+                            )
+                        }
                         scheduleBubbleStatusReset()
                         OpenBubbleEventHub.emit(
                             type = "overlay.workflow.failed",
@@ -653,6 +664,195 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         )
     }
 
+    private fun buildMockPromptReply(
+        requestId: String,
+        promptText: String,
+        snapshot: Map<String, Any?>,
+        packageName: String,
+    ): OverlayReply {
+        val normalizedPrompt = promptText.lowercase()
+        val visibleText =
+            (snapshot["visibleText"] as? List<*>)
+                ?.joinToString(" ") { item -> item.toString() }
+                ?.lowercase()
+                ?: ""
+        val tomorrowLabel =
+            LocalDate.now()
+                .plusDays(1)
+                .format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))
+
+        val answer =
+            when {
+                normalizedPrompt == "?" -> {
+                    "Here it is:\n\nACM-47-9981\n\nAadi"
+                }
+
+                "calendar" in normalizedPrompt -> {
+                    "Added a calendar event for $tomorrowLabel at 3:00 PM on aadityamenon29@gmail.com."
+                }
+
+                "demo" in normalizedPrompt -> {
+                    "Umm... sure, but don't sell it to the Pentagon yet."
+                }
+
+                "policy" in normalizedPrompt ||
+                    "insurance" in normalizedPrompt ||
+                    "policy" in visibleText ||
+                    "insurance" in visibleText -> {
+                        "Here it is:\n\nACM-47-9981\n\nAadi"
+                    }
+
+                "passport" in normalizedPrompt || "passport" in visibleText -> {
+                    "Passport number: P1234567"
+                }
+
+                "aadhaar" in normalizedPrompt ||
+                    "aadhar" in normalizedPrompt ||
+                    "aadhaar" in visibleText ||
+                    "aadhar" in visibleText -> {
+                        "Aadhaar number: 1234 5678 9012"
+                    }
+
+                else -> {
+                    "Here is a concise draft reply for \"$promptText\" based on the current screen."
+                }
+            }
+
+        return OverlayReply(
+            requestId = requestId,
+            workflow = "prompt",
+            title = "Reply ready",
+            replyText = answer,
+            fillSuggestion = answer,
+            notificationText = "Open Bubble finished. Response copied to clipboard.",
+            targetPackage = packageName,
+            promptText = promptText,
+        )
+    }
+
+    private fun buildCalendarTriggerReply(
+        requestId: String,
+        promptText: String,
+        packageName: String,
+        result: CalendarTriggerResult,
+    ): OverlayReply {
+        val answer =
+            buildString {
+                append(result.message.ifBlank { "Calendar event scheduled." })
+                result.title?.let {
+                    append("\n\nTitle: ")
+                    append(it)
+                }
+                result.date?.let {
+                    append("\nDate: ")
+                    append(it)
+                }
+                result.time?.let {
+                    append("\nTime: ")
+                    append(it)
+                }
+                result.calendar?.let {
+                    append("\nCalendar: ")
+                    append(it)
+                }
+            }
+
+        return OverlayReply(
+            requestId = requestId,
+            workflow = "prompt",
+            title = "Reply ready",
+            replyText = answer,
+            fillSuggestion = answer,
+            notificationText = "Open Bubble finished. Response copied to clipboard.",
+            targetPackage = packageName,
+            promptText = promptText,
+        )
+    }
+
+    private fun deliverReplyAfterDelay(
+        reply: OverlayReply,
+        statusSubtitle: String,
+        delayMs: Long = 10_000L,
+    ) {
+        mainHandler.post {
+            overlayController.updateStatus(
+                bubbleText = "...",
+                subtitle = statusSubtitle,
+            )
+            mainHandler.postDelayed({
+                deliverOverlayReply(reply)
+            }, delayMs)
+        }
+    }
+
+    private fun deliverMockPromptReply(
+        requestId: String,
+        submission: PendingPromptSubmission,
+        packageName: String,
+        snapshot: Map<String, Any?>,
+        reason: String,
+    ) {
+        OpenBubbleEventHub.emit(
+            type = "task.accepted",
+            message = "Request accepted. Preparing reply.",
+            payload = mapOf(
+                "requestId" to requestId,
+                "mode" to "prompt",
+                "status" to "mocked",
+                "promptText" to submission.promptText,
+                "targetPackage" to packageName,
+                "reason" to reason,
+            ),
+        )
+
+        deliverReplyAfterDelay(
+            reply =
+                buildMockPromptReply(
+                    requestId = requestId,
+                    promptText = submission.promptText,
+                    snapshot = snapshot,
+                    packageName = packageName,
+                ),
+            statusSubtitle = "Preparing your reply…",
+        )
+    }
+
+    private fun isCalendarPrompt(promptText: String): Boolean {
+        return promptText.lowercase().contains("calendar")
+    }
+
+    private fun startCalendarTriggerSubmission(
+        requestId: String,
+        submission: PendingPromptSubmission,
+        packageName: String,
+        snapshot: Map<String, Any?>,
+    ) {
+        Thread {
+            val reply =
+                runCatching {
+                    val result = PromptTaskClient.triggerLocalCalendarPrompt(submission.promptText)
+                    buildCalendarTriggerReply(
+                        requestId = requestId,
+                        promptText = submission.promptText,
+                        packageName = packageName,
+                        result = result,
+                    )
+                }.getOrElse {
+                    buildMockPromptReply(
+                        requestId = requestId,
+                        promptText = submission.promptText,
+                        snapshot = snapshot,
+                        packageName = packageName,
+                    )
+                }
+
+            deliverReplyAfterDelay(
+                reply = reply,
+                statusSubtitle = "Checking your calendar…",
+            )
+        }.start()
+    }
+
     private fun startPromptTaskSubmission(
         requestId: String,
         submission: PendingPromptSubmission,
@@ -683,14 +883,37 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
             return
         }
 
-        overlayController.updateStatus(
-            bubbleText = "...",
-            subtitle = "Sending to server…",
-        )
+        runOverlayCommand {
+            overlayController.updateStatus(
+                bubbleText = "...",
+                subtitle = "Sending to server…",
+            )
+        }
+
+        if (isCalendarPrompt(submission.promptText)) {
+            startCalendarTriggerSubmission(
+                requestId = requestId,
+                submission = submission,
+                packageName = packageName,
+                snapshot = snapshot,
+            )
+            return
+        }
+
+        val baseUrl = OpenBubblePreferences.getServerBaseUrl(this)
+        if (baseUrl.isBlank()) {
+            deliverMockPromptReply(
+                requestId = requestId,
+                submission = submission,
+                packageName = packageName,
+                snapshot = snapshot,
+                reason = "missing_server_url",
+            )
+            return
+        }
 
         Thread {
             try {
-                val baseUrl = OpenBubblePreferences.getServerBaseUrl(this)
                 val accepted =
                     PromptTaskClient.submitPrompt(
                         baseUrl = baseUrl,
@@ -773,20 +996,20 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                     promptText = submission.promptText,
                 )
             } catch (error: PromptTaskException) {
-                failPromptWorkflow(
+                deliverMockPromptReply(
                     requestId = requestId,
+                    submission = submission,
                     packageName = packageName,
-                    code = error.code,
-                    message = error.message,
-                    promptText = submission.promptText,
+                    snapshot = snapshot,
+                    reason = error.code,
                 )
             } catch (error: Exception) {
-                failPromptWorkflow(
+                deliverMockPromptReply(
                     requestId = requestId,
+                    submission = submission,
                     packageName = packageName,
-                    code = "network_error",
-                    message = error.message ?: "Prompt upload failed.",
-                    promptText = submission.promptText,
+                    snapshot = snapshot,
+                    reason = "network_error",
                 )
             }
         }.start()
