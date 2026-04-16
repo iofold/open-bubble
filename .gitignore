@@ -1,0 +1,36 @@
+# Local OMX runtime state
+.omx/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+local.properties
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+
+# Android / Gradle
+.gradle/
+**/android/.gradle/
+**/android/app/build/
+*.jks
+*.keystore
+
+# Node / server
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+logs/

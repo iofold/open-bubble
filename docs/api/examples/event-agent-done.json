@@ -1,0 +1,13 @@
+{
+  "id": "evt_done_001",
+  "type": "agent.done",
+  "sessionId": "sess_hackathon_001",
+  "title": "Agent finished",
+  "message": "Server event relay is ready to test.",
+  "severity": "success",
+  "createdAt": "2026-04-16T06:35:00Z",
+  "action": {
+    "label": "Open session",
+    "deepLink": "openbubble://sessions/sess_hackathon_001"
+  }
+}
