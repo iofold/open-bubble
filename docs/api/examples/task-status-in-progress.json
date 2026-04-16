@@ -2,5 +2,8 @@
   "taskId": "7d9dbf5b-b0d1-487f-b252-0f72b275f935",
   "status": "in_progress",
   "createdAt": "2026-04-16T06:45:00Z",
-  "updatedAt": "2026-04-16T06:45:01Z"
+  "updatedAt": "2026-04-16T06:45:01Z",
+  "repoId": "supercom-backend",
+  "threadId": "thr_123",
+  "turnId": "turn_123"
 }

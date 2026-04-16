@@ -3,8 +3,17 @@
   "status": "completed",
   "createdAt": "2026-04-16T06:45:00Z",
   "updatedAt": "2026-04-16T06:45:03Z",
+  "repoId": "supercom-backend",
+  "threadId": "thr_123",
+  "turnId": "turn_123",
   "result": {
-    "answer": "Dummy response for screenshot with text prompt input.",
+    "answer": "Implemented the hello world startup change and opened a PR.",
+    "pullRequestUrl": "https://github.com/neilsanghrajka/supercom-backend/pull/321",
+    "branchName": "codex/hello-world-startup",
+    "commitSha": "abc123def456abc123def456abc123def456abcd",
+    "repoId": "supercom-backend",
+    "threadId": "thr_123",
+    "turnId": "turn_123",
     "promptText": "What should I do next?",
     "screenMedia": {
       "filename": "screenshot.png",
