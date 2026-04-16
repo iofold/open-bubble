@@ -1,6 +1,9 @@
 export type {
   PromptExecutionRequest,
   PromptExecutionResult,
+  PromptExecutionRoute,
+  PromptExecutionMode,
+  PromptRequestType,
   PromptExecutor,
   PromptTaskProcessor,
   PromptTaskProcessorInput,
@@ -16,4 +19,5 @@ export {
   createPromptTaskProcessorFromMappings
 } from './service.js';
 export type { RepoMapping, RepoSelection } from './infer.js';
-export { inferRepoFromPrompt } from './infer.js';
+export { inferRepoFromPrompt, resolveRepoById } from './infer.js';
+export { loadRepoMappings } from './config.js';

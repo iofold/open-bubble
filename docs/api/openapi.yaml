@@ -30,7 +30,7 @@ paths:
   /prompt:
     post:
       summary: Submit a media prompt and create an async task
-      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. Background processing classifies the request from the prompt plus request metadata into one of `coding_request`, `personal_context_request`, or `action_request`, and suggests relevant apps from the supported app list when appropriate. The API persists a lightweight local task, starts background classification, and returns a task id for polling. Any unsupported media type should return `415 Unsupported Media Type`.
+      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. Background processing first classifies the request from the prompt plus request metadata into one of `coding_request`, `personal_context_request`, or `action_request`, suggests relevant apps from the supported app list when appropriate, and optionally picks a configured repo id for coding requests. The API then resolves an explicit execution target and hands the request to the local Codex app-server in that workspace. Any unsupported media type should return `415 Unsupported Media Type`.
       requestBody:
         required: true
         content:
@@ -343,6 +343,28 @@ components:
         rationale:
           type: string
           description: Short explanation grounded in the prompt and available request metadata.
+        repoId:
+          type: string
+          description: Optional configured repo identifier returned for coding requests when the classifier can confidently map the request to a repo.
+      additionalProperties: false
+    RoutingExecutionTarget:
+      type: object
+      required: [repoId, cwd, mode, source]
+      properties:
+        repoId:
+          type: string
+        cwd:
+          type: string
+        mode:
+          type: string
+          enum: [coding, assistant]
+        source:
+          type: string
+          enum:
+            - classifier_repo
+            - coding_fallback
+            - personal_context
+            - action_request
       additionalProperties: false
     PromptHandoffPlan:
       type: object
@@ -406,7 +428,7 @@ components:
       additionalProperties: false
     RoutingPayload:
       type: object
-      required: [screenMedia, screenMediaPath, classification, handoffPlan]
+      required: [screenMedia, screenMediaPath, classification, handoffPlan, executionTarget]
       properties:
         promptText:
           type: string
@@ -422,9 +444,8 @@ components:
           $ref: '#/components/schemas/RequestClassification'
         handoffPlan:
           $ref: '#/components/schemas/PromptHandoffPlan'
-        defaultCodingCwd:
-          type: string
-          description: Default local fallback working directory for future coding-task handoff when no dedicated execution target is available.
+        executionTarget:
+          $ref: '#/components/schemas/RoutingExecutionTarget'
       additionalProperties: false
     TaskFailure:
       type: object

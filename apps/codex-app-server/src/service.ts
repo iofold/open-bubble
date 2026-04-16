@@ -4,6 +4,7 @@ import { constants } from 'node:fs';
 import { promisify } from 'node:util';
 import {
   inferRepoFromPrompt,
+  resolveRepoById,
   type RepoMapping,
   type RepoSelection
 } from './infer.js';
@@ -17,17 +18,33 @@ import { loadRepoMappings } from './config.js';
 const execFileAsync = promisify(execFile);
 const githubPrUrlPattern = /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/\d+$/u;
 
+export type PromptExecutionMode = 'coding' | 'assistant';
+export type PromptRequestType =
+  | 'coding_request'
+  | 'personal_context_request'
+  | 'action_request';
+
+export interface PromptExecutionRoute {
+  repoId?: string;
+  mode?: PromptExecutionMode;
+  requestType?: PromptRequestType;
+  relevantApps?: string[];
+  rationale?: string;
+}
+
 export interface PromptExecutionRequest {
   promptText: string;
   promptAudioPath?: string;
-  screenMedia: GatewayScreenMedia;
+  screenMedia?: GatewayScreenMedia;
+  route?: PromptExecutionRoute;
+  onProgress?: (patch: PromptTaskProgressUpdate) => Promise<void> | void;
 }
 
 export interface PromptExecutionResult {
   answer: string;
-  branchName: string;
-  commitSha: string;
-  prUrl: string;
+  branchName?: string;
+  commitSha?: string;
+  prUrl?: string;
   repoId: string;
   threadId: string;
   turnId: string;
@@ -90,7 +107,7 @@ export type PromptTaskProcessor = (
 ) => Promise<PromptTaskProcessorOutcome>;
 
 export interface PromptOrchestratorOptions {
-  inferRepo: (promptText: string) => RepoSelection;
+  selectRepo: (request: PromptExecutionRequest) => RepoSelection;
   gateway: CodexPromptGateway;
   logger?: Pick<typeof console, 'error' | 'info' | 'warn'>;
 }
@@ -249,21 +266,80 @@ const requireImageScreenMedia = (
   };
 };
 
+const getExecutionMode = (
+  request: PromptExecutionRequest
+): PromptExecutionMode => request.route?.mode ?? 'coding';
+
+const selectRepoFromRequest = (
+  request: PromptExecutionRequest,
+  mappings: RepoMapping[]
+): RepoSelection => {
+  const repoId = request.route?.repoId?.trim();
+
+  if (repoId) {
+    return resolveRepoById(repoId, mappings);
+  }
+
+  return inferRepoFromPrompt(request.promptText, mappings);
+};
+
 export const createPromptOrchestrator = (
   options: PromptOrchestratorOptions
 ): PromptExecutor => ({
   async executePrompt(request): Promise<PromptExecutionResult> {
     const promptText = requirePromptText(request);
-    const repo = options.inferRepo(promptText);
+    const repo = options.selectRepo(request);
+    const mode = getExecutionMode(request);
+
+    if (mode === 'coding') {
+      await ensureRepoIsReady(repo);
+    } else {
+      await access(repo.cwd, constants.R_OK);
+    }
+
+    if (request.onProgress) {
+      await request.onProgress({
+        repoId: repo.id
+      });
+    }
+
     const result = await options.gateway.runPrompt({
       promptText,
       repo,
-      screenMedia: request.screenMedia,
+      mode,
+      ...(request.route?.requestType
+        ? { requestType: request.route.requestType }
+        : {}),
+      ...(request.route?.relevantApps
+        ? { relevantApps: request.route.relevantApps }
+        : {}),
+      ...(request.route?.rationale
+        ? { rationale: request.route.rationale }
+        : {}),
+      ...(request.screenMedia ? { screenMedia: request.screenMedia } : {}),
+      ...(request.onProgress ? { onProgress: request.onProgress } : {}),
       ...(request.promptAudioPath ? { promptAudioPath: request.promptAudioPath } : {})
     });
 
+    if (mode !== 'coding') {
+      return {
+        ...result,
+        repoId: repo.id
+      };
+    }
+
+    const verifiedPr = await verifyPullRequest(repo.cwd, result.prUrl ?? '');
+    const commitSha = await getHeadCommitSha(repo.cwd);
+
     return {
-      ...result,
+      answer: result.answer,
+      prUrl: verifiedPr.url,
+      ...(verifiedPr.branchName ?? result.branchName
+        ? { branchName: verifiedPr.branchName ?? result.branchName }
+        : {}),
+      commitSha,
+      threadId: result.threadId,
+      turnId: result.turnId,
       repoId: repo.id
     };
   }
@@ -274,7 +350,7 @@ export const createPromptExecutorFromMappings = (
   gateway: CodexPromptGateway = new LocalCodexAppServerGateway()
 ): PromptExecutor =>
   createPromptOrchestrator({
-    inferRepo: (promptText) => inferRepoFromPrompt(promptText, mappings),
+    selectRepo: (request) => selectRepoFromRequest(request, mappings),
     gateway
   });
 
@@ -332,7 +408,7 @@ export const createPromptTaskProcessorFromMappings = (
       progress.threadId = result.threadId;
       progress.turnId = result.turnId;
 
-      const verifiedPr = await verifyPullRequest(repo.cwd, result.prUrl);
+      const verifiedPr = await verifyPullRequest(repo.cwd, result.prUrl ?? '');
       const commitSha = await getHeadCommitSha(repo.cwd);
 
       return {
@@ -340,7 +416,9 @@ export const createPromptTaskProcessorFromMappings = (
         result: {
           answer: result.answer,
           pullRequestUrl: verifiedPr.url,
-          branchName: verifiedPr.branchName ?? result.branchName,
+          ...(verifiedPr.branchName ?? result.branchName
+            ? { branchName: verifiedPr.branchName ?? result.branchName }
+            : {}),
           commitSha,
           repoId: repo.id,
           threadId: result.threadId,

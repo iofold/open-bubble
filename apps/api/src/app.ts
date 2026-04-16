@@ -16,7 +16,7 @@ import {
   type ContextGraphRouteOptions
 } from './routes/context-graph.js';
 import { openApiExists, resolveOpenApiPath } from './lib/openapi.js';
-import { createClassifierPromptTaskProcessor } from './lib/request-classifier.js';
+import { createConfiguredClassifierExecutionTaskProcessor } from './lib/request-classifier.js';
 
 export const serviceVersion = '0.1.0';
 
@@ -34,7 +34,9 @@ export const buildApp = async (
   });
   const taskManager = await PromptTaskManager.create({
     ...options,
-    taskProcessor: options.taskProcessor ?? createClassifierPromptTaskProcessor()
+    taskProcessor:
+      options.taskProcessor ??
+      (await createConfiguredClassifierExecutionTaskProcessor())
   });
 
   await app.register(multipart);

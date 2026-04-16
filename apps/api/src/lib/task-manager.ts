@@ -54,6 +54,18 @@ export interface RequestClassification {
   requestType: RequestType;
   relevantApps: SupportedAppName[];
   rationale: string;
+  repoId?: string;
+}
+
+export interface RoutingExecutionTarget {
+  repoId: string;
+  cwd: string;
+  mode: 'coding' | 'assistant';
+  source:
+    | 'classifier_repo'
+    | 'coding_fallback'
+    | 'personal_context'
+    | 'action_request';
 }
 
 export interface PromptHandoffPlan {
@@ -76,7 +88,7 @@ export interface RoutingPayload {
   screenMediaPath: string;
   classification: RequestClassification;
   handoffPlan: PromptHandoffPlan;
-  defaultCodingCwd?: string;
+  executionTarget: RoutingExecutionTarget;
 }
 
 export interface TaskFailure {
@@ -205,6 +217,12 @@ const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
 }) => {
   const classification = buildDefaultClassification();
   const handoffPlan = buildDefaultHandoffPlan();
+  const executionTarget: RoutingExecutionTarget = {
+    repoId: 'codex-agent',
+    cwd: resolveFromRepoRoot('apps', 'codex-agent'),
+    mode: 'assistant',
+    source: 'personal_context'
+  };
 
   return {
     status: 'completed',
@@ -217,7 +235,8 @@ const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
         screenMedia,
         screenMediaPath,
         classification,
-        handoffPlan
+        handoffPlan,
+        executionTarget
       }
     }
   };

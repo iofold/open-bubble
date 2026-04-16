@@ -2,14 +2,26 @@ export interface RepoMapping {
   id: string;
   cwd: string;
   aliases?: string[];
+  description?: string;
   isDefault?: boolean;
 }
 
 export interface RepoSelection {
   id: string;
   cwd: string;
-  reason: 'alias_match' | 'default_repo' | 'single_repo';
+  description?: string;
+  reason: 'alias_match' | 'default_repo' | 'single_repo' | 'explicit_repo';
 }
+
+const toRepoSelection = (
+  mapping: RepoMapping,
+  reason: RepoSelection['reason']
+): RepoSelection => ({
+  id: mapping.id,
+  cwd: mapping.cwd,
+  ...(mapping.description ? { description: mapping.description } : {}),
+  reason
+});
 
 const normalize = (value: string): string =>
   value.trim().toLowerCase();
@@ -44,9 +56,7 @@ export const inferRepoFromPrompt = (
     }
 
     return {
-      id: only.id,
-      cwd: only.cwd,
-      reason: 'single_repo'
+      ...toRepoSelection(only, 'single_repo')
     };
   }
 
@@ -60,22 +70,28 @@ export const inferRepoFromPrompt = (
   const best = ranked[0];
 
   if (best && best.score > 0) {
-    return {
-      id: best.mapping.id,
-      cwd: best.mapping.cwd,
-      reason: 'alias_match'
-    };
+    return toRepoSelection(best.mapping, 'alias_match');
   }
 
   const fallback = mappings.find((mapping) => mapping.isDefault);
 
   if (fallback) {
-    return {
-      id: fallback.id,
-      cwd: fallback.cwd,
-      reason: 'default_repo'
-    };
+    return toRepoSelection(fallback, 'default_repo');
   }
 
   throw new Error('No repo mapping matched the prompt and no default repo is configured.');
+};
+
+export const resolveRepoById = (
+  repoId: string,
+  mappings: RepoMapping[]
+): RepoSelection => {
+  const normalizedId = normalize(repoId);
+  const match = mappings.find((mapping) => normalize(mapping.id) === normalizedId);
+
+  if (!match) {
+    throw new Error(`No repo mapping found for repoId "${repoId}".`);
+  }
+
+  return toRepoSelection(match, 'explicit_repo');
 };
