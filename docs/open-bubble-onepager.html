@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Open Bubble - One Pager</title>
+    <style>
+      :root {
+        --paper: #f6f0e5;
+        --paper-deep: #efe5d4;
+        --ink: #18181b;
+        --muted: #5f5a52;
+        --line: rgba(24, 24, 27, 0.18);
+        --blue: #3b82f6;
+        --green: #1f9d68;
+        --orange: #dd7a22;
+        --red: #d04d36;
+        --shadow: 0 18px 50px rgba(24, 24, 27, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 32%),
+          linear-gradient(180deg, #fbf7ef 0%, var(--paper) 100%);
+        color: var(--ink);
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      body {
+        padding: 28px;
+      }
+
+      .poster {
+        position: relative;
+        max-width: 1400px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 2px solid rgba(24, 24, 27, 0.16);
+        border-radius: 28px 24px 32px 26px;
+        background:
+          linear-gradient(rgba(24, 24, 27, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(24, 24, 27, 0.035) 1px, transparent 1px),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.48));
+        background-size: 34px 34px, 34px 34px, auto;
+        box-shadow: var(--shadow);
+      }
+
+      .poster::before,
+      .poster::after {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        pointer-events: none;
+        border: 1.5px dashed rgba(24, 24, 27, 0.12);
+        border-radius: 22px;
+      }
+
+      .poster::after {
+        inset: auto 54px 22px auto;
+        width: 140px;
+        height: 44px;
+        border: none;
+        background: linear-gradient(90deg, rgba(59, 130, 246, 0.12), rgba(221, 122, 34, 0.12));
+        filter: blur(18px);
+      }
+
+      .content {
+        position: relative;
+        padding: 34px 36px 26px;
+        display: grid;
+        gap: 28px;
+      }
+
+      .headline {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+        gap: 26px;
+        align-items: start;
+      }
+
+      .brand-tag,
+      .sketch-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        padding: 8px 14px;
+        border: 1.5px solid rgba(24, 24, 27, 0.15);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.66);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .brand-tag::before,
+      .sketch-tag::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--blue);
+      }
+
+      h1 {
+        margin: 14px 0 12px;
+        max-width: 10ch;
+        font-size: clamp(3.2rem, 6vw, 6.4rem);
+        line-height: 0.92;
+        letter-spacing: -0.055em;
+      }
+
+      .lede {
+        max-width: 56ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.1rem;
+        line-height: 1.55;
+      }
+
+      .scribble {
+        margin-top: 14px;
+        color: var(--red);
+        font-size: 0.98rem;
+        font-weight: 700;
+        transform: rotate(-1.3deg);
+      }
+
+      .summary-sheet {
+        padding: 22px 24px;
+        border: 2px solid rgba(24, 24, 27, 0.16);
+        border-radius: 22px 18px 24px 16px;
+        background: rgba(255, 255, 255, 0.72);
+        transform: rotate(0.6deg);
+      }
+
+      .summary-sheet h2 {
+        margin: 12px 0 12px;
+        font-size: 1.55rem;
+        line-height: 1.05;
+      }
+
+      .summary-sheet p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .mini-list {
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+      }
+
+      .mini-list li {
+        display: flex;
+        gap: 10px;
+        align-items: start;
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .mini-list li::before {
+        content: "→";
+        color: var(--orange);
+        font-weight: 900;
+      }
+
+      .board {
+        display: grid;
+        gap: 18px;
+      }
+
+      .flow {
+        position: relative;
+        padding: 22px;
+        border: 2px solid rgba(24, 24, 27, 0.16);
+        border-radius: 26px 22px 24px 30px;
+        background: rgba(255, 255, 255, 0.56);
+      }
+
+      .flow-top {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1.2fr auto 1.2fr;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .node {
+        position: relative;
+        min-height: 118px;
+        padding: 18px 18px 16px;
+        border: 2px solid rgba(24, 24, 27, 0.18);
+        border-radius: 22px 16px 20px 18px;
+        background: rgba(255, 255, 255, 0.82);
+        transition: transform 220ms ease, background 220ms ease, border-color 220ms ease;
+      }
+
+      .node:hover {
+        transform: translateY(-3px) rotate(-0.2deg);
+        background: rgba(255, 255, 255, 0.95);
+      }
+
+      .node.phone {
+        transform: rotate(-1deg);
+      }
+
+      .node.classifier {
+        transform: rotate(0.55deg);
+      }
+
+      .node.router {
+        transform: rotate(-0.35deg);
+      }
+
+      .node h3,
+      .lane h3,
+      .proof h3 {
+        margin: 0 0 10px;
+        font-size: 1.12rem;
+        line-height: 1.1;
+      }
+
+      .node p,
+      .lane p,
+      .proof p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        margin-bottom: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(24, 24, 27, 0.06);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow.blue {
+        color: var(--blue);
+      }
+
+      .eyebrow.green {
+        color: var(--green);
+      }
+
+      .eyebrow.orange {
+        color: var(--orange);
+      }
+
+      .arrow {
+        display: grid;
+        place-items: center;
+        min-width: 38px;
+        font-size: 1.8rem;
+        color: rgba(24, 24, 27, 0.62);
+        transform: rotate(2deg);
+      }
+
+      .router-note {
+        position: absolute;
+        top: 14px;
+        right: 18px;
+        color: var(--red);
+        font-size: 0.88rem;
+        font-weight: 700;
+        transform: rotate(3deg);
+      }
+
+      .lane-grid {
+        position: relative;
+        margin-top: 18px;
+        padding-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .lane-grid::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 16.666%;
+        right: 16.666%;
+        height: 28px;
+        border-top: 2px dashed rgba(24, 24, 27, 0.22);
+      }
+
+      .lane-grid::after {
+        content: "three execution lanes";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%) rotate(-1.5deg);
+        padding: 4px 10px;
+        background: var(--paper);
+        color: var(--red);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .lane {
+        min-height: 222px;
+        padding: 18px 18px 16px;
+        border: 2px solid rgba(24, 24, 27, 0.16);
+        border-radius: 22px 18px 20px 24px;
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      .lane.coding {
+        border-color: rgba(59, 130, 246, 0.36);
+      }
+
+      .lane.context {
+        border-color: rgba(31, 157, 104, 0.36);
+      }
+
+      .lane.actions {
+        border-color: rgba(221, 122, 34, 0.36);
+      }
+
+      .lane ul {
+        margin: 14px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+      }
+
+      .lane li {
+        display: flex;
+        gap: 10px;
+        color: var(--muted);
+        line-height: 1.42;
+      }
+
+      .lane li::before {
+        content: "•";
+        color: currentColor;
+        font-weight: 900;
+      }
+
+      .lane.coding li::before {
+        color: var(--blue);
+      }
+
+      .lane.context li::before {
+        color: var(--green);
+      }
+
+      .lane.actions li::before {
+        color: var(--orange);
+      }
+
+      .support {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+        gap: 20px;
+        align-items: start;
+      }
+
+      .proof,
+      .graph-shot {
+        padding: 20px;
+        border: 2px solid rgba(24, 24, 27, 0.15);
+        border-radius: 22px 18px 24px 18px;
+        background: rgba(255, 255, 255, 0.68);
+      }
+
+      .proof {
+        transform: rotate(-0.45deg);
+      }
+
+      .proof-grid {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .proof-grid div {
+        padding: 14px 14px 12px;
+        border: 1.5px solid rgba(24, 24, 27, 0.12);
+        border-radius: 18px;
+        background: rgba(246, 240, 229, 0.7);
+      }
+
+      .proof-grid strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+      }
+
+      .proof-grid span {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .graph-shot {
+        transform: rotate(0.45deg);
+      }
+
+      figure {
+        margin: 14px 0 0;
+      }
+
+      .graph-shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 2px solid rgba(24, 24, 27, 0.12);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(24, 24, 27, 0.08);
+      }
+
+      figcaption {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .footer-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .footer-strip div {
+        padding: 14px 16px;
+        border-top: 2px dashed rgba(24, 24, 27, 0.16);
+        font-size: 0.98rem;
+        font-weight: 700;
+      }
+
+      .footer-strip span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.87rem;
+        font-weight: 500;
+      }
+
+      [data-animate] {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 620ms ease, transform 620ms ease;
+      }
+
+      body.ready [data-animate] {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      body.ready [data-delay="1"] {
+        transition-delay: 90ms;
+      }
+
+      body.ready [data-delay="2"] {
+        transition-delay: 180ms;
+      }
+
+      body.ready [data-delay="3"] {
+        transition-delay: 270ms;
+      }
+
+      @media (max-width: 1120px) {
+        .headline,
+        .support {
+          grid-template-columns: 1fr;
+        }
+
+        .flow-top {
+          grid-template-columns: 1fr;
+        }
+
+        .arrow {
+          transform: rotate(90deg);
+          min-height: 30px;
+        }
+
+        .lane-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .lane-grid::before,
+        .lane-grid::after {
+          display: none;
+        }
+
+        .proof-grid,
+        .footer-strip {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: 12px;
+        }
+
+        .content {
+          padding: 20px 18px 18px;
+        }
+
+        h1 {
+          max-width: none;
+          font-size: 3rem;
+        }
+
+        .proof-grid,
+        .footer-strip {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="poster">
+      <div class="content">
+        <section class="headline">
+          <div data-animate data-delay="0">
+            <div class="brand-tag">Open Bubble</div>
+            <h1>Route any screen to code, context, or action.</h1>
+            <p class="lede">
+              A screenshot leaves the Android phone, the OpenAI SDK classifies the
+              intent, and Open Bubble sends it into the right Codex-powered lane.
+            </p>
+            <div class="scribble">Codex as runtime, not just copilot.</div>
+          </div>
+
+          <aside class="summary-sheet" data-animate data-delay="1">
+            <div class="sketch-tag">High-level flow</div>
+            <h2>One screenshot. Three outcomes.</h2>
+            <p>
+              We use the OpenAI SDK to inspect what is on screen and decide
+              whether the user is asking for a coding task, a context-graph
+              question, or a personal assistant action.
+            </p>
+            <ul class="mini-list">
+              <li>Code lane opens the right repo and returns a PR.</li>
+              <li>Context lane queries a DuckDB local graph and answers.</li>
+              <li>Action lane uses Codex app-server plus Gmail and Calendar.</li>
+            </ul>
+          </aside>
+        </section>
+
+        <section class="board">
+          <div class="flow" data-animate data-delay="1">
+            <div class="router-note">classify first → route second</div>
+
+            <div class="flow-top">
+              <article class="node phone">
+                <div class="eyebrow">Android phone</div>
+                <h3>Access button</h3>
+                <p>
+                  The user taps once. Open Bubble captures the current screen as
+                  a screenshot and sends it upstream.
+                </p>
+              </article>
+
+              <div class="arrow">→</div>
+
+              <article class="node">
+                <div class="eyebrow">Input</div>
+                <h3>Screenshot upload</h3>
+                <p>
+                  The screenshot becomes the ambient request. The current screen
+                  is the context.
+                </p>
+              </article>
+
+              <div class="arrow">→</div>
+
+              <article class="node classifier">
+                <div class="eyebrow blue">OpenAI SDK</div>
+                <h3>Intent classifier</h3>
+                <p>
+                  The OpenAI SDK looks at the screenshot and classifies it into
+                  three buckets: coding task, context-graph question, or action.
+                </p>
+              </article>
+
+              <div class="arrow">→</div>
+
+              <article class="node router">
+                <div class="eyebrow">App server</div>
+                <h3>Codex app-server box</h3>
+                <p>
+                  After classification, we spawn the right Codex workflow in the
+                  right environment.
+                </p>
+              </article>
+            </div>
+
+            <div class="lane-grid">
+              <article class="lane coding">
+                <div class="eyebrow blue">Coding task</div>
+                <h3>Open the correct repo</h3>
+                <p>Codex works in the matching codebase, makes the change, and returns a PR.</p>
+                <ul>
+                  <li>Repo-aware coding lane</li>
+                  <li>End-to-end modify and iterate</li>
+                  <li>Best for bugs, UI tweaks, and implementation work</li>
+                </ul>
+              </article>
+
+              <article class="lane context">
+                <div class="eyebrow green">Context graph question</div>
+                <h3>DuckDB local context graph</h3>
+                <p>
+                  The question is routed into a local context graph we built and
+                  populated with Codex and ChatGPT-derived context.
+                </p>
+                <ul>
+                  <li>DuckDB-backed graph with entities, facts, and chunks</li>
+                  <li>Local provenance-aware graph inspector</li>
+                  <li>Codex is used to seed and grow the graph from connected data</li>
+                </ul>
+              </article>
+
+              <article class="lane actions">
+                <div class="eyebrow orange">Personal assistant action</div>
+                <h3>Plugins plus confirmation</h3>
+                <p>
+                  Codex app-server operates connected tools like Gmail and
+                  Calendar, then returns a concise confirmation.
+                </p>
+                <ul>
+                  <li>Personal assistant lane</li>
+                  <li>Gmail and Calendar workflows</li>
+                  <li>Action result comes back as confirmation</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+
+          <section class="support">
+            <article class="proof" data-animate data-delay="2">
+              <div class="eyebrow">How we use Codex</div>
+              <h3>Codex is in the product and in the build loop.</h3>
+              <p>
+                We use Codex to build Open Bubble, to modify and test the mobile
+                app, and to seed the context graph by pulling structured context
+                from connected tools and pushing it into the graph. This
+                presentation itself was shaped with Codex using the
+                <code>frontend-skill</code>.
+              </p>
+
+              <div class="proof-grid">
+                <div>
+                  <strong>Build</strong>
+                  <span>Codex helps us implement and iterate across the stack.</span>
+                </div>
+                <div>
+                  <strong>Mobile test</strong>
+                  <span>We use Codex to play with and validate the Android flow.</span>
+                </div>
+                <div>
+                  <strong>Graph seeding</strong>
+                  <span>Codex pulls external context and writes it into the local graph.</span>
+                </div>
+              </div>
+            </article>
+
+            <aside class="graph-shot" data-animate data-delay="3">
+              <div class="eyebrow green">DuckDB proof</div>
+              <h3>Real local context graph UI</h3>
+              <p>
+                This is the local graph inspector: nodes, facts, chunks, search,
+                filters, and graph health for the DuckDB-backed context lane.
+              </p>
+              <figure>
+                <img src="./assets/context-graph.png" alt="Open Bubble DuckDB context graph inspector" />
+                <figcaption>
+                  Local context graph populated with Codex-assisted data extraction
+                  and surfaced through the Open Bubble graph control panel.
+                </figcaption>
+              </figure>
+            </aside>
+          </section>
+        </section>
+
+        <section class="footer-strip" data-animate data-delay="3">
+          <div>
+            Built in Codex
+            <span>We used Codex throughout the build process.</span>
+          </div>
+          <div>
+            Runtime orchestration
+            <span>The product routes work into Codex app-server after classification.</span>
+          </div>
+          <div>
+            DuckDB context lane
+            <span>Questions can be answered from a local graph we built.</span>
+          </div>
+          <div>
+            Action lane
+            <span>Personal assistant tasks use connected tools and return confirmation.</span>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        window.requestAnimationFrame(() => {
+          document.body.classList.add("ready");
+        });
+      });
+    </script>
+  </body>
+</html>
