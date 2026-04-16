@@ -1,6 +1,6 @@
 # Product Scope
 
-The MVP proves that a small local API can accept screen media plus text and/or raw audio and return a synchronous JSON answer.
+The MVP proves that a small local API can accept screen media plus at least one prompt field, either text or raw audio, and return a synchronous JSON answer.
 
 ## Goals
 
