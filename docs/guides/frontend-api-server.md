@@ -24,6 +24,7 @@ The launcher keeps the API server and `ngrok` running until you stop it with `Ct
 
 - Install the `ngrok` CLI.
 - Either run `ngrok config add-authtoken <token>` once, or add `NGROK_AUTHTOKEN=<token>` to the repo-level `.env`.
+- Add `OPENAI_API_KEY=<token>` to the repo-level `.env` so the backend classifier can call the OpenAI Responses API.
 
 `.env.example` shows the expected local variables. Do not commit your real `.env`.
 
@@ -46,6 +47,8 @@ The frontend reads `OPEN_BUBBLE_API_BASE_URL` from the repo-level `.env` and use
 The frontend must forward raw `promptAudio` bytes as-is. Do not transcribe audio on the client.
 
 `POST /prompt` returns `202 Accepted` with a `taskId`, `status`, and `statusUrl`. The frontend should poll `GET /tasks/:taskId` until the task reaches `completed`, `failed`, or `error`.
+
+Completed task results include a structured classification and a routing payload. The routing payload references the stored screenshot path on the backend rather than embedding the image bytes in JSON. Coding classifications also include a default fallback working directory under repo-root `tmp/` for later execution handoff work.
 
 ## Flutter request shape
 

@@ -1,12 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-
-export const supportedApps = [
-  'Codex',
-  'Gmail',
-  'Gcal',
-  'Slack',
-  'Notion'
-] as const;
+import { supportedApps } from '../lib/supported-apps.js';
 
 export interface AppsResponse {
   apps: typeof supportedApps;

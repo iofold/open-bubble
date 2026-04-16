@@ -11,6 +11,14 @@ The current MVP is a local Fastify API in `apps/api` with four endpoints:
 
 `POST /prompt` accepts one `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`, then returns a task handle immediately. The client does not transcribe audio; it forwards the bytes as-is and polls `GET /tasks/{taskId}` for `in_progress`, `completed`, `failed`, or `error`.
 
+The current async processor classifies the screenshot-led request into one of three buckets:
+
+- `coding_request`
+- `personal_context_request`
+- `action_request`
+
+When the classifier can tie the request to supported tools or data sources, it also returns one or more app names from the static `GET /apps` list and packages the stored screenshot path, original prompt fields, and classification into a routing payload for later execution. Coding requests also persist a default fallback working directory under repo-root `tmp/`.
+
 ## Backend Context Extension
 
 `apps/codex-agent` is an adjacent local workspace for richer context graph experiments. It is not the active API dispatcher.

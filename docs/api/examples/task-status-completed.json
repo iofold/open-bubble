@@ -3,22 +3,33 @@
   "status": "completed",
   "createdAt": "2026-04-16T06:45:00Z",
   "updatedAt": "2026-04-16T06:45:03Z",
-  "repoId": "supercom-backend",
-  "threadId": "thr_123",
-  "turnId": "turn_123",
   "result": {
-    "answer": "Implemented the hello world startup change and opened a PR.",
-    "pullRequestUrl": "https://github.com/neilsanghrajka/supercom-backend/pull/321",
-    "branchName": "codex/hello-world-startup",
-    "commitSha": "abc123def456abc123def456abc123def456abcd",
-    "repoId": "supercom-backend",
-    "threadId": "thr_123",
-    "turnId": "turn_123",
-    "promptText": "What should I do next?",
+    "answer": "Classified request as coding_request. Relevant apps: Codex.",
+    "promptText": "Hey, this does not work in my app.",
     "screenMedia": {
       "filename": "screenshot.png",
       "mimeType": "image/png",
       "kind": "image"
+    },
+    "classification": {
+      "requestType": "coding_request",
+      "relevantApps": ["Codex"],
+      "rationale": "The prompt describes app behavior that needs software debugging help."
+    },
+    "routingPayload": {
+      "promptText": "Hey, this does not work in my app.",
+      "screenMedia": {
+        "filename": "screenshot.png",
+        "mimeType": "image/png",
+        "kind": "image"
+      },
+      "screenMediaPath": "apps/api/.local/tasks/7d9dbf5b-b0d1-487f-b252-0f72b275f935/screen-media.bin",
+      "classification": {
+        "requestType": "coding_request",
+        "relevantApps": ["Codex"],
+        "rationale": "The prompt describes app behavior that needs software debugging help."
+      },
+      "defaultCodingCwd": "/Users/neilsanghrajka/.codex/worktrees/9d3e/codex-bubble/tmp"
     },
     "completedAt": "2026-04-16T06:45:03Z"
   }
