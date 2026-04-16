@@ -21,6 +21,13 @@ docs/
 
 ## Rules
 
+### One-command API tunnel
+
+- Run `./scripts/start-api-ngrok.sh` from the repo root when the frontend needs a reachable API server.
+- The command starts `apps/api`, exposes it through `ngrok`, prints the public URL, and syncs that URL into the repo-level `.env` as `OPEN_BUBBLE_API_BASE_URL`.
+- Keep existing `.env` entries intact; the launcher should update only the managed API base URL key.
+- Frontend integration details live in `docs/guides/frontend-api-server.md`.
+
 ### Mobile / Flutter (`apps/mobile/`)
 
 - Flutter is the primary mobile framework.

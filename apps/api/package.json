@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:ngrok": "tsx src/dev/start-api-ngrok.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "test": "tsx --test test/**/*.test.ts",

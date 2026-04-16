@@ -10,6 +10,14 @@ Open Bubble is a docs-first hackathon repo for a Flutter Android companion and a
 - The frontend forwards raw audio without client-side transcription.
 - The API returns a synchronous JSON result.
 
+## One-command API tunnel
+
+Run `./scripts/start-api-ngrok.sh` from the repo root to start the API and publish it through `ngrok`.
+
+- The command prints the public URL.
+- It syncs that URL into the repo-level `.env` as `OPEN_BUBBLE_API_BASE_URL`.
+- Frontend setup details live in `docs/guides/frontend-api-server.md`.
+
 ## Repository shape
 
 ```text
@@ -19,6 +27,7 @@ open-bubble/
     mobile/          # Flutter Android app
   docs/
     api/             # OpenAPI contract and examples
+    guides/          # Frontend / local workflow guides
     specs/           # Short MVP notes
     adr/             # Architecture decision records
   .github/           # PR template / collaboration hygiene
