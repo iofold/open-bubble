@@ -10,7 +10,29 @@ Open Bubble is a hackathon prototype for a Flutter-first Android companion, a ti
 
 Open Bubble starts with OB confirming it is demo-ready by checking the live repository through the Codex server and verifying the latest build status.
 Next, in WhatsApp, OB understands that a message refers to next week’s meeting, connects to Gmail and Calendar through the backend, creates the event, and returns the event ID.
-Finally, when an email asks for an insurance policy number, OB retrieves it from memory.md, copies the answer to the clipboard, and prepares it to paste directly into the reply
+Finally, when an email asks for an insurance policy number, OB retrieves it from memory.md, copies the answer to the clipboard, and prepares it to paste directly into the reply.
+
+OB is an always-on mobile overlay assistant that floats across any Android app. It reads what's on screen, responds intelligently, and automates cross-app workflows — all without leaving the active app.
+
+<p align="center">
+  <img src="docs/screenshots/01_ob_toggle_on.jpg" width="200" alt="Toggle OB on" />
+  <img src="docs/screenshots/02_ask_query.jpg" width="200" alt="Ask a query" />
+  <img src="docs/screenshots/03_response_bubble.jpg" width="200" alt="Response bubble" />
+</p>
+<p align="center"><em>Activate OB → type a query → get an instant response in the floating bubble</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/04_whatsapp_context.jpg" width="200" alt="WhatsApp context awareness" />
+  <img src="docs/screenshots/05_calendar_event.jpg" width="200" alt="Calendar event created" />
+</p>
+<p align="center"><em>OB reads a WhatsApp message and creates a calendar event from context</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/06_gmail_email.jpg" width="200" alt="Gmail email" />
+  <img src="docs/screenshots/07_policy_result.jpg" width="200" alt="Policy number extracted" />
+  <img src="docs/screenshots/08_paste_reply.jpg" width="200" alt="Paste into email reply" />
+</p>
+<p align="center"><em>OB extracts an insurance policy number from Gmail and pastes it into a reply</em></p>
 
 ## MVP
 
