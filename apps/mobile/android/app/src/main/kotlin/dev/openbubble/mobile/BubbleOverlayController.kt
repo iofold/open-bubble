@@ -43,7 +43,6 @@ class BubbleOverlayController(
     private var panelParams: WindowManager.LayoutParams? = null
     private var composerView: View? = null
     private var composerParams: WindowManager.LayoutParams? = null
-    private var bubbleLabelView: TextView? = null
     private var panelSubtitleView: TextView? = null
     private var composerSubtitleView: TextView? = null
     private var composerInputView: EditText? = null
@@ -60,7 +59,6 @@ class BubbleOverlayController(
     ) {
         bubbleLabel = bubbleText
         statusSubtitle = subtitle
-        bubbleLabelView?.text = bubbleLabel
         panelSubtitleView?.text = statusSubtitle
     }
 
@@ -117,7 +115,6 @@ class BubbleOverlayController(
         }
         bubbleView = null
         bubbleParams = null
-        bubbleLabelView = null
         panelSubtitleView = null
         visible = false
         OpenBubbleEventHub.emit(
@@ -312,47 +309,22 @@ class BubbleOverlayController(
                     }
                 clipToOutline = true
                 elevation = 26f
-                setPadding(10)
+                setPadding(2)
             }
 
         val icon =
             ImageView(service).apply {
                 setImageResource(R.mipmap.ic_launcher)
-                scaleType = ImageView.ScaleType.FIT_CENTER
+                scaleType = ImageView.ScaleType.CENTER_CROP
             }
-
-        val label =
-            TextView(service).apply {
-                text = bubbleLabel
-                setTextColor(colorSnow)
-                textSize = 11f
-                gravity = Gravity.CENTER
-                setTypeface(typeface, Typeface.BOLD)
-                setPadding(14, 6, 14, 6)
-                background = GradientDrawable().apply {
-                    cornerRadius = 999f
-                    setColor(colorInk)
-                }
-            }
-        bubbleLabelView = label
 
         container.addView(
             icon,
             FrameLayout.LayoutParams(
-                124,
-                124,
+                156,
+                156,
                 Gravity.CENTER,
             ),
-        )
-        container.addView(
-            label,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
-            ).apply {
-                bottomMargin = 14
-            },
         )
 
         bindBubbleInteractions(container)
