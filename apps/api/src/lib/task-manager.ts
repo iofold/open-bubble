@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { resolveFromRepoRoot } from './openapi.js';
 
 export type ScreenMediaKind = 'image' | 'video';
@@ -98,6 +99,35 @@ const promptAudioFileName = 'prompt-audio.bin';
 const defaultTaskStoreRoot = (): string =>
   resolveFromRepoRoot('apps', 'api', '.local', 'tasks');
 
+const parseDelayMs = (value: string | undefined): number | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsedValue = Number.parseInt(value, 10);
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : undefined;
+};
+
+const getSimulatedDelayMs = (): number => {
+  const exactDelay = parseDelayMs(process.env['OPEN_BUBBLE_PROMPT_DELAY_MS']);
+  if (exactDelay !== undefined) {
+    return exactDelay;
+  }
+
+  const minDelay = parseDelayMs(process.env['OPEN_BUBBLE_PROMPT_DELAY_MIN_MS']);
+  const maxDelay = parseDelayMs(process.env['OPEN_BUBBLE_PROMPT_DELAY_MAX_MS']);
+
+  if (minDelay !== undefined && maxDelay !== undefined) {
+    if (maxDelay <= minDelay) {
+      return minDelay;
+    }
+
+    return Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+  }
+
+  return 0;
+};
+
 const buildAnswer = (payload: {
   screenMedia: ScreenMediaMetadata;
   promptText?: string;
@@ -121,16 +151,24 @@ const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
   screenMedia,
   promptText,
   promptAudio
-}) => ({
-  status: 'completed',
-  result: {
-    answer: buildAnswer({
-      screenMedia,
-      ...(promptText ? { promptText } : {}),
-      ...(promptAudio ? { promptAudio } : {})
-    })
+}) => {
+  const simulatedDelayMs = getSimulatedDelayMs();
+
+  if (simulatedDelayMs > 0) {
+    await delay(simulatedDelayMs);
   }
-});
+
+  return {
+    status: 'completed',
+    result: {
+      answer: buildAnswer({
+        screenMedia,
+        ...(promptText ? { promptText } : {}),
+        ...(promptAudio ? { promptAudio } : {})
+      })
+    }
+  };
+};
 
 const writeJson = async (
   filePath: string,

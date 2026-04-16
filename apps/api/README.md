@@ -9,6 +9,7 @@ Run everything from inside `apps/api/`, unless you want the repo-level launcher.
 ```bash
 npm install
 npm run dev
+npm run dev:delayed
 npm run dev:ngrok
 npm test
 npm run typecheck
@@ -45,3 +46,19 @@ The frontend forwards `promptAudio` bytes as-is. It does not transcribe them cli
 - The response is `202 Accepted` with a `taskId`, `status`, and `statusUrl`.
 - Clients poll `GET /tasks/:taskId` until the task reaches `completed`, `failed`, or `error`.
 - Task state is persisted locally under `apps/api/.local/tasks/`.
+
+## Delayed task simulation
+
+For client testing, you can run a delayed version of the local API:
+
+```bash
+npm run dev:delayed
+```
+
+That keeps `POST /prompt` immediate, but holds tasks in `in_progress` for a randomized 20-25 seconds before returning `completed`.
+
+You can also override the delay manually:
+
+```bash
+OPEN_BUBBLE_PROMPT_DELAY_MS=22000 npm run dev
+```

@@ -95,8 +95,8 @@ object PromptTaskClient {
         baseUrl: String,
         taskId: String,
         statusUrl: String,
-        maxAttempts: Int = 18,
-        pollDelayMs: Long = 850L,
+        maxAttempts: Int = 45,
+        pollDelayMs: Long = 1_000L,
     ): PromptTaskOutcome {
         val normalizedBaseUrl = normalizeBaseUrl(baseUrl)
         val resolvedUrl = resolveStatusUrl(normalizedBaseUrl, statusUrl, taskId)
