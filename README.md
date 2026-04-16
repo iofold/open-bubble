@@ -1,6 +1,6 @@
 # Open Bubble
 
-Open Bubble is a docs-first hackathon repo for a Flutter Android companion and a tiny local API. The current MVP keeps the backend surface small so the team can build quickly and stay aligned.
+Open Bubble is a docs-first hackathon repo for a Flutter Android companion, a tiny local API, and a local Codex-agent context graph workspace. The current MVP keeps the backend surface small so the team can build quickly and stay aligned.
 
 ## MVP
 
@@ -19,6 +19,18 @@ Run `./scripts/start-api-ngrok.sh` from the repo root to start the API and publi
 - It syncs that URL into the repo-level `.env` as `OPEN_BUBBLE_API_BASE_URL`.
 - Frontend setup details live in `docs/guides/frontend-api-server.md`.
 
+## Codex Agent Context Graph
+
+`apps/codex-agent` contains the local Codex-agent workspace for context graph experiments:
+
+- screenshot + prompt request ingestion,
+- DuckDB graph fixtures,
+- Gmail/Drive/Calendar MCP result normalization,
+- graph export JSON,
+- a static local graph control panel.
+
+This workspace is intentionally decoupled from `apps/api` dispatch. The API can call the scripts later through file/JSON handoffs.
+
 ## Repository shape
 
 ```text
@@ -26,6 +38,7 @@ open-bubble/
   apps/
     api/             # Fastify API MVP and local docs
     mobile/          # Flutter Android app
+    codex-agent/     # Codex-agent context graph workspace
   docs/
     api/             # OpenAPI contract and examples
     guides/          # Frontend / local workflow guides
@@ -39,3 +52,5 @@ open-bubble/
 - Read `AGENTS.md` before starting work.
 - Keep API changes in sync with `docs/api/openapi.yaml`.
 - Keep the docs short and remove outdated detail instead of layering on new active scope.
+- Read `docs/specs/mcp-connectors.md` before changing Gmail/Drive/Calendar connector behavior.
+- Read `docs/specs/graph-control-panel.md` before changing the graph inspection UI.

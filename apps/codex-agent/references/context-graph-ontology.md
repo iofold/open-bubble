@@ -46,6 +46,15 @@ Required entity types:
 | `file` | Local file path relevant to current context |
 | `claim` | User-visible claim or assertion to verify |
 | `answer` | Future persisted response sent to frontend |
+| `gmail_thread` | Gmail thread fetched through local MCP |
+| `gmail_message` | Gmail message fetched through local MCP |
+| `drive_file` | Google Drive file fetched through local MCP |
+| `drive_folder` | Google Drive folder fetched through local MCP |
+| `document_section` | Extracted section/snippet from a Drive document |
+| `calendar_event` | Google Calendar event fetched through local MCP |
+| `person` | Human participant, sender, attendee, or document owner |
+| `organization` | Organization mentioned in connector or local context |
+| `attachment` | Email or Drive attachment metadata |
 
 ### Facts
 
@@ -77,6 +86,18 @@ Required relation types:
 | `touches_file` | Task or request relates to a file |
 | `supports_claim` | Evidence supports a claim |
 | `contradicts_claim` | Evidence contradicts a claim |
+| `derived_from_mcp` | Entity or fact came from an MCP connector episode |
+| `sent_by` | Gmail message was sent by a person |
+| `sent_to` | Gmail message was sent to a person |
+| `part_of_thread` | Gmail message belongs to a thread |
+| `has_attachment` | Message or Drive item has an attachment |
+| `owned_by` | Drive file/folder is owned by a person |
+| `shared_with` | Drive file/folder is shared with a person |
+| `contained_in` | Drive file belongs to a folder |
+| `attended_by` | Calendar event includes an attendee |
+| `scheduled_with` | Calendar event is scheduled with a person |
+| `scheduled_at` | Calendar event has a time anchor |
+| `mentions` | Source item mentions an entity |
 
 ## Retrieval Rules
 

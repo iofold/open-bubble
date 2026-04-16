@@ -1,0 +1,34 @@
+{
+  "sessionId": "sess_test_001",
+  "connector": "gmail",
+  "operation": "search",
+  "query": "context graph ingestion",
+  "fetchedAt": "2026-04-16T08:00:00Z",
+  "sourceRequestId": "ctx_req_fetch_001",
+  "results": [
+    {
+      "id": "gmail_msg_001",
+      "threadId": "gmail_thread_001",
+      "subject": "Context graph ingestion plan",
+      "snippet": "Let's make sure the Codex agent stores connector snippets as episodes with provenance.",
+      "from": {
+        "name": "Priya Rao",
+        "email": "priya@example.com"
+      },
+      "to": [
+        {
+          "name": "Yash Gupta",
+          "email": "yash@example.com"
+        }
+      ],
+      "date": "2026-04-16T07:55:00Z",
+      "attachments": [
+        {
+          "id": "att_plan",
+          "name": "context-plan.md",
+          "mimeType": "text/markdown"
+        }
+      ]
+    }
+  ]
+}

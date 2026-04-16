@@ -31,3 +31,5 @@ Schemas:
 
 - `schemas/context-request.schema.json`
 - `schemas/context-answer.schema.json`
+- `schemas/mcp-fetch-result.schema.json`
+- `schemas/context-graph-export.schema.json`
