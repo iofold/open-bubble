@@ -2,9 +2,18 @@
   "taskId": "7d9dbf5b-b0d1-487f-b252-0f72b275f935",
   "status": "completed",
   "createdAt": "2026-04-16T06:45:00Z",
-  "updatedAt": "2026-04-16T06:45:03Z",
+  "updatedAt": "2026-04-16T06:45:12Z",
+  "repoId": "codex-bubble",
+  "threadId": "thread_123",
+  "turnId": "turn_123",
   "result": {
-    "answer": "Classified request as coding_request. Relevant apps: Codex.",
+    "answer": "Opened a pull request with the requested API fix.",
+    "pullRequestUrl": "https://github.com/iofold/open-bubble/pull/999",
+    "branchName": "codex/fix-api-routing",
+    "commitSha": "abc123def456",
+    "repoId": "codex-bubble",
+    "threadId": "thread_123",
+    "turnId": "turn_123",
     "promptText": "Hey, this does not work in my app.",
     "screenMedia": {
       "filename": "screenshot.png",
@@ -14,7 +23,8 @@
     "classification": {
       "requestType": "coding_request",
       "relevantApps": ["Codex"],
-      "rationale": "The prompt describes app behavior that needs software debugging help."
+      "rationale": "The prompt describes app behavior that needs software debugging help.",
+      "repoId": "codex-bubble"
     },
     "routingPayload": {
       "promptText": "Hey, this does not work in my app.",
@@ -27,7 +37,8 @@
       "classification": {
         "requestType": "coding_request",
         "relevantApps": ["Codex"],
-        "rationale": "The prompt describes app behavior that needs software debugging help."
+        "rationale": "The prompt describes app behavior that needs software debugging help.",
+        "repoId": "codex-bubble"
       },
       "handoffPlan": {
         "executionMode": "autonomous_code_change",
@@ -40,8 +51,13 @@
         "targetRepoId": "codex-bubble",
         "expandedPrompt": "You are handling an ambient mobile coding request. The user is looking at a live app screen and wants you to infer the likely bug from the screenshot plus prompt text. Work autonomously in the inferred repo, make the smallest safe fix, validate only the touched area, create a branch and PR, and return only the PR URL as the final user-facing artifact."
       },
-      "defaultCodingCwd": "/Users/neilsanghrajka/.codex/worktrees/9d3e/codex-bubble/tmp"
+      "executionTarget": {
+        "repoId": "codex-bubble",
+        "cwd": "/Users/neilsanghrajka/.codex/worktrees/9d3e/codex-bubble",
+        "mode": "coding",
+        "source": "classifier_repo"
+      }
     },
-    "completedAt": "2026-04-16T06:45:03Z"
+    "completedAt": "2026-04-16T06:45:12Z"
   }
 }

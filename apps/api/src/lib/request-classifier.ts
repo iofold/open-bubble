@@ -1,6 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import OpenAI from 'openai';
+import {
+  createPromptExecutorFromMappings,
+  loadRepoMappings,
+  resolveRepoById,
+  type PromptExecutor,
+  type RepoMapping
+} from '@open-bubble/codex-app-server';
 import { resolveFromRepoRoot } from './openapi.js';
 import type {
   PromptHandoffPlan,
@@ -8,7 +15,9 @@ import type {
   PromptTaskProcessorInput,
   RequestClassification,
   RequestType,
-  RoutingPayload
+  RoutingExecutionTarget,
+  RoutingPayload,
+  TaskFailure
 } from './task-manager.js';
 import { supportedApps, type SupportedAppName } from './supported-apps.js';
 
@@ -20,6 +29,8 @@ const repoConfigPath = resolveFromRepoRoot(
   'config',
   'repos.json'
 );
+const assistantWorkspaceRepoId = 'codex-agent';
+const codingFallbackRepoId = 'tmp';
 const knownContextSkillIds = [
   'open-bubble-ingest-request',
   'open-bubble-context-answer',
@@ -37,9 +48,28 @@ const knownContextSources = [
   'context_graph'
 ] as const;
 
+type ClassificationSchemaFormat = {
+  type: 'json_schema';
+  name: string;
+  strict: true;
+  schema: Record<string, unknown>;
+};
+
+type ClassificationContent =
+  | {
+      type: 'input_text';
+      text: string;
+    }
+  | {
+      type: 'input_image';
+      image_url: string;
+      detail: 'auto';
+    };
+
 interface RepoCatalogEntry {
   id?: unknown;
   aliases?: unknown;
+  description?: unknown;
 }
 
 interface RepoCatalogFile {
@@ -72,15 +102,11 @@ const classifierInstructions = [
   'For coding requests, expandedPrompt must instruct the agent to work autonomously, avoid follow-up questions, create a PR when possible, and return only the PR URL to the user.',
   'For personal context requests, expandedPrompt must instruct the agent to use the screenshot plus context graph and relevant skills to answer the user question succinctly.',
   'For action requests, expandedPrompt must instruct the agent to use context graph plus relevant connectors, infer scheduling/message intent from the screenshot and prompt, and finish with a succinct confirmation.',
-  'Keep rationale short and concrete, but make expandedPrompt rich and explicit.',
-  'Examples:',
-  '- Insurance policy number visible in an email or message on screen -> personal_context_request, executionMode=context_graph_answer, finalResponseStyle=succinct_answer, relevantApps may include Gmail, suggestedSkills should point to the context-answer or connector skills.',
-  '- Bug visible in Headrest, Open Bubble, Tray, or another app repo -> coding_request, executionMode=autonomous_code_change, finalResponseStyle=pull_request_only, targetRepoId should match the repo catalog when possible.',
-  '- Scheduling thread with two or three people visible on screen -> action_request, executionMode=app_action, finalResponseStyle=succinct_confirmation, relevantApps may include Gmail and Gcal.'
+  'Keep rationale short and concrete, but make expandedPrompt rich and explicit.'
 ].join('\n');
 
-const classificationSchema = {
-  type: 'json_schema' as const,
+const classificationSchema: ClassificationSchemaFormat = {
+  type: 'json_schema',
   name: 'request_classification',
   strict: true,
   schema: {
@@ -172,26 +198,15 @@ const classificationSchema = {
   }
 };
 
-type ClassificationContent =
-  | {
-      type: 'input_text';
-      text: string;
-    }
-  | {
-      type: 'input_image';
-      image_url: string;
-      detail: 'auto';
-    };
-
 interface ClassificationRequest {
   model: string;
   store: false;
   reasoning: {
-    effort: 'low';
+    effort: 'none';
   };
   text: {
     verbosity: 'low';
-    format: typeof classificationSchema;
+    format: ClassificationSchemaFormat;
   };
   max_output_tokens: number;
   instructions: string;
@@ -217,6 +232,8 @@ interface ClassificationClient {
 
 interface CreateClassifierPromptTaskProcessorOptions {
   client?: ClassificationClient;
+  executor?: PromptExecutor;
+  repoMappings?: RepoMapping[];
 }
 
 type RawClassification = {
@@ -271,6 +288,30 @@ const createOpenAiClient = (): ClassificationClient => ({
     };
   }
 });
+
+const buildLocalFallbackRepoMappings = (): RepoMapping[] => [
+  {
+    id: 'codex-bubble',
+    cwd: resolveFromRepoRoot(),
+    aliases: ['codex bubble', 'codex-bubble'],
+    description:
+      'Open Bubble monorepo workspace for the API, docs, mobile shell, and app-server integration work.'
+  },
+  {
+    id: assistantWorkspaceRepoId,
+    cwd: resolveFromRepoRoot('apps', 'codex-agent'),
+    aliases: ['codex agent', 'codex-agent'],
+    description:
+      'Codex-agent workspace for personal context graph, linked-app context, and assistant/action execution.'
+  },
+  {
+    id: codingFallbackRepoId,
+    cwd: resolveFromRepoRoot('tmp'),
+    aliases: ['tmp', 'temporary workspace', 'scratch workspace'],
+    description:
+      'Scratch workspace inside the current Open Bubble repo for uncategorized coding requests that still need a fast local repo target.'
+  }
+];
 
 const normalizeRelevantApps = (apps: unknown): SupportedAppName[] => {
   if (!Array.isArray(apps)) {
@@ -342,11 +383,15 @@ const loadRepoCatalogPromptBlock = async (): Promise<string> => {
               .filter((alias): alias is string => typeof alias === 'string')
               .slice(0, 6)
           : [];
+        const description =
+          typeof entry.description === 'string' && entry.description.trim().length > 0
+            ? entry.description.trim()
+            : 'No description provided.';
 
         return [
           aliases.length > 0
-            ? `- ${entry.id}: aliases=${aliases.join(', ')}`
-            : `- ${entry.id}`
+            ? `- ${entry.id}: ${description} aliases=${aliases.join(', ')}`
+            : `- ${entry.id}: ${description}`
         ];
       })
       .join('\n');
@@ -457,7 +502,10 @@ const normalizeContextSources = (
   return [...unique];
 };
 
-const parseClassifierOutput = (payload: string): ClassifiedRequest => {
+const parseClassifierOutput = (
+  payload: string,
+  repoMappings: RepoMapping[]
+): ClassifiedRequest => {
   const parsed = JSON.parse(payload) as RawClassification;
 
   if (!isRequestType(parsed.requestType)) {
@@ -524,11 +572,22 @@ const parseClassifierOutput = (payload: string): ClassifiedRequest => {
         ? rawHandoff['targetRepoId'].trim()
         : null;
 
+  if (parsed.requestType === 'coding_request' && targetRepoId) {
+    try {
+      resolveRepoById(targetRepoId, repoMappings);
+    } catch {
+      // Let routing fall back to tmp when the classifier suggests an unknown repo.
+    }
+  }
+
   return {
     classification: {
       requestType: parsed.requestType,
       relevantApps: normalizeRelevantApps(parsed.relevantApps),
-      rationale: parsed.rationale.trim()
+      rationale: parsed.rationale.trim(),
+      ...(parsed.requestType === 'coding_request' && targetRepoId
+        ? { repoId: targetRepoId }
+        : {})
     },
     handoffPlan: {
       executionMode: rawHandoff['executionMode'],
@@ -546,7 +605,8 @@ const parseClassifierOutput = (payload: string): ClassifiedRequest => {
 
 const classifyRequest = async (
   input: PromptTaskProcessorInput,
-  client: ClassificationClient
+  client: ClassificationClient,
+  repoMappings: RepoMapping[]
 ): Promise<ClassifiedRequest> => {
   const model =
     process.env['OPEN_BUBBLE_CLASSIFIER_MODEL']?.trim() ??
@@ -556,7 +616,7 @@ const classifyRequest = async (
     model,
     store: false,
     reasoning: {
-      effort: 'low'
+      effort: 'none'
     },
     text: {
       verbosity: 'low',
@@ -582,18 +642,84 @@ const classifyRequest = async (
     throw new Error('The classifier returned no structured output.');
   }
 
-  return parseClassifierOutput(response.output_text);
+  return parseClassifierOutput(response.output_text, repoMappings);
 };
 
-const ensureDefaultCodingCwd = async (): Promise<string> => {
+const ensureScratchWorkspace = async (): Promise<string> => {
   const tmpDir = resolveFromRepoRoot('tmp');
   await mkdir(tmpDir, { recursive: true });
   return tmpDir;
 };
 
+const buildExecutionTarget = async (
+  repoId: string,
+  repoMappings: RepoMapping[],
+  mode: RoutingExecutionTarget['mode'],
+  source: RoutingExecutionTarget['source']
+): Promise<RoutingExecutionTarget> => {
+  const repo = resolveRepoById(repoId, repoMappings);
+
+  if (repo.id === codingFallbackRepoId) {
+    await mkdir(repo.cwd, { recursive: true });
+  }
+
+  return {
+    repoId: repo.id,
+    cwd: repo.cwd,
+    mode,
+    source
+  };
+};
+
+const buildFallbackCodingTarget = async (): Promise<RoutingExecutionTarget> => ({
+  repoId: codingFallbackRepoId,
+  cwd: await ensureScratchWorkspace(),
+  mode: 'coding',
+  source: 'coding_fallback'
+});
+
+const resolveExecutionTarget = async (
+  classified: ClassifiedRequest,
+  repoMappings: RepoMapping[]
+): Promise<RoutingExecutionTarget> => {
+  if (classified.classification.requestType === 'personal_context_request') {
+    return buildExecutionTarget(
+      assistantWorkspaceRepoId,
+      repoMappings,
+      'assistant',
+      'personal_context'
+    );
+  }
+
+  if (classified.classification.requestType === 'action_request') {
+    return buildExecutionTarget(
+      assistantWorkspaceRepoId,
+      repoMappings,
+      'assistant',
+      'action_request'
+    );
+  }
+
+  if (classified.handoffPlan.targetRepoId) {
+    try {
+      return await buildExecutionTarget(
+        classified.handoffPlan.targetRepoId,
+        repoMappings,
+        'coding',
+        'classifier_repo'
+      );
+    } catch {
+      return buildFallbackCodingTarget();
+    }
+  }
+
+  return buildFallbackCodingTarget();
+};
+
 const buildRoutingPayload = async (
   input: PromptTaskProcessorInput,
-  classified: ClassifiedRequest
+  classified: ClassifiedRequest,
+  executionTarget: RoutingExecutionTarget
 ): Promise<RoutingPayload> => ({
   ...(input.promptText ? { promptText: input.promptText } : {}),
   ...(input.promptAudio && input.promptAudioPath
@@ -606,9 +732,7 @@ const buildRoutingPayload = async (
   screenMediaPath: input.screenMediaPath,
   classification: classified.classification,
   handoffPlan: classified.handoffPlan,
-  ...(classified.classification.requestType === 'coding_request'
-    ? { defaultCodingCwd: await ensureDefaultCodingCwd() }
-    : {})
+  executionTarget
 });
 
 const persistRoutingPayload = async (
@@ -621,9 +745,10 @@ const persistRoutingPayload = async (
   );
 };
 
-const buildAnswer = (
+const buildClassificationOnlyAnswer = (
   classification: RequestClassification,
-  handoffPlan: PromptHandoffPlan
+  handoffPlan: PromptHandoffPlan,
+  executionTarget: RoutingExecutionTarget
 ): string => {
   const appSuffix =
     classification.relevantApps.length > 0
@@ -631,32 +756,166 @@ const buildAnswer = (
       : '';
   const repoSuffix = handoffPlan.targetRepoId
     ? ` Target repo: ${handoffPlan.targetRepoId}.`
-    : '';
+    : ` Routed to: ${executionTarget.repoId}.`;
 
   return `Prepared ${classification.requestType} handoff.${appSuffix}${repoSuffix}`;
+};
+
+const buildExecutionPromptText = (classified: ClassifiedRequest): string =>
+  classified.handoffPlan.expandedPrompt;
+
+const toGatewayScreenMedia = (
+  input: PromptTaskProcessorInput
+):
+  | {
+      filename: string;
+      mimeType: string;
+      kind: 'image';
+      path: string;
+    }
+  | undefined =>
+  input.screenMedia.kind === 'image'
+    ? {
+        ...input.screenMedia,
+        kind: 'image',
+        path: input.screenMediaPath
+      }
+    : undefined;
+
+const toTaskFailure = (error: unknown): TaskFailure | undefined => {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+
+  const errorRecord = error as Error & {
+    code?: unknown;
+    details?: {
+      repoId?: unknown;
+      threadId?: unknown;
+      turnId?: unknown;
+    };
+  };
+
+  if (typeof errorRecord.code !== 'string') {
+    return undefined;
+  }
+
+  return {
+    code: errorRecord.code,
+    message: error.message,
+    ...(typeof errorRecord.details?.repoId === 'string'
+      ? { repoId: errorRecord.details.repoId }
+      : {}),
+    ...(typeof errorRecord.details?.threadId === 'string'
+      ? { threadId: errorRecord.details.threadId }
+      : {}),
+    ...(typeof errorRecord.details?.turnId === 'string'
+      ? { turnId: errorRecord.details.turnId }
+      : {})
+  };
 };
 
 export const createClassifierPromptTaskProcessor = (
   options: CreateClassifierPromptTaskProcessorOptions = {}
 ): PromptTaskProcessor => {
   const client = options.client ?? createOpenAiClient();
+  const repoMappings = options.repoMappings ?? buildLocalFallbackRepoMappings();
+  const executor = options.executor;
 
   return async (input) => {
-    const classified = await classifyRequest(input, client);
-    const routingPayload = await buildRoutingPayload(input, classified);
+    const classified = await classifyRequest(input, client, repoMappings);
+    const executionTarget = await resolveExecutionTarget(classified, repoMappings);
+    const routingPayload = await buildRoutingPayload(
+      input,
+      classified,
+      executionTarget
+    );
 
     await persistRoutingPayload(input.taskDir, routingPayload);
 
-    return {
-      status: 'completed',
-      result: {
-        answer: buildAnswer(
-          classified.classification,
-          classified.handoffPlan
-        ),
-        classification: classified.classification,
-        routingPayload
+    if (!executor) {
+      return {
+        status: 'completed',
+        result: {
+          answer: buildClassificationOnlyAnswer(
+            classified.classification,
+            classified.handoffPlan,
+            executionTarget
+          ),
+          repoId: executionTarget.repoId,
+          classification: classified.classification,
+          routingPayload
+        }
+      };
+    }
+
+    await input.updateTask({
+      repoId: executionTarget.repoId
+    });
+
+    try {
+      const gatewayScreenMedia = toGatewayScreenMedia(input);
+      const execution = await executor.executePrompt({
+        promptText: buildExecutionPromptText(classified),
+        ...(input.promptAudioPath ? { promptAudioPath: input.promptAudioPath } : {}),
+        ...(gatewayScreenMedia ? { screenMedia: gatewayScreenMedia } : {}),
+        route: {
+          repoId: executionTarget.repoId,
+          mode: executionTarget.mode,
+          requestType: classified.classification.requestType,
+          relevantApps: classified.classification.relevantApps,
+          rationale: classified.classification.rationale
+        },
+        onProgress: async (patch) => {
+          await input.updateTask({
+            repoId: executionTarget.repoId,
+            ...patch
+          });
+        }
+      });
+
+      return {
+        status: 'completed',
+        result: {
+          answer: execution.answer,
+          ...(execution.prUrl ? { pullRequestUrl: execution.prUrl } : {}),
+          ...(execution.branchName ? { branchName: execution.branchName } : {}),
+          ...(execution.commitSha ? { commitSha: execution.commitSha } : {}),
+          repoId: execution.repoId,
+          threadId: execution.threadId,
+          turnId: execution.turnId,
+          classification: classified.classification,
+          routingPayload
+        }
+      };
+    } catch (error) {
+      const failure = toTaskFailure(error);
+
+      if (failure) {
+        return {
+          status: 'failed',
+          errorDetail: {
+            ...failure,
+            ...(failure.repoId ? {} : { repoId: executionTarget.repoId })
+          }
+        };
       }
-    };
+
+      throw error;
+    }
   };
+};
+
+export const createConfiguredClassifierExecutionTaskProcessor = async (
+  options: CreateClassifierPromptTaskProcessorOptions = {}
+): Promise<PromptTaskProcessor> => {
+  const repoMappings = options.repoMappings ?? await loadRepoMappings();
+  const executor =
+    options.executor ?? createPromptExecutorFromMappings(repoMappings);
+
+  return createClassifierPromptTaskProcessor({
+    ...options,
+    repoMappings,
+    executor
+  });
 };

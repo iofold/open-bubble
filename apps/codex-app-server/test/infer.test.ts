@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
-import { inferRepoFromPrompt, type RepoMapping } from '../src/infer.js';
+import {
+  inferRepoFromPrompt,
+  resolveRepoById,
+  type RepoMapping
+} from '../src/infer.js';
 
 const mappings: RepoMapping[] = [
   {
@@ -55,5 +59,15 @@ void test('inferRepoFromPrompt falls back to a single configured repo for the de
     id: 'supercom-backend',
     cwd: '/Users/demo/code/supercom/backend',
     reason: 'single_repo'
+  });
+});
+
+void test('resolveRepoById returns an explicit repo selection', () => {
+  const result = resolveRepoById('bubble-marketing', mappings);
+
+  assert.deepEqual(result, {
+    id: 'bubble-marketing',
+    cwd: '/Users/demo/code/open-bubble/site',
+    reason: 'explicit_repo'
   });
 });

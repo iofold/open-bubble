@@ -101,9 +101,23 @@ const buildCompletedOutcome = (
             classification.requestType === 'coding_request' ? 'demo-repo' : null,
           expandedPrompt: 'Test expanded prompt.'
         },
-        ...(classification.requestType === 'coding_request'
-          ? { defaultCodingCwd: path.join(repoRoot, 'tmp') }
-          : {})
+        executionTarget:
+          classification.requestType === 'coding_request'
+            ? {
+                repoId,
+                cwd: path.join(repoRoot, 'tmp'),
+                mode: 'coding',
+                source: 'coding_fallback'
+              }
+            : {
+                repoId: 'codex-agent',
+                cwd: path.join(repoRoot, 'apps', 'codex-agent'),
+                mode: 'assistant',
+                source:
+                  classification.requestType === 'action_request'
+                    ? 'action_request'
+                    : 'personal_context'
+              }
       }
     }
   };
@@ -460,10 +474,12 @@ void test('GET /tasks/:taskId returns completed prompt results for text and audi
       rationale:
         'The prompt and screen point to a software or product debugging workflow.'
     });
-    assert.equal(
-      completedTask.result.routingPayload.defaultCodingCwd,
-      path.join(repoRoot, 'tmp')
-    );
+    assert.deepEqual(completedTask.result.routingPayload.executionTarget, {
+      repoId: 'demo-repo',
+      cwd: path.join(repoRoot, 'tmp'),
+      mode: 'coding',
+      source: 'coding_fallback'
+    });
     assert.match(completedTask.result.completedAt as string, /^\d{4}-\d{2}-\d{2}T/);
     assert.equal(completedTask.result.repoId, 'demo-repo');
     assert.equal(completedTask.result.threadId, 'demo-thread');

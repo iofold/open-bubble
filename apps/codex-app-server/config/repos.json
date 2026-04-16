@@ -6,7 +6,8 @@
       "aliases": [
         "accountability app",
         "accountability-app"
-      ]
+      ],
+      "description": "Coding workspace for accountability app."
     },
     {
       "id": "anthropic-cookbook",
@@ -14,7 +15,8 @@
       "aliases": [
         "anthropic cookbook",
         "anthropic-cookbook"
-      ]
+      ],
+      "description": "Coding workspace for anthropic cookbook."
     },
     {
       "id": "beeper-reverse-engineer",
@@ -22,7 +24,8 @@
       "aliases": [
         "beeper reverse engineer",
         "beeper-reverse-engineer"
-      ]
+      ],
+      "description": "Coding workspace for beeper reverse engineer."
     },
     {
       "id": "call-reminder",
@@ -30,14 +33,16 @@
       "aliases": [
         "call reminder",
         "call-reminder"
-      ]
+      ],
+      "description": "Coding workspace for call reminder."
     },
     {
       "id": "cline",
       "cwd": "/Users/neilsanghrajka/code/cline",
       "aliases": [
         "cline"
-      ]
+      ],
+      "description": "Coding workspace for cline."
     },
     {
       "id": "codex-agent-team",
@@ -45,15 +50,17 @@
       "aliases": [
         "codex agent team",
         "codex-agent-team"
-      ]
+      ],
+      "description": "Coding workspace for codex agent team."
     },
     {
       "id": "codex-bubble",
-      "cwd": "/Users/neilsanghrajka/code/codex-bubble",
+      "cwd": "/Users/neilsanghrajka/.codex/worktrees/9d3e/codex-bubble",
       "aliases": [
         "codex bubble",
         "codex-bubble"
-      ]
+      ],
+      "description": "Open Bubble monorepo workspace for the API, docs, mobile shell, and app-server integration work."
     },
     {
       "id": "config-file-manager",
@@ -61,14 +68,16 @@
       "aliases": [
         "config file manager",
         "config-file-manager"
-      ]
+      ],
+      "description": "Coding workspace for config file manager."
     },
     {
       "id": "context",
       "cwd": "/Users/neilsanghrajka/code/Context",
       "aliases": [
         "context"
-      ]
+      ],
+      "description": "Coding workspace for context."
     },
     {
       "id": "context-keyboard",
@@ -76,7 +85,8 @@
       "aliases": [
         "context keyboard",
         "context-keyboard"
-      ]
+      ],
+      "description": "Coding workspace for context keyboard."
     },
     {
       "id": "daily-wallpaper",
@@ -84,14 +94,16 @@
       "aliases": [
         "daily wallpaper",
         "daily-wallpaper"
-      ]
+      ],
+      "description": "Coding workspace for daily wallpaper."
     },
     {
       "id": "debugger",
       "cwd": "/Users/neilsanghrajka/code/debugger",
       "aliases": [
         "debugger"
-      ]
+      ],
+      "description": "Coding workspace for debugger."
     },
     {
       "id": "first-extension",
@@ -99,7 +111,8 @@
       "aliases": [
         "first extension",
         "first-extension"
-      ]
+      ],
+      "description": "Coding workspace for first extension."
     },
     {
       "id": "inbox-zero",
@@ -107,7 +120,8 @@
       "aliases": [
         "inbox zero",
         "inbox-zero"
-      ]
+      ],
+      "description": "Coding workspace for inbox zero."
     },
     {
       "id": "inboxai",
@@ -115,7 +129,8 @@
       "aliases": [
         "inbox ai",
         "inboxai"
-      ]
+      ],
+      "description": "Coding workspace for inboxai."
     },
     {
       "id": "openai-apps-sdk-examples",
@@ -123,7 +138,8 @@
       "aliases": [
         "openai apps sdk examples",
         "openai-apps-sdk-examples"
-      ]
+      ],
+      "description": "Coding workspace for openai apps sdk examples."
     },
     {
       "id": "pm-gpt",
@@ -131,7 +147,8 @@
       "aliases": [
         "pm gpt",
         "pm-gpt"
-      ]
+      ],
+      "description": "Coding workspace for pm gpt."
     },
     {
       "id": "readhim",
@@ -139,7 +156,8 @@
       "aliases": [
         "read him",
         "readhim"
-      ]
+      ],
+      "description": "Coding workspace for readhim."
     },
     {
       "id": "skill-seekers",
@@ -148,14 +166,16 @@
         "skill seekers",
         "skill-seekers",
         "skill_seekers"
-      ]
+      ],
+      "description": "Coding workspace for skill seekers."
     },
     {
       "id": "slash",
       "cwd": "/Users/neilsanghrajka/code/slash",
       "aliases": [
         "slash"
-      ]
+      ],
+      "description": "Coding workspace for slash."
     },
     {
       "id": "supercom",
@@ -163,7 +183,8 @@
       "aliases": [
         "super com",
         "supercom"
-      ]
+      ],
+      "description": "Coding workspace for supercom."
     },
     {
       "id": "supercom-backend",
@@ -176,7 +197,8 @@
         "supercom back end",
         "sudo com backend",
         "sudocom backend"
-      ]
+      ],
+      "description": "Supercom backend repository for server-side product and API work."
     },
     {
       "id": "supercom-ios",
@@ -185,7 +207,8 @@
         "super com ios",
         "supercom ios",
         "supercom-ios"
-      ]
+      ],
+      "description": "Supercom iOS client repository for native mobile app work."
     },
     {
       "id": "supercom-linkedin-prototype",
@@ -194,7 +217,8 @@
         "super com linkedin prototype",
         "supercom linkedin prototype",
         "supercom-linkedin-prototype"
-      ]
+      ],
+      "description": "Prototype repository for Supercom LinkedIn workflows and experiments."
     },
     {
       "id": "supercom-website",
@@ -203,7 +227,8 @@
         "super com website",
         "supercom website",
         "supercom-website"
-      ]
+      ],
+      "description": "Supercom website repository for marketing-site and web funnel work."
     },
     {
       "id": "superfeatures-cli",
@@ -211,14 +236,16 @@
       "aliases": [
         "superfeatures cli",
         "superfeatures-cli"
-      ]
+      ],
+      "description": "Coding workspace for superfeatures cli."
     },
     {
       "id": "tray",
       "cwd": "/Users/neilsanghrajka/code/Tray",
       "aliases": [
         "tray"
-      ]
+      ],
+      "description": "Coding workspace for tray."
     },
     {
       "id": "typing-test",
@@ -226,14 +253,16 @@
       "aliases": [
         "typing test",
         "typing-test"
-      ]
+      ],
+      "description": "Coding workspace for typing test."
     },
     {
       "id": "waha",
       "cwd": "/Users/neilsanghrajka/code/waha",
       "aliases": [
         "waha"
-      ]
+      ],
+      "description": "Coding workspace for waha."
     },
     {
       "id": "warmup-for-runners",
@@ -241,7 +270,8 @@
       "aliases": [
         "warmup for runners",
         "warmup-for-runners"
-      ]
+      ],
+      "description": "Coding workspace for warmup for runners."
     },
     {
       "id": "warmupplus",
@@ -249,7 +279,8 @@
       "aliases": [
         "warm up plus",
         "warmupplus"
-      ]
+      ],
+      "description": "Coding workspace for warmupplus."
     },
     {
       "id": "workstream-codex",
@@ -257,7 +288,27 @@
       "aliases": [
         "workstream codex",
         "workstream-codex"
-      ]
+      ],
+      "description": "Coding workspace for workstream codex."
+    },
+    {
+      "id": "codex-agent",
+      "cwd": "/Users/neilsanghrajka/.codex/worktrees/9d3e/codex-bubble/apps/codex-agent",
+      "aliases": [
+        "codex agent",
+        "codex-agent"
+      ],
+      "description": "Codex-agent workspace for personal context graph, linked-app context, and assistant/action execution."
+    },
+    {
+      "id": "tmp",
+      "cwd": "/Users/neilsanghrajka/.codex/worktrees/9d3e/codex-bubble/tmp",
+      "aliases": [
+        "tmp",
+        "temporary workspace",
+        "scratch workspace"
+      ],
+      "description": "Scratch workspace inside the current Open Bubble repo for uncategorized coding requests that still need a fast local repo target."
     }
   ]
 }
