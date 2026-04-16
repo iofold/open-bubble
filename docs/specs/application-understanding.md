@@ -17,7 +17,7 @@ The current async processor classifies the screenshot-led request into one of th
 - `personal_context_request`
 - `action_request`
 
-When the classifier can tie the request to supported tools or data sources, it also returns one or more app names from the static `GET /apps` list and packages the stored screenshot path, original prompt fields, and classification into a routing payload for later execution. Coding requests also persist a default fallback working directory under repo-root `tmp/`.
+When the classifier can tie the request to supported tools or data sources, it also returns one or more app names from the static `GET /apps` list and packages the stored screenshot path, original prompt fields, classification, and a richer handoff plan into a routing payload for later execution. That handoff plan captures screenshot understanding, inferred user intent, expected deliverable, suggested context skills, response style, and a detailed downstream prompt. Coding requests also persist a default fallback working directory under repo-root `tmp/`.
 
 ## Backend Context Extension
 

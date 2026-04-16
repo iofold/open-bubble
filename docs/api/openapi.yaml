@@ -344,9 +344,69 @@ components:
           type: string
           description: Short explanation grounded in the prompt and available request metadata.
       additionalProperties: false
+    PromptHandoffPlan:
+      type: object
+      required:
+        [
+          executionMode,
+          finalResponseStyle,
+          inferredIntent,
+          inferredDeliverable,
+          screenshotSummary,
+          contextSources,
+          suggestedSkills,
+          targetRepoId,
+          expandedPrompt
+        ]
+      properties:
+        executionMode:
+          type: string
+          enum:
+            [autonomous_code_change, context_graph_answer, app_action]
+        finalResponseStyle:
+          type: string
+          enum:
+            [pull_request_only, succinct_answer, succinct_confirmation]
+        inferredIntent:
+          type: string
+          description: Best-effort summary of what the ambient user is likely trying to achieve.
+        inferredDeliverable:
+          type: string
+          description: The concrete artifact or outcome the downstream agent should produce.
+        screenshotSummary:
+          type: string
+          description: Brief description of what appears important on the uploaded screen media.
+        contextSources:
+          type: array
+          items:
+            type: string
+            enum:
+              [
+                screen,
+                prompt_text,
+                prompt_audio,
+                gmail,
+                drive,
+                calendar,
+                local_repo,
+                context_graph
+              ]
+        suggestedSkills:
+          type: array
+          items:
+            type: string
+          description: Suggested local Codex-agent skill ids for context-heavy requests.
+        targetRepoId:
+          type: string
+          nullable: true
+          description: Best-effort repo id inferred from the request when the task appears code-related.
+        expandedPrompt:
+          type: string
+          description: Detailed downstream prompt assembled for a later Codex or context-graph execution step.
+      additionalProperties: false
     RoutingPayload:
       type: object
-      required: [screenMedia, screenMediaPath, classification]
+      required: [screenMedia, screenMediaPath, classification, handoffPlan]
       properties:
         promptText:
           type: string
@@ -360,6 +420,8 @@ components:
           type: string
         classification:
           $ref: '#/components/schemas/RequestClassification'
+        handoffPlan:
+          $ref: '#/components/schemas/PromptHandoffPlan'
         defaultCodingCwd:
           type: string
           description: Default local fallback working directory for future coding-task handoff when no dedicated execution target is available.

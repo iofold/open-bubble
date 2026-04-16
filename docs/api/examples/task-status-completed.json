@@ -29,6 +29,17 @@
         "relevantApps": ["Codex"],
         "rationale": "The prompt describes app behavior that needs software debugging help."
       },
+      "handoffPlan": {
+        "executionMode": "autonomous_code_change",
+        "finalResponseStyle": "pull_request_only",
+        "inferredIntent": "Fix a bug visible on the current app screen without asking follow-up questions.",
+        "inferredDeliverable": "A pull request in the correct repo that addresses the on-screen issue.",
+        "screenshotSummary": "The user appears to be looking at an app screen with a visible product issue.",
+        "contextSources": ["screen", "prompt_text", "local_repo"],
+        "suggestedSkills": [],
+        "targetRepoId": "codex-bubble",
+        "expandedPrompt": "You are handling an ambient mobile coding request. The user is looking at a live app screen and wants you to infer the likely bug from the screenshot plus prompt text. Work autonomously in the inferred repo, make the smallest safe fix, validate only the touched area, create a branch and PR, and return only the PR URL as the final user-facing artifact."
+      },
       "defaultCodingCwd": "/Users/neilsanghrajka/.codex/worktrees/9d3e/codex-bubble/tmp"
     },
     "completedAt": "2026-04-16T06:45:03Z"

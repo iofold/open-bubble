@@ -79,6 +79,28 @@ const buildCompletedOutcome = (
         screenMedia: input.screenMedia,
         screenMediaPath: input.screenMediaPath,
         classification,
+        handoffPlan: {
+          executionMode:
+            classification.requestType === 'coding_request'
+              ? 'autonomous_code_change'
+              : classification.requestType === 'action_request'
+                ? 'app_action'
+                : 'context_graph_answer',
+          finalResponseStyle:
+            classification.requestType === 'coding_request'
+              ? 'pull_request_only'
+              : classification.requestType === 'action_request'
+                ? 'succinct_confirmation'
+                : 'succinct_answer',
+          inferredIntent: 'Test handoff intent.',
+          inferredDeliverable: 'Test handoff deliverable.',
+          screenshotSummary: 'Test screenshot summary.',
+          contextSources: ['screen'],
+          suggestedSkills: [],
+          targetRepoId:
+            classification.requestType === 'coding_request' ? 'demo-repo' : null,
+          expandedPrompt: 'Test expanded prompt.'
+        },
         ...(classification.requestType === 'coding_request'
           ? { defaultCodingCwd: path.join(repoRoot, 'tmp') }
           : {})

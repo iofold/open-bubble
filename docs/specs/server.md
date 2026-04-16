@@ -30,7 +30,8 @@ When the task completes, the result includes:
 
 - a request classification: `coding_request`, `personal_context_request`, or `action_request`
 - relevant supported apps when the classifier sees an app-driven context or action
-- a routing payload that combines the stored screenshot path, the original prompt fields, and the classification for later dispatch
+- a routing payload that combines the stored screenshot path, the original prompt fields, the classification, and a richer handoff plan for later dispatch
+- the handoff plan includes screenshot understanding, inferred intent, expected deliverable, suggested context skills, response style, and a detailed downstream prompt
 - for coding requests, a default fallback working directory under repo-root `tmp/` for future execution handoff work
 
 Keep the source of truth in `docs/api/openapi.yaml`.
