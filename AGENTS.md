@@ -51,7 +51,11 @@ docs/
 - Keep Node.js, TypeScript, build, and test tooling inside `apps/codex-app-server/`.
 - This package owns the local `codex app-server` JSON-RPC integration, repo inference config, and orchestration.
 - Generate Codex App Server TypeScript bindings and JSON schema inside `apps/codex-app-server/generated/`.
-- Files under `apps/codex-app-server/generated/` are auto-generated. Do not edit them manually; regenerate them instead.
+- Never manually edit files under `apps/codex-app-server/generated/`. Treat every file in that directory as generated output.
+- If the Codex App Server protocol changes, regenerate those files from `apps/codex-app-server/` with:
+  - `codex app-server generate-ts --out ./generated/codex-app-server`
+  - `codex app-server generate-json-schema --out ./generated/json-schema`
+- Any change to generated files must come from rerunning those commands, not from hand edits.
 - Keep the bridge local-first and synchronous for the current demo path: infer repo -> start turn -> wait for completion -> return PR metadata.
 
 ## Contract-change rule
