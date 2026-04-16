@@ -305,15 +305,15 @@ class BubbleOverlayController(
                     GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
                         colors = intArrayOf(
-                            Color.parseColor("#F1F1F1"),
-                            Color.parseColor("#E1E1E1"),
+                            Color.parseColor("#121212"),
+                            Color.parseColor("#232323"),
                         )
                         orientation = GradientDrawable.Orientation.TOP_BOTTOM
-                        setStroke(2, Color.parseColor("#26000000"))
+                        setStroke(2, Color.parseColor("#3AFFFFFF"))
                     }
                 clipToOutline = true
                 elevation = 26f
-                setPadding(6)
+                setPadding(0)
             }
 
         val icon =
@@ -325,8 +325,8 @@ class BubbleOverlayController(
         container.addView(
             icon,
             FrameLayout.LayoutParams(
-                148,
-                148,
+                164,
+                164,
                 Gravity.CENTER,
             ),
         )
