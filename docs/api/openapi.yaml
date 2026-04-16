@@ -19,8 +19,8 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
   /prompt:
     post:
-      summary: Submit a media prompt and receive a synchronous answer
-      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. Any unsupported media type should return `415 Unsupported Media Type`.
+      summary: Submit a media prompt and create an async task
+      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. The API persists a lightweight local task, starts background processing, and returns a task id for polling. Any unsupported media type should return `415 Unsupported Media Type`.
       requestBody:
         required: true
         content:
@@ -28,12 +28,12 @@ paths:
             schema:
               $ref: '#/components/schemas/PromptRequest'
       responses:
-        '200':
-          description: Prompt handled synchronously
+        '202':
+          description: Prompt accepted and queued for background processing
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PromptResponse'
+                $ref: '#/components/schemas/PromptAcceptedResponse'
         '400':
           description: Missing required media or invalid prompt payload
           content:
@@ -42,6 +42,29 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '415':
           description: Unsupported media type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /tasks/{taskId}:
+    get:
+      summary: Get prompt task status
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current task state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatusResponse'
+        '404':
+          description: Task not found
           content:
             application/json:
               schema:
@@ -89,27 +112,82 @@ components:
         kind:
           type: string
           enum: [image, video]
-    PromptResponse:
+      additionalProperties: false
+    PromptAudio:
       type: object
-      required: [answer, screenMedia, receivedAt]
+      required: [filename, mimeType]
+      properties:
+        filename:
+          type: string
+        mimeType:
+          type: string
+      additionalProperties: false
+    TaskStatus:
+      type: string
+      enum: [in_progress, completed, failed, error]
+    PromptAcceptedResponse:
+      type: object
+      required: [taskId, status, createdAt, statusUrl]
+      properties:
+        taskId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        createdAt:
+          type: string
+          format: date-time
+        statusUrl:
+          type: string
+      additionalProperties: false
+    TaskResult:
+      type: object
+      required: [screenMedia, completedAt]
       properties:
         answer:
           type: string
+        pullRequestUrl:
+          type: string
+          format: uri
         promptText:
           type: string
         promptAudio:
-          type: object
-          required: [filename, mimeType]
-          properties:
-            filename:
-              type: string
-            mimeType:
-              type: string
+          $ref: '#/components/schemas/PromptAudio'
         screenMedia:
           $ref: '#/components/schemas/PromptMedia'
-        receivedAt:
+        completedAt:
           type: string
           format: date-time
+      additionalProperties: false
+    TaskFailure:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      additionalProperties: false
+    TaskStatusResponse:
+      type: object
+      required: [taskId, status, createdAt, updatedAt]
+      properties:
+        taskId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        result:
+          $ref: '#/components/schemas/TaskResult'
+        errorDetail:
+          $ref: '#/components/schemas/TaskFailure'
+      additionalProperties: false
     ErrorResponse:
       type: object
       required: [error, message]
@@ -118,3 +196,4 @@ components:
           type: string
         message:
           type: string
+      additionalProperties: false

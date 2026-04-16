@@ -33,6 +33,7 @@ The frontend reads `OPEN_BUBBLE_API_BASE_URL` from the repo-level `.env` and use
 
 - `GET /health`
 - `POST /prompt`
+- `GET /tasks/:taskId`
 
 `POST /prompt` must be sent as `multipart/form-data` with:
 
@@ -42,6 +43,8 @@ The frontend reads `OPEN_BUBBLE_API_BASE_URL` from the repo-level `.env` and use
 - at least one of `promptText` or `promptAudio`
 
 The frontend must forward raw `promptAudio` bytes as-is. Do not transcribe audio on the client.
+
+`POST /prompt` returns `202 Accepted` with a `taskId`, `status`, and `statusUrl`. The frontend should poll `GET /tasks/:taskId` until the task reaches `completed`, `failed`, or `error`.
 
 ## Flutter request shape
 
@@ -60,6 +63,24 @@ if (promptAudioPath != null) {
 }
 
 final response = await request.send();
+final accepted = jsonDecode(await response.stream.bytesToString());
+final taskId = accepted['taskId'] as String;
+
+http.Response taskResponse;
+
+do {
+  await Future<void>.delayed(const Duration(seconds: 1));
+  taskResponse = await http.get(Uri.parse('$apiBaseUrl/tasks/$taskId'));
+  final taskPayload = jsonDecode(taskResponse.body) as Map<String, dynamic>;
+
+  if (taskPayload['status'] == 'completed') {
+    break;
+  }
+
+  if (taskPayload['status'] == 'failed' || taskPayload['status'] == 'error') {
+    throw Exception('Prompt task failed: ${taskPayload['errorDetail']}');
+  }
+} while (true);
 ```
 
 Use the same `apiBaseUrl` value for `GET $apiBaseUrl/health` when the frontend wants a quick connectivity check.

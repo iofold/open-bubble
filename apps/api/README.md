@@ -21,6 +21,7 @@ From the repository root, `./scripts/start-api-ngrok.sh` installs missing API de
 
 - `GET /health`
 - `POST /prompt`
+- `GET /tasks/:taskId`
 - `GET /documentation`
 - `GET /openapi.json`
 
@@ -35,3 +36,12 @@ From the repository root, `./scripts/start-api-ngrok.sh` installs missing API de
 At least one of `promptText` or `promptAudio` must be present.
 
 The frontend forwards `promptAudio` bytes as-is. It does not transcribe them client-side.
+
+## Prompt task flow
+
+`POST /prompt` is asynchronous.
+
+- The API validates the multipart payload and creates a lightweight local task.
+- The response is `202 Accepted` with a `taskId`, `status`, and `statusUrl`.
+- Clients poll `GET /tasks/:taskId` until the task reaches `completed`, `failed`, or `error`.
+- Task state is persisted locally under `apps/api/.local/tasks/`.
