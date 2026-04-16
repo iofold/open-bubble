@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Open Bubble API
-  version: 0.1.0
-  summary: Minimal contract for the local prompt MVP.
+  version: 0.2.0
+  summary: Local screenshot-to-PR contract backed by the Codex App Server bridge.
 servers:
   - url: http://localhost:3000
     description: Local development server
@@ -19,8 +19,8 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
   /prompt:
     post:
-      summary: Submit a media prompt and receive a synchronous answer
-      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. Any unsupported media type should return `415 Unsupported Media Type`.
+      summary: Submit a screenshot prompt and wait for a Codex-backed PR result
+      description: Send one multipart screenshot image in `screenMedia` plus a required `promptText` field. The API infers the target repo from local config, starts a local Codex App Server turn, waits for completion, and returns the final answer plus PR metadata.
       requestBody:
         required: true
         content:
@@ -29,7 +29,7 @@ paths:
               $ref: '#/components/schemas/PromptRequest'
       responses:
         '200':
-          description: Prompt handled synchronously
+          description: Prompt handled synchronously and a PR was produced
           content:
             application/json:
               schema:
@@ -42,6 +42,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '415':
           description: Unsupported media type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Local Codex bridge could not complete the request
           content:
             application/json:
               schema:
@@ -61,22 +67,16 @@ components:
           type: string
     PromptRequest:
       type: object
-      required: [screenMedia]
-      anyOf:
-        - required: [promptText]
-        - required: [promptAudio]
+      required: [screenMedia, promptText]
       properties:
         screenMedia:
           type: string
           format: binary
-          description: Upload one screenshot or screen recording as an image/* or video/* file.
+          description: Upload one screenshot image as an image/* file.
         promptText:
           type: string
-          description: Optional text prompt sent with the uploaded screen media.
-        promptAudio:
-          type: string
-          format: binary
-          description: Optional raw audio prompt sent as audio/* and forwarded to the backend without client-side transcription.
+          minLength: 1
+          description: The user request that Codex should interpret alongside the screenshot.
       additionalProperties: false
     PromptMedia:
       type: object
@@ -88,25 +88,33 @@ components:
           type: string
         kind:
           type: string
-          enum: [image, video]
+          enum: [image]
     PromptResponse:
       type: object
-      required: [answer, screenMedia, receivedAt]
+      required:
+        - answer
+        - branchName
+        - prUrl
+        - repoId
+        - screenMedia
+        - threadId
+        - receivedAt
       properties:
         answer:
           type: string
+        branchName:
+          type: string
+        prUrl:
+          type: string
+          format: uri
         promptText:
           type: string
-        promptAudio:
-          type: object
-          required: [filename, mimeType]
-          properties:
-            filename:
-              type: string
-            mimeType:
-              type: string
+        repoId:
+          type: string
         screenMedia:
           $ref: '#/components/schemas/PromptMedia'
+        threadId:
+          type: string
         receivedAt:
           type: string
           format: date-time

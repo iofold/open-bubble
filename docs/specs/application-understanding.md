@@ -1,8 +1,9 @@
 # MVP Understanding
 
-The current MVP is a local Fastify API in `apps/api` with two endpoints:
+The current MVP is a three-layer local flow:
 
-- `GET /health`
-- `POST /prompt`
+- `apps/api` exposes `GET /health` and `POST /prompt`
+- `apps/codex-app-server` bridges the API to the local `codex app-server`
+- `apps/codex-agent` remains available for local Codex-related assets and future support flows
 
-`POST /prompt` accepts one `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`, then returns a synchronous JSON result. The client does not transcribe audio; it forwards the bytes as-is.
+`POST /prompt` accepts one screenshot-style `screenMedia` upload plus required `promptText`, infers the target repo from backend config, starts a local Codex App Server turn in that repo, waits for completion, and returns a synchronous JSON result that includes the PR URL.

@@ -1,6 +1,6 @@
 # AGENTS.md — Open Bubble repo guidance
 
-Open Bubble is in a docs-first MVP phase. Keep the active story focused on the local API in `apps/api`, and do not expand behavior beyond the current contract unless the docs change first.
+Open Bubble is in a docs-first MVP phase. Keep the active story focused on the local API in `apps/api`, the local Codex bridge in `apps/codex-app-server`, and the existing `apps/codex-agent` workspace. Do not expand behavior beyond the current contract unless the docs change first.
 
 ## Source of truth
 
@@ -13,6 +13,8 @@ Open Bubble is in a docs-first MVP phase. Keep the active story focused on the l
 ```text
 apps/
   api/             Fastify API MVP
+  codex-agent/     Local Codex agent assets and scripts
+  codex-app-server/ TypeScript bridge to the local Codex App Server
   mobile/          Flutter Android app placeholder
 docs/
   api/             OpenAPI contract and examples
@@ -39,9 +41,18 @@ docs/
 - Keep Node.js, TypeScript, build, and test tooling inside `apps/api/`.
 - Use strict TypeScript for the API MVP.
 - Keep the active API limited to `GET /health` and `POST /prompt` until the contract is updated.
-- `POST /prompt` uses multipart/form-data with required `screenMedia`, optional `promptText`, optional raw `promptAudio`, and at least one prompt field.
+- `POST /prompt` uses multipart/form-data with required screenshot-style `screenMedia` and required `promptText`.
+- The API should call into `apps/codex-app-server` and wait for the local Codex run to finish before returning.
 - Keep docs brief and prefer removing stale scope over documenting old flows as active behavior.
 - Update the API contract before changing API behavior.
+
+### Codex App Server (`apps/codex-app-server/`)
+
+- Keep Node.js, TypeScript, build, and test tooling inside `apps/codex-app-server/`.
+- This package owns the local `codex app-server` JSON-RPC integration, repo inference config, and orchestration.
+- Generate Codex App Server TypeScript bindings and JSON schema inside `apps/codex-app-server/generated/`.
+- Files under `apps/codex-app-server/generated/` are auto-generated. Do not edit them manually; regenerate them instead.
+- Keep the bridge local-first and synchronous for the current demo path: infer repo -> start turn -> wait for completion -> return PR metadata.
 
 ## Contract-change rule
 

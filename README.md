@@ -1,13 +1,15 @@
 # Open Bubble
 
-Open Bubble is a docs-first hackathon repo for a Flutter Android companion and a tiny local API. The current MVP keeps the backend surface small so the team can build quickly and stay aligned.
+Open Bubble is a docs-first hackathon repo for a Flutter Android companion, a tiny local API, and a local Codex bridge. The current MVP keeps the backend surface small so the team can build quickly and stay aligned.
 
 ## MVP
 
 - `apps/api` owns the local Fastify API.
+- `apps/codex-app-server` owns the local TypeScript bridge to `codex app-server`.
+- `apps/codex-agent` holds local Codex-oriented assets and scripts used by the broader demo.
 - `GET /health` checks that the server is up.
-- `POST /prompt` accepts one required `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`.
-- The frontend forwards raw audio without client-side transcription.
+- `POST /prompt` accepts one required screenshot upload plus required `promptText`.
+- The API calls the local Codex bridge, which infers the target repo from config and prompt hints, starts a Codex App Server turn, waits for completion, and returns PR metadata.
 - The API returns a synchronous JSON result.
 
 ## Repository shape
@@ -16,6 +18,8 @@ Open Bubble is a docs-first hackathon repo for a Flutter Android companion and a
 open-bubble/
   apps/
     api/             # Fastify API MVP and local docs
+    codex-agent/     # Local Codex agent assets
+    codex-app-server/# TypeScript bridge to codex app-server
     mobile/          # Flutter Android app
   docs/
     api/             # OpenAPI contract and examples

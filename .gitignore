@@ -35,6 +35,7 @@ coverage/
 
 # Node / server
 node_modules/
+dist/
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
