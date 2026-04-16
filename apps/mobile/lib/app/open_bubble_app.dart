@@ -43,51 +43,67 @@ class _OpenBubbleAppState extends State<OpenBubbleApp>
 
   @override
   Widget build(BuildContext context) {
-    const background = Color(0xFFF4EFE6);
-    const canvas = Color(0xFFFFFBF5);
-    const ink = Color(0xFF172026);
-    const teal = Color(0xFF0E5A63);
-    const coral = Color(0xFFE07A5F);
-    const moss = Color(0xFF6B8F71);
+    const background = Color(0xFFF2F1EC);
+    const canvas = Color(0xFFFFFEFC);
+    const ink = Color(0xFF111111);
+    const graphite = Color(0xFF262626);
+    const silver = Color(0xFF8D8D8D);
+    const signal = Color(0xFF4F9D69);
 
     return MaterialApp(
       title: 'Open Bubble',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: const ColorScheme.light(
-          primary: teal,
-          secondary: coral,
-          tertiary: moss,
+          primary: graphite,
+          secondary: silver,
+          tertiary: signal,
           surface: canvas,
           onSurface: ink,
         ),
         scaffoldBackgroundColor: background,
         useMaterial3: true,
+        fontFamily: 'monospace',
         textTheme: ThemeData.light().textTheme.copyWith(
           displaySmall: const TextStyle(
-            fontSize: 38,
+            fontFamily: 'monospace',
+            fontSize: 34,
             fontWeight: FontWeight.w800,
-            height: 1.0,
+            height: 1.05,
             color: ink,
           ),
           headlineSmall: const TextStyle(
+            fontFamily: 'monospace',
             fontSize: 28,
             fontWeight: FontWeight.w800,
             color: ink,
           ),
           titleLarge: const TextStyle(
+            fontFamily: 'monospace',
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: ink,
           ),
           titleMedium: const TextStyle(
+            fontFamily: 'monospace',
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: ink,
           ),
-          bodyLarge: const TextStyle(fontSize: 15, height: 1.45, color: ink),
-          bodyMedium: const TextStyle(fontSize: 13, height: 1.4, color: ink),
+          bodyLarge: const TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 15,
+            height: 1.5,
+            color: ink,
+          ),
+          bodyMedium: const TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 13,
+            height: 1.45,
+            color: ink,
+          ),
           labelLarge: const TextStyle(
+            fontFamily: 'monospace',
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),

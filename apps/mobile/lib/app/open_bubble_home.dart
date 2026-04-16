@@ -52,26 +52,27 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
           );
         }
         final pages = <Widget>[
-          _SetupPage(
+          _HomePage(
             controller: controller,
-            serverController: _serverController,
+            onOpenSettings: () {
+              setState(() {
+                _tabIndex = 2;
+              });
+            },
           ),
-          _SessionsPage(controller: controller),
-          _ReviewPage(
+          _TasksPage(
             controller: controller,
             sandboxController: _sandboxController,
+          ),
+          _SettingsPage(
+            controller: controller,
+            serverController: _serverController,
           ),
         ];
 
         return Scaffold(
           body: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFFF4EFE6), Color(0xFFF9F6F0)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFFF2F1EC)),
             child: Stack(
               children: [
                 const _BackdropOrbs(),
@@ -88,18 +89,18 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
                           segments: const [
                             ButtonSegment<int>(
                               value: 0,
-                              icon: Icon(Icons.tune_rounded),
-                              label: Text('Setup'),
+                              icon: Icon(Icons.home_rounded),
+                              label: Text('Home'),
                             ),
                             ButtonSegment<int>(
                               value: 1,
-                              icon: Icon(Icons.bubble_chart_rounded),
-                              label: Text('Sessions'),
+                              icon: Icon(Icons.schedule_rounded),
+                              label: Text('Tasks'),
                             ),
                             ButtonSegment<int>(
                               value: 2,
-                              icon: Icon(Icons.inventory_2_rounded),
-                              label: Text('Review'),
+                              icon: Icon(Icons.tune_rounded),
+                              label: Text('Settings'),
                             ),
                           ],
                           selected: <int>{_tabIndex},
@@ -111,7 +112,9 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
                           style: SegmentedButton.styleFrom(
                             selectedBackgroundColor: theme.colorScheme.primary,
                             selectedForegroundColor: Colors.white,
-                            foregroundColor: theme.colorScheme.onSurface,
+                            foregroundColor: const Color(0xFF202020),
+                            backgroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0x22000000)),
                           ),
                         ),
                       ),
@@ -137,8 +140,190 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
   }
 }
 
-class _SetupPage extends StatelessWidget {
-  const _SetupPage({required this.controller, required this.serverController});
+class _HomePage extends StatelessWidget {
+  const _HomePage({required this.controller, required this.onOpenSettings});
+
+  final OpenBubbleController controller;
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final recentRequests = controller.requests.take(3).toList();
+    final theme = Theme.of(context);
+    final service = controller.serviceStatus;
+    final online = controller.serverHealthy && service.serviceConnected;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      children: [
+        _GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'READY // developer mode',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            letterSpacing: 0.8,
+                            color: const Color(0xFF777777),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Your orb is standing by.',
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Keep the app clean, keep the orb visible, and let the prompt + screenshot flow do the heavy lifting.',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFF4C4C4C),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const _LogoCoin(),
+                ],
+              ),
+              const SizedBox(height: 22),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _PresencePill(
+                    label: online
+                        ? 'Codex server online'
+                        : 'Codex server offline',
+                    online: online,
+                  ),
+                  _QuietPill(
+                    label: service.bubbleVisible
+                        ? 'Bubble visible'
+                        : 'Bubble hidden',
+                  ),
+                  _QuietPill(
+                    label: controller.latestReplyDraft == null
+                        ? 'No fresh reply'
+                        : 'Reply ready',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                online
+                    ? 'Open Bubble is ready. Long-press the orb on any screen, send a prompt, and the reply will come back through notifications and clipboard.'
+                    : 'Finish runtime setup once, then this app can mostly stay out of the way while the orb handles the work.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF4C4C4C),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                title: 'Show bubble',
+                subtitle: 'Put the orb on screen.',
+                icon: Icons.radio_button_checked_rounded,
+                onTap: controller.showBubble,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickActionCard(
+                title: 'Refresh',
+                subtitle: 'Sync service + server.',
+                icon: Icons.sync_rounded,
+                onTap: () {
+                  controller.refreshServiceStatus();
+                  controller.checkServerHealth();
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                title: 'Notifications',
+                subtitle: 'Turn alerts on.',
+                icon: Icons.notifications_active_rounded,
+                onTap: controller.openNotificationSettings,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickActionCard(
+                title: 'Settings',
+                subtitle: 'Open tools and server config.',
+                icon: Icons.tune_rounded,
+                onTap: onOpenSettings,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _SectionCard(
+          title: 'Recent tasks',
+          subtitle: 'The latest requests that Open Bubble handled.',
+          accent: const Color(0xFF2C2C2C),
+          child: recentRequests.isEmpty
+              ? const _EmptyState(
+                  title: 'No tasks yet',
+                  subtitle:
+                      'Use the orb on top of another app, send a prompt, and the task will appear here.',
+                )
+              : Column(
+                  children: [
+                    for (final request in recentRequests) ...[
+                      _TaskPreviewCard(request: request),
+                      if (request != recentRequests.last)
+                        const SizedBox(height: 10),
+                    ],
+                  ],
+                ),
+        ),
+        const SizedBox(height: 14),
+        if (controller.latestReplyDraft != null)
+          _SectionCard(
+            title: 'Latest answer',
+            subtitle: 'The newest response is already on your clipboard.',
+            accent: const Color(0xFF4F9D69),
+            child: _LatestAnswerStrip(controller: controller),
+          )
+        else
+          const _SectionCard(
+            title: 'Latest answer',
+            subtitle: 'Nothing has landed yet.',
+            accent: Color(0xFF858585),
+            child: _EmptyState(
+              title: 'Clipboard stays clean for now',
+              subtitle:
+                  'As soon as a task finishes, the reply will appear here and get copied automatically.',
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SettingsPage extends StatelessWidget {
+  const _SettingsPage({
+    required this.controller,
+    required this.serverController,
+  });
 
   final OpenBubbleController controller;
   final TextEditingController serverController;
@@ -152,10 +337,54 @@ class _SetupPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       children: [
         _SectionCard(
+          title: 'Connection',
+          subtitle:
+              'This is the only page that still behaves like a control panel.',
+          accent: theme.colorScheme.primary,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: serverController,
+                decoration: const InputDecoration(
+                  labelText: 'App Server base URL',
+                  hintText: 'http://10.0.2.2:3000',
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: controller.updateServerBaseUrl,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  FilledButton.tonalIcon(
+                    onPressed: controller.checkingHealth
+                        ? null
+                        : () => controller.updateServerBaseUrl(
+                            serverController.text,
+                          ),
+                    icon: const Icon(Icons.health_and_safety_rounded),
+                    label: Text(
+                      controller.checkingHealth
+                          ? 'Checking...'
+                          : 'Check health',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _PresencePill(
+                    label: controller.serverHealthy ? 'online' : 'offline',
+                    online: controller.serverHealthy,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        _SectionCard(
           title: 'Runtime',
           subtitle:
-              'Open Bubble runs through Android accessibility so the bubble can stay available over other apps.',
-          accent: theme.colorScheme.primary,
+              'Android accessibility keeps the orb available over other apps.',
+          accent: const Color(0xFF6F6F6F),
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -163,14 +392,14 @@ class _SetupPage extends StatelessWidget {
               _StatusPill(
                 label: status.accessibilityEnabled ? 'Enabled' : 'Needs setup',
                 color: status.accessibilityEnabled
-                    ? const Color(0xFF2F855A)
-                    : const Color(0xFFD97706),
+                    ? const Color(0xFFD8F0E0)
+                    : const Color(0xFFE7DFC6),
               ),
               _StatusPill(
                 label: status.serviceConnected ? 'Connected' : 'Disconnected',
                 color: status.serviceConnected
-                    ? const Color(0xFF0E5A63)
-                    : const Color(0xFF8B5CF6),
+                    ? const Color(0xFFE8E8E8)
+                    : const Color(0xFFD6D6D6),
               ),
               _StatusPill(
                 label: status.windowScopedCaptureSupported
@@ -179,12 +408,12 @@ class _SetupPage extends StatelessWidget {
                     ? 'Display capture ready'
                     : 'Capture unavailable',
                 color: status.captureSupported
-                    ? const Color(0xFF6B8F71)
-                    : const Color(0xFFB45309),
+                    ? const Color(0xFFEDEDED)
+                    : const Color(0xFFE2D8C6),
               ),
               _StatusPill(
                 label: 'SDK ${status.sdkInt}',
-                color: const Color(0xFFE07A5F),
+                color: const Color(0xFFE9E9E9),
               ),
             ],
           ),
@@ -233,96 +462,58 @@ class _SetupPage extends StatelessWidget {
             _MiniMetricCard(
               title: 'App Server',
               value: controller.serverHealthy ? 'Reachable' : 'Offline',
-              detail:
-                  'Used for prompt uploads and task polling.',
+              detail: 'Used for prompt uploads and task polling.',
             ),
           ],
         ),
         const SizedBox(height: 14),
         _SectionCard(
-          title: 'Setup actions',
+          title: 'Settings + developer tools',
           subtitle:
-              'Use these to enable the service, verify native connectivity, and get the overlay onto the screen.',
+              'Important actions stay here so the home screen can stay quiet.',
           accent: theme.colorScheme.secondary,
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: EdgeInsets.zero,
+            title: Text('Open tools', style: theme.textTheme.titleMedium),
+            subtitle: const Text(
+              'Accessibility, notifications, bubble controls, and inspection.',
+            ),
             children: [
-              FilledButton.icon(
-                onPressed: controller.openAccessibilitySettings,
-                icon: const Icon(Icons.accessibility_new_rounded),
-                label: const Text('Enable Service'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: controller.refreshServiceStatus,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Refresh Status'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: controller.showBubble,
-                icon: const Icon(Icons.radio_button_checked_rounded),
-                label: const Text('Show Bubble'),
-              ),
-              OutlinedButton.icon(
-                onPressed: controller.hideBubble,
-                icon: const Icon(Icons.cancel_presentation_rounded),
-                label: const Text('Hide Bubble'),
-              ),
-              OutlinedButton.icon(
-                onPressed: controller.openNotificationSettings,
-                icon: const Icon(Icons.notifications_active_rounded),
-                label: const Text('Notifications'),
-              ),
-              OutlinedButton.icon(
-                onPressed: controller.inspectActiveWindow,
-                icon: const Icon(Icons.find_in_page_rounded),
-                label: const Text('Inspect Active Window'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        _SectionCard(
-          title: 'Connection target',
-          subtitle:
-              'This URL is used by the bubble even when the app is in the background.',
-          accent: const Color(0xFF6B8F71),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: serverController,
-                decoration: const InputDecoration(
-                  labelText: 'App Server base URL',
-                  hintText: 'http://10.0.2.2:3000',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: controller.updateServerBaseUrl,
-              ),
-              const SizedBox(height: 12),
-              Row(
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  FilledButton.tonalIcon(
-                    onPressed: controller.checkingHealth
-                        ? null
-                        : () => controller.updateServerBaseUrl(
-                            serverController.text,
-                          ),
-                    icon: const Icon(Icons.health_and_safety_rounded),
-                    label: Text(
-                      controller.checkingHealth
-                          ? 'Checking...'
-                          : 'Check Health',
-                    ),
+                  FilledButton.icon(
+                    onPressed: controller.openAccessibilitySettings,
+                    icon: const Icon(Icons.accessibility_new_rounded),
+                    label: const Text('Enable service'),
                   ),
-                  const SizedBox(width: 12),
-                  _StatusPill(
-                    label: controller.serverHealthy
-                        ? 'Real server reachable'
-                        : 'Server unreachable',
-                    color: controller.serverHealthy
-                        ? const Color(0xFF2F855A)
-                        : const Color(0xFFB45309),
+                  FilledButton.tonalIcon(
+                    onPressed: controller.refreshServiceStatus,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Refresh'),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: controller.showBubble,
+                    icon: const Icon(Icons.radio_button_checked_rounded),
+                    label: const Text('Show bubble'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: controller.hideBubble,
+                    icon: const Icon(Icons.cancel_presentation_rounded),
+                    label: const Text('Hide bubble'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: controller.openNotificationSettings,
+                    icon: const Icon(Icons.notifications_active_rounded),
+                    label: const Text('Notifications'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: controller.inspectActiveWindow,
+                    icon: const Icon(Icons.find_in_page_rounded),
+                    label: const Text('Inspect window'),
                   ),
                 ],
               ),
@@ -331,10 +522,10 @@ class _SetupPage extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         _SectionCard(
-          title: 'Restricted-settings note',
+          title: 'Android note',
           subtitle:
               'On some Android 13+ devices, especially Pixels, sideloaded apps can show a grayed-out accessibility toggle until the user explicitly allows restricted settings for the app.',
-          accent: const Color(0xFF7C3AED),
+          accent: const Color(0xFF858585),
           child: Text(
             'If the accessibility toggle is disabled, open Android settings → Apps → Open Bubble → the three-dot menu → Allow restricted settings, then try again.',
             style: theme.textTheme.bodyLarge,
@@ -345,24 +536,52 @@ class _SetupPage extends StatelessWidget {
   }
 }
 
-class _SessionsPage extends StatelessWidget {
-  const _SessionsPage({required this.controller});
+class _TasksPage extends StatelessWidget {
+  const _TasksPage({required this.controller, required this.sandboxController});
 
   final OpenBubbleController controller;
+  final TextEditingController sandboxController;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final session = controller.selectedSession;
+    final recentRequests = controller.requests.take(5).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       children: [
         _SectionCard(
+          title: 'Task stream',
+          subtitle:
+              'Recent requests, active session context, and the latest answer.',
+          accent: theme.colorScheme.primary,
+          child: recentRequests.isEmpty
+              ? const _EmptyState(
+                  title: 'Nothing is running yet',
+                  subtitle:
+                      'Send a prompt from the orb and the task pipeline will show up here.',
+                )
+              : Column(
+                  children: [
+                    for (final request in recentRequests) ...[
+                      _RequestJobRow(
+                        request: request,
+                        selected:
+                            request.requestId == controller.activeRequestId,
+                      ),
+                      if (request != recentRequests.last)
+                        const SizedBox(height: 10),
+                    ],
+                  ],
+                ),
+        ),
+        const SizedBox(height: 14),
+        _SectionCard(
           title: 'Active sessions',
           subtitle:
-              'Use the bubble on top of any app, send a prompt, and watch the request appear here.',
-          accent: theme.colorScheme.primary,
+              'The session list is still here, just no longer the first thing you see.',
+          accent: const Color(0xFF6F6F6F),
           child: Column(
             children: [
               for (final item in controller.sessions) ...[
@@ -382,7 +601,7 @@ class _SessionsPage extends StatelessWidget {
           _SectionCard(
             title: session.title,
             subtitle: session.summary,
-            accent: theme.colorScheme.secondary,
+            accent: const Color(0xFF8D8D8D),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -420,36 +639,12 @@ class _SessionsPage extends StatelessWidget {
             ),
           ),
         if (session != null) const SizedBox(height: 14),
-        _SectionCard(
-          title: 'Request pipeline',
-          subtitle:
-              'Capture, upload, wait, and reply.',
-          accent: const Color(0xFF7C3AED),
-          child: controller.requests.isEmpty
-              ? const Text(
-                  'No requests yet. Start from another app with the bubble, enter a prompt, and send it.',
-                )
-              : Column(
-                  children: [
-                    for (final request in controller.requests) ...[
-                      _RequestJobRow(
-                        request: request,
-                        selected:
-                            request.requestId == controller.activeRequestId,
-                      ),
-                      if (request != controller.requests.last)
-                        const Divider(height: 20),
-                    ],
-                  ],
-                ),
-        ),
-        const SizedBox(height: 14),
         if (controller.latestInspection != null)
           _SectionCard(
             title: 'Latest inspection',
             subtitle:
                 'This snapshot comes from the accessibility runtime and shows what Open Bubble can read from the current window.',
-            accent: const Color(0xFF0E5A63),
+            accent: const Color(0xFF6C6C6C),
             child: _InspectionPreview(snapshot: controller.latestInspection!),
           ),
         if (controller.latestInspection != null) const SizedBox(height: 14),
@@ -458,36 +653,20 @@ class _SessionsPage extends StatelessWidget {
             title: 'Latest capture',
             subtitle:
                 'The native runtime reports the package, dimensions, request ID, and cached image path.',
-            accent: const Color(0xFFE07A5F),
+            accent: const Color(0xFF8A8A8A),
             child: _CapturePreview(capture: controller.latestCapture!),
           ),
-      ],
-    );
-  }
-}
-
-class _ReviewPage extends StatelessWidget {
-  const _ReviewPage({
-    required this.controller,
-    required this.sandboxController,
-  });
-
-  final OpenBubbleController controller;
-  final TextEditingController sandboxController;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-      children: [
+        if (controller.latestCapture != null) const SizedBox(height: 14),
         _SectionCard(
           title: 'Latest reply',
           subtitle:
-              'When a reply arrives, it lands here and is also copied to the clipboard.',
-          accent: const Color(0xFF6B8F71),
+              'Review, copy, or verify fill from the freshest server response.',
+          accent: const Color(0xFF4F9D69),
           child: controller.latestReplyDraft == null
-              ? const Text(
-                  'No reply draft yet. Use the bubble on top of another app, type a prompt, and wait for the App Server result.',
+              ? const _EmptyState(
+                  title: 'No reply draft yet',
+                  subtitle:
+                      'Once a task finishes, the response will show up here and on the clipboard.',
                 )
               : _ReplyDraftCard(
                   controller: controller,
@@ -497,9 +676,8 @@ class _ReviewPage extends StatelessWidget {
         const SizedBox(height: 14),
         _SectionCard(
           title: 'Timeline',
-          subtitle:
-              'Recent app, bubble, and server events.',
-          accent: const Color(0xFF7C3AED),
+          subtitle: 'Recent app, bubble, and server events.',
+          accent: const Color(0xFF858585),
           child: controller.timeline.isEmpty
               ? const Text('No activity yet.')
               : Column(
@@ -524,22 +702,22 @@ class _HeroDeck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final service = controller.serviceStatus;
+    final connected = controller.serverHealthy && service.serviceConnected;
 
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
-          colors: [Color(0xFF124B56), Color(0xFF1B6C79)],
+          colors: [Color(0xFF131313), Color(0xFF2A2A2A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x220E5A63),
-            blurRadius: 28,
+            color: Color(0x26000000),
+            blurRadius: 34,
             offset: Offset(0, 18),
           ),
         ],
@@ -547,18 +725,34 @@ class _HeroDeck extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _HeaderTag(label: 'Accessibility-first mobile copilot'),
-          const SizedBox(height: 18),
-          Text(
-            'Open Bubble',
-            style: theme.textTheme.displaySmall?.copyWith(color: Colors.white),
+          Row(
+            children: [
+              const Expanded(
+                child: _HeaderTag(label: 'OBIE // mobile copilot'),
+              ),
+              const SizedBox(width: 12),
+              _PresencePill(
+                label: connected ? 'online' : 'offline',
+                online: connected,
+                compact: true,
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            'A floating mobile copilot for prompt + screenshot capture, async replies, and quick paste-back.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.88),
-            ),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: _IdentityBlock(
+                  eyebrow: 'Open Bubble',
+                  title: 'Welcome back, Adi',
+                  subtitle:
+                      'A quiet home base for the orb, your recent tasks, and a live server connection.',
+                ),
+              ),
+              const SizedBox(width: 16),
+              const _LogoCoin(),
+            ],
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -570,26 +764,424 @@ class _HeroDeck extends StatelessWidget {
                     ? 'Runtime connected'
                     : 'Runtime waiting',
                 color: service.serviceConnected
-                    ? const Color(0xFF7CD992)
-                    : const Color(0xFFF5B971),
-                textColor: const Color(0xFF0F172A),
+                    ? const Color(0xFFB8F0C8)
+                    : const Color(0xFFE9D2A2),
               ),
               _StatusPill(
-                label:
-                    controller.selectedSession?.title ?? 'No session selected',
-                color: const Color(0xFFFAEBD7),
-                textColor: const Color(0xFF0F172A),
+                label: controller.serverHealthy
+                    ? 'Codex server reachable'
+                    : 'Server needs attention',
+                color: controller.serverHealthy
+                    ? const Color(0xFFE6E6E6)
+                    : const Color(0xFFD6D6D6),
               ),
               _StatusPill(
                 label: controller.latestReplyDraft == null
-                    ? 'No reply draft yet'
-                    : 'Review draft ready',
-                color: controller.latestReplyDraft == null
-                    ? const Color(0xFFCBD5E1)
-                    : const Color(0xFFE9F5EC),
-                textColor: const Color(0xFF0F172A),
+                    ? 'Waiting for a reply'
+                    : 'Latest reply ready',
+                color: const Color(0xFFF3F3F3),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0x16000000)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 24,
+            offset: Offset(0, 14),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _IdentityBlock extends StatelessWidget {
+  const _IdentityBlock({
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          eyebrow,
+          style: theme.textTheme.labelLarge?.copyWith(
+            letterSpacing: 0.8,
+            color: Colors.white.withValues(alpha: 0.64),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          title,
+          style: theme.textTheme.displaySmall?.copyWith(color: Colors.white),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: Colors.white.withValues(alpha: 0.82),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LogoCoin extends StatelessWidget {
+  const _LogoCoin();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 74,
+      height: 74,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 18,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Container(
+        margin: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: const Color(0xFF121212),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '<•>',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -1.5,
+              ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'OB',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PresencePill extends StatelessWidget {
+  const _PresencePill({
+    required this.label,
+    required this.online,
+    this.compact = false,
+  });
+
+  final String label;
+  final bool online;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = compact
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.white;
+    final foreground = compact ? Colors.white : const Color(0xFF111111);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 12,
+        vertical: compact ? 7 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: compact
+              ? Colors.white.withValues(alpha: 0.12)
+              : const Color(0x16000000),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: online ? const Color(0xFF59C378) : const Color(0xFFB0B0B0),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color:
+                      (online
+                              ? const Color(0xFF59C378)
+                              : const Color(0xFFB0B0B0))
+                          .withValues(alpha: 0.45),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: foreground),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuietPill extends StatelessWidget {
+  const _QuietPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F2),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x14000000)),
+      ),
+      child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  const _QuickActionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0x15000000)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFF171717),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(height: 16),
+            Text(title, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF575757),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskPreviewCard extends StatelessWidget {
+  const _TaskPreviewCard({required this.request});
+
+  final RequestJob request;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8F6),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0x14000000)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  request.sessionTitle,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              _StatusPill(
+                label: request.stageLabel,
+                color: _requestStageColor(request.stage),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            request.detail,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF575757),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  request.updatedAt,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF7A7A7A),
+                  ),
+                ),
+              ),
+              Text(
+                '#${request.requestId.substring(0, 8)}',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: const Color(0xFF7A7A7A),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LatestAnswerStrip extends StatelessWidget {
+  const _LatestAnswerStrip({required this.controller});
+
+  final OpenBubbleController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final draft = controller.latestReplyDraft!;
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(draft.title, style: theme.textTheme.titleMedium),
+        const SizedBox(height: 10),
+        Text(
+          draft.replyText,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: const Color(0xFF4A4A4A),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            FilledButton.icon(
+              onPressed: controller.copyLatestSuggestion,
+              icon: const Icon(Icons.content_copy_rounded),
+              label: const Text('Copy'),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: controller.fillLatestSuggestion,
+              icon: const Icon(Icons.edit_rounded),
+              label: const Text('Fill'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8F6),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0x14000000)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF575757),
+            ),
           ),
         ],
       ),
@@ -622,9 +1214,9 @@ class _ReplyDraftCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF9F6EF),
+            color: const Color(0xFFF8F8F6),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0x1A0E5A63)),
+            border: Border.all(color: const Color(0x14000000)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,7 +1227,7 @@ class _ReplyDraftCard extends StatelessWidget {
                   const Spacer(),
                   _StatusPill(
                     label: draft.confidence.toUpperCase(),
-                    color: const Color(0xFFD7EDE1),
+                    color: const Color(0xFFE7E7E7),
                   ),
                 ],
               ),
@@ -651,7 +1243,7 @@ class _ReplyDraftCard extends StatelessWidget {
           children: draft.warnings
               .map(
                 (warning) =>
-                    _StatusPill(label: warning, color: const Color(0xFFF7DEC0)),
+                    _StatusPill(label: warning, color: const Color(0xFFEDE0C7)),
               )
               .toList(),
         ),
@@ -833,16 +1425,16 @@ class _RequestJobRow extends StatelessWidget {
             children: [
               _StatusPill(
                 label: request.requestId,
-                color: const Color(0xFFE9F3F3),
+                color: const Color(0xFFEDEDED),
               ),
               if (request.usesMockCapture)
                 const _StatusPill(
                   label: 'mock capture',
-                  color: Color(0xFFFDE7D5),
+                  color: Color(0xFFECE2D4),
                 ),
               _StatusPill(
                 label: request.updatedAt,
-                color: const Color(0xFFF5F0E8),
+                color: const Color(0xFFF0F0ED),
               ),
             ],
           ),
@@ -861,9 +1453,9 @@ class _TimelineRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = switch (entry.tone) {
       TimelineTone.success => const Color(0xFF2F855A),
-      TimelineTone.warning => const Color(0xFFD97706),
+      TimelineTone.warning => const Color(0xFF8A6A2F),
       TimelineTone.error => const Color(0xFFB42318),
-      TimelineTone.info => const Color(0xFF0E5A63),
+      TimelineTone.info => const Color(0xFF3D3D3D),
     };
 
     return Row(
@@ -904,11 +1496,11 @@ class _TimelineRow extends StatelessWidget {
 Color _requestStageColor(RequestStage stage) {
   return switch (stage) {
     RequestStage.queued => const Color(0xFFE7E5E4),
-    RequestStage.capturing => const Color(0xFFFDE7D5),
-    RequestStage.uploading => const Color(0xFFE0F2FE),
-    RequestStage.drafting => const Color(0xFFF3E8FF),
-    RequestStage.ready => const Color(0xFFD7EDE1),
-    RequestStage.failed => const Color(0xFFF8D7DA),
+    RequestStage.capturing => const Color(0xFFECE2D4),
+    RequestStage.uploading => const Color(0xFFE2E2E2),
+    RequestStage.drafting => const Color(0xFFDADADA),
+    RequestStage.ready => const Color(0xFFD8F0E0),
+    RequestStage.failed => const Color(0xFFF0DDDD),
   };
 }
 
@@ -933,7 +1525,7 @@ class _SessionTile extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE9F3F3) : Colors.white,
+          color: selected ? const Color(0xFFF1F1EF) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
@@ -955,8 +1547,8 @@ class _SessionTile extends StatelessWidget {
                 _StatusPill(
                   label: session.status,
                   color: selected
-                      ? const Color(0xFFD7EDE1)
-                      : const Color(0xFFF3E8FF),
+                      ? const Color(0xFFE8E8E8)
+                      : const Color(0xFFF3F3F3),
                 ),
               ],
             ),
@@ -998,7 +1590,7 @@ class _SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: accent.withValues(alpha: 0.18)),
+        border: Border.all(color: accent.withValues(alpha: 0.16)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x12000000),
@@ -1111,7 +1703,7 @@ class _MiniMetricCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: theme.textTheme.headlineSmall?.copyWith(fontSize: 24),
+            style: theme.textTheme.headlineSmall?.copyWith(fontSize: 23),
           ),
           const SizedBox(height: 6),
           Text(detail, style: theme.textTheme.bodyMedium),
@@ -1122,15 +1714,10 @@ class _MiniMetricCard extends StatelessWidget {
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.label,
-    required this.color,
-    this.textColor = const Color(0xFF172026),
-  });
+  const _StatusPill({required this.label, required this.color});
 
   final String label;
   final Color color;
-  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1144,7 +1731,7 @@ class _StatusPill extends StatelessWidget {
         label,
         style: Theme.of(
           context,
-        ).textTheme.labelLarge?.copyWith(color: textColor),
+        ).textTheme.labelLarge?.copyWith(color: const Color(0xFF111111)),
       ),
     );
   }
@@ -1184,17 +1771,17 @@ class _BackdropOrbs extends StatelessWidget {
           Positioned(
             left: -80,
             top: -40,
-            child: _Orb(diameter: 220, color: const Color(0x30E07A5F)),
+            child: _Orb(diameter: 220, color: const Color(0x15000000)),
           ),
           Positioned(
             right: -60,
             top: 160,
-            child: _Orb(diameter: 180, color: const Color(0x260E5A63)),
+            child: _Orb(diameter: 180, color: const Color(0x11000000)),
           ),
           Positioned(
             bottom: -80,
             left: 40,
-            child: _Orb(diameter: 240, color: const Color(0x226B8F71)),
+            child: _Orb(diameter: 240, color: const Color(0x10000000)),
           ),
         ],
       ),
