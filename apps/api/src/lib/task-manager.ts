@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { resolveFromRepoRoot } from './openapi.js';
 
@@ -136,7 +136,9 @@ const writeJson = async (
   filePath: string,
   payload: unknown
 ): Promise<void> => {
-  await writeFile(filePath, JSON.stringify(payload, null, 2));
+  const tempFilePath = `${filePath}.${randomUUID()}.tmp`;
+  await writeFile(tempFilePath, JSON.stringify(payload, null, 2));
+  await rename(tempFilePath, filePath);
 };
 
 const readJson = async <T>(filePath: string): Promise<T> =>
