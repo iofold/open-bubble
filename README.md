@@ -6,9 +6,10 @@ Open Bubble is a docs-first hackathon repo for a Flutter Android companion and a
 
 - `apps/api` owns the local Fastify API.
 - `GET /health` checks that the server is up.
-- `POST /prompt` accepts one required `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`.
+- `POST /prompt` accepts one required `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`, then creates a lightweight async task.
+- `GET /tasks/:taskId` lets the client poll task state and fetch the result later.
 - The frontend forwards raw audio without client-side transcription.
-- The API returns a synchronous JSON result.
+- The API returns a task handle immediately instead of blocking for the final result.
 
 ## One-command API tunnel
 
