@@ -38,6 +38,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pendingOverlayWorkflows = ConcurrentHashMap<String, OverlayWorkflow>()
     private val pendingPromptSubmissions = ConcurrentHashMap<String, PendingPromptSubmission>()
+    private val recentReplies = ArrayDeque<OverlayReply>()
 
     private var captureInFlight = false
     private var lastExternalWindowId: Int? = null
@@ -127,6 +128,25 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
 
     fun isBubbleVisible(): Boolean {
         return ::overlayController.isInitialized && overlayController.isVisible()
+    }
+
+    fun recentReplies(): List<OverlayReply> {
+        return synchronized(recentReplies) { recentReplies.toList() }
+    }
+
+    fun copyRecentReply(requestId: String): Boolean {
+        val reply =
+            synchronized(recentReplies) {
+                recentReplies.firstOrNull { item -> item.requestId == requestId }
+            } ?: return false
+
+        copyTextToClipboard(reply.fillSuggestion)
+        overlayController.updateStatus(
+            bubbleText = "OK",
+            subtitle = "Reply copied to clipboard.",
+        )
+        scheduleBubbleStatusReset()
+        return true
     }
 
     fun inspectActiveWindow(): Map<String, Any?> {
@@ -816,6 +836,13 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     private fun deliverOverlayReply(reply: OverlayReply) {
         cachedFillSuggestion = reply.fillSuggestion
         OpenBubblePreferences.setCachedFillSuggestion(this, reply.fillSuggestion)
+        synchronized(recentReplies) {
+            recentReplies.removeAll { item -> item.requestId == reply.requestId }
+            recentReplies.addFirst(reply)
+            while (recentReplies.size > 5) {
+                recentReplies.removeLast()
+            }
+        }
         copyTextToClipboard(reply.fillSuggestion)
         val notificationPosted = maybePostReadyNotification(reply)
         mainHandler.post {
@@ -1140,7 +1167,7 @@ private data class ResolvedWindowContext(
     val active: Boolean,
 )
 
-private data class OverlayReply(
+data class OverlayReply(
     val requestId: String,
     val workflow: String,
     val title: String,

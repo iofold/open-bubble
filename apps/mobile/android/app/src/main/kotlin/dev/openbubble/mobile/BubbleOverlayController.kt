@@ -431,10 +431,11 @@ class BubbleOverlayController(
 
         panel.addView(createPanelHeader())
         panel.addView(createActionRow())
+        panel.addView(createRecentRepliesSection())
 
         val layoutParams =
             baseLayoutParams().apply {
-                width = 490
+                width = 540
                 height = WindowManager.LayoutParams.WRAP_CONTENT
                 x = params.x - 8
                 y = params.y + 184
@@ -504,6 +505,121 @@ class BubbleOverlayController(
         }
     }
 
+    private fun createRecentRepliesSection(): View {
+        val replies = service.recentReplies().take(3)
+
+        return LinearLayout(service).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 18, 0, 0)
+            addView(
+                TextView(service).apply {
+                    text = service.getString(R.string.overlay_recent_title)
+                    textSize = 14f
+                    setTextColor(colorInk)
+                    setTypeface(typeface, Typeface.BOLD)
+                },
+            )
+
+            if (replies.isEmpty()) {
+                addView(
+                    TextView(service).apply {
+                        text = service.getString(R.string.overlay_recent_empty)
+                        textSize = 12f
+                        setTextColor(Color.parseColor("#666666"))
+                    },
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        topMargin = 10
+                    },
+                )
+                return@apply
+            }
+
+            replies.forEachIndexed { index, reply ->
+                addView(
+                    createReplyCard(reply),
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        topMargin = if (index == 0) 10 else 8
+                    },
+                )
+            }
+        }
+    }
+
+    private fun createReplyCard(reply: OverlayReply): View {
+        val promptLabel =
+            reply.promptText
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.take(70)
+                ?: reply.title
+
+        val replyPreview =
+            reply.replyText
+                .replace('\n', ' ')
+                .trim()
+                .take(110)
+
+        return LinearLayout(service).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16)
+            background =
+                GradientDrawable().apply {
+                    cornerRadius = 24f
+                    setColor(colorSnow)
+                    setStroke(2, Color.parseColor("#12000000"))
+                }
+
+            addView(
+                LinearLayout(service).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+
+                    addView(
+                        TextView(service).apply {
+                            text = promptLabel
+                            textSize = 13f
+                            setTextColor(colorInk)
+                            setTypeface(typeface, Typeface.BOLD)
+                            maxLines = 2
+                        },
+                        LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            1f,
+                        ),
+                    )
+
+                    addView(
+                        createMiniActionChip(service.getString(R.string.overlay_action_copy)) {
+                            service.copyRecentReply(reply.requestId)
+                        },
+                    )
+                },
+            )
+
+            addView(
+                TextView(service).apply {
+                    text = replyPreview
+                    textSize = 12f
+                    setTextColor(Color.parseColor("#555555"))
+                    maxLines = 3
+                },
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = 8
+                },
+            )
+        }
+    }
+
     private fun createActionChip(
         label: String,
         onTap: () -> Unit,
@@ -532,6 +648,26 @@ class BubbleOverlayController(
                 )
             params.marginEnd = 12
             layoutParams = params
+        }
+    }
+
+    private fun createMiniActionChip(
+        label: String,
+        onTap: () -> Unit,
+    ): View {
+        return TextView(service).apply {
+            text = label
+            textSize = 11f
+            setTextColor(colorSnow)
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(16, 10, 16, 10)
+            background =
+                GradientDrawable().apply {
+                    cornerRadius = 999f
+                    setColor(colorInk)
+                }
+            setOnClickListener { onTap() }
         }
     }
 
