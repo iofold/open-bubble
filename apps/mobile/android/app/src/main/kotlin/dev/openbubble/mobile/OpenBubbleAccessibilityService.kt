@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -31,6 +32,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
         overlayController = BubbleOverlayController(this)
+        Log.d(TAG, "onServiceConnected")
 
         OpenBubbleEventHub.emit(
             type = "service.connected",
@@ -44,6 +46,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
+        Log.d(TAG, "onInterrupt")
         OpenBubbleEventHub.emit(
             type = "service.interrupted",
             message = "Accessibility service interrupted.",
@@ -51,6 +54,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        Log.d(TAG, "onUnbind")
         overlayController.hideBubble()
         instance = null
         OpenBubbleEventHub.emit(
@@ -70,18 +74,22 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
 
     fun showBubble(): Boolean {
         if (!::overlayController.isInitialized) {
+            Log.d(TAG, "showBubble: overlay controller not initialized")
             return false
         }
 
+        Log.d(TAG, "showBubble")
         overlayController.showBubble()
         return true
     }
 
     fun hideBubble(): Boolean {
         if (!::overlayController.isInitialized) {
+            Log.d(TAG, "hideBubble: overlay controller not initialized")
             return false
         }
 
+        Log.d(TAG, "hideBubble")
         overlayController.hideBubble()
         return true
     }
@@ -93,6 +101,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     fun inspectActiveWindow(): Map<String, Any?> {
         val root = rootInActiveWindow ?: return emptyMap()
         val snapshot = buildWindowSnapshot(root)
+        Log.d(TAG, "inspectActiveWindow: package=${snapshot["packageName"]}")
 
         OpenBubbleEventHub.emit(
             type = "inspection.ready",
@@ -104,6 +113,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
 
     fun fillFocusedField(text: String): Map<String, Any?> {
+        Log.d(TAG, "fillFocusedField: length=${text.length}")
         val root = rootInActiveWindow
             ?: return fillFailure("No active window is available.", "no_window")
         val target = findEditableNode(root)
@@ -135,7 +145,15 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         return emitFillResult(pasted, if (pasted) "paste" else "paste_failed")
     }
 
+    fun fillCachedSuggestion(): Map<String, Any?> {
+        val text = cachedFillSuggestion?.takeIf { it.isNotBlank() }
+            ?: return fillFailure("No cached suggestion is available yet.", "no_cached_text")
+        Log.d(TAG, "fillCachedSuggestion: length=${text.length}")
+        return fillFocusedField(text)
+    }
+
     fun captureActiveWindow(requestId: String = newRequestId()): Map<String, Any?> {
+        Log.d(TAG, "captureActiveWindow: requestId=$requestId")
         if (captureInFlight) {
             return mapOf("accepted" to false, "reason" to "capture_in_flight")
         }
@@ -402,6 +420,11 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        private const val TAG = "OpenBubbleService"
+
+        @Volatile
+        var cachedFillSuggestion: String? = null
+
         @Volatile
         var instance: OpenBubbleAccessibilityService? = null
     }

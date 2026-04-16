@@ -2,6 +2,7 @@ package dev.openbubble.mobile
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import io.flutter.plugin.common.EventChannel
 import java.time.Instant
 import java.util.ArrayDeque
@@ -28,6 +29,7 @@ object OpenBubbleEventHub {
         message: String? = null,
         payload: Map<String, Any?> = emptyMap(),
     ) {
+        Log.d(TAG, "emit: type=$type message=${message ?: ""} payloadKeys=${payload.keys}")
         val event = linkedMapOf<String, Any?>(
             "type" to type,
             "timestamp" to Instant.now().toString(),
@@ -52,4 +54,6 @@ object OpenBubbleEventHub {
             sink?.success(event)
         }
     }
+
+    private const val TAG = "OpenBubbleEventHub"
 }

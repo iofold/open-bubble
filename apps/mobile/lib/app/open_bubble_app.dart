@@ -13,12 +13,14 @@ class OpenBubbleApp extends StatefulWidget {
   State<OpenBubbleApp> createState() => _OpenBubbleAppState();
 }
 
-class _OpenBubbleAppState extends State<OpenBubbleApp> {
+class _OpenBubbleAppState extends State<OpenBubbleApp>
+    with WidgetsBindingObserver {
   late final OpenBubbleController controller;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     controller = widget.controller ?? OpenBubbleController();
     if (widget.autoInitialize) {
       controller.initialize();
@@ -26,7 +28,15 @@ class _OpenBubbleAppState extends State<OpenBubbleApp> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && widget.autoInitialize) {
+      controller.handleAppResumed();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     controller.dispose();
     super.dispose();
   }

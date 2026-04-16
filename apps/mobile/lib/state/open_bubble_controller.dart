@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -107,7 +108,19 @@ class OpenBubbleController extends ChangeNotifier {
 
   Future<void> refreshServiceStatus() async {
     serviceStatus = await _bridge.getServiceStatus();
+    _log(
+      'service_status',
+      'enabled=${serviceStatus.accessibilityEnabled} connected=${serviceStatus.serviceConnected} bubble=${serviceStatus.bubbleVisible} shortcut=${serviceStatus.systemShortcutAssigned}',
+    );
     notifyListeners();
+  }
+
+  Future<void> handleAppResumed() async {
+    if (!_initialized) {
+      return;
+    }
+
+    await refreshServiceStatus();
   }
 
   Future<void> checkServerHealth() async {
@@ -148,6 +161,10 @@ class OpenBubbleController extends ChangeNotifier {
   }
 
   Future<void> openAccessibilitySettings() async {
+    _log(
+      'open_accessibility_settings',
+      'Opening Android accessibility settings.',
+    );
     await _bridge.openAccessibilitySettings();
     _addTimeline(
       title: 'Opened accessibility settings',
@@ -162,6 +179,7 @@ class OpenBubbleController extends ChangeNotifier {
     notifyListeners();
 
     final shown = await _bridge.showBubble();
+    _log('show_bubble', 'shown=$shown');
     await refreshServiceStatus();
 
     _addTimeline(
@@ -181,6 +199,7 @@ class OpenBubbleController extends ChangeNotifier {
     notifyListeners();
 
     final hidden = await _bridge.hideBubble();
+    _log('hide_bubble', 'hidden=$hidden');
     await refreshServiceStatus();
 
     _addTimeline(
@@ -200,6 +219,12 @@ class OpenBubbleController extends ChangeNotifier {
     notifyListeners();
 
     final snapshot = await _bridge.inspectActiveWindow();
+    _log(
+      'inspect_active_window',
+      snapshot == null
+          ? 'no snapshot'
+          : 'package=${snapshot.packageName} text=${snapshot.visibleText.length}',
+    );
     if (snapshot == null) {
       _addTimeline(
         title: 'Inspection unavailable',
@@ -233,6 +258,7 @@ class OpenBubbleController extends ChangeNotifier {
 
     final response = await _bridge.captureActiveWindow(requestId: requestId);
     final accepted = response['accepted'] as bool? ?? false;
+    _log('capture_active_window', 'requestId=$requestId accepted=$accepted');
 
     _startRequest(
       requestId: requestId,
@@ -279,6 +305,7 @@ class OpenBubbleController extends ChangeNotifier {
     }
 
     final requestId = _newRequestId();
+    _log('generate_mock_reply', 'requestId=$requestId session=${session.id}');
     latestCapture = CaptureSnapshot.mock(
       requestId: requestId,
       packageName: latestInspection?.packageName ?? 'mock.package',
@@ -307,6 +334,7 @@ class OpenBubbleController extends ChangeNotifier {
     final result = await _bridge.fillFocusedField(draft.fillSuggestion);
     final success = result['success'] as bool? ?? false;
     final strategy = result['strategy'] as String? ?? 'none';
+    _log('fill_latest_suggestion', 'success=$success strategy=$strategy');
 
     _addTimeline(
       title: success ? 'Fill attempted' : 'Fill unavailable',
@@ -327,6 +355,7 @@ class OpenBubbleController extends ChangeNotifier {
     }
 
     await _bridge.copyText(draft.fillSuggestion);
+    _log('copy_latest_suggestion', 'Copied latest draft to clipboard.');
     _addTimeline(
       title: 'Copied suggestion',
       detail: 'The latest reviewed suggestion is now in the clipboard.',
@@ -367,6 +396,7 @@ class OpenBubbleController extends ChangeNotifier {
     );
 
     latestReplyDraft = draft;
+    await _bridge.cacheFillSuggestion(draft.fillSuggestion);
     _updateRequest(
       requestId,
       stage: RequestStage.ready,
@@ -384,6 +414,7 @@ class OpenBubbleController extends ChangeNotifier {
   }
 
   void _handlePlatformEvent(ServiceEvent event, {bool replayOnly = false}) {
+    _log('platform_event', '${event.type} ${event.message ?? ''}');
     switch (event.type) {
       case 'service.connected':
         serviceStatus = serviceStatus.copyWith(
@@ -525,6 +556,10 @@ class OpenBubbleController extends ChangeNotifier {
     );
 
     timeline = <TimelineEntry>[entry, ...timeline].take(18).toList();
+  }
+
+  void _log(String name, String message) {
+    developer.log(message, name: 'open_bubble.$name');
   }
 
   String _newRequestId() {

@@ -6,6 +6,7 @@
     <string name="overlay_hint_title">Open Bubble</string>
     <string name="overlay_hint_subtitle">Tap to open. Long press to capture.</string>
     <string name="overlay_action_open">Open</string>
+    <string name="overlay_action_fill">Fill</string>
     <string name="overlay_action_inspect">Inspect</string>
     <string name="overlay_action_capture">Capture</string>
 </resources>

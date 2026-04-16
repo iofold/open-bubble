@@ -79,6 +79,13 @@ class OpenBubblePlatformBridge {
     return _stringMap(result);
   }
 
+  Future<void> cacheFillSuggestion(String text) async {
+    await _methodChannel.invokeMethod<void>(
+      'cacheFillSuggestion',
+      <String, dynamic>{'text': text},
+    );
+  }
+
   Future<void> copyText(String text) async {
     await _methodChannel.invokeMethod<void>('copyText', <String, dynamic>{
       'text': text,

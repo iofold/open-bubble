@@ -16,6 +16,7 @@ class OpenBubbleHome extends StatefulWidget {
 
 class _OpenBubbleHomeState extends State<OpenBubbleHome> {
   late final TextEditingController _serverController;
+  late final TextEditingController _sandboxController;
   int _tabIndex = 0;
 
   @override
@@ -24,11 +25,13 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
     _serverController = TextEditingController(
       text: widget.controller.serverBaseUrl,
     );
+    _sandboxController = TextEditingController();
   }
 
   @override
   void dispose() {
     _serverController.dispose();
+    _sandboxController.dispose();
     super.dispose();
   }
 
@@ -46,7 +49,10 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
             serverController: _serverController,
           ),
           _SessionsPage(controller: controller),
-          _ReviewPage(controller: controller),
+          _ReviewPage(
+            controller: controller,
+            sandboxController: _sandboxController,
+          ),
         ];
 
         return Scaffold(
@@ -181,6 +187,19 @@ class _SetupPage extends StatelessWidget {
             status.note!,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: const Color(0xFF5B6470),
+            ),
+          ),
+        ],
+        if (status.systemShortcutAssigned) ...[
+          const SizedBox(height: 14),
+          _SectionCard(
+            title: 'Android shortcut conflict',
+            subtitle:
+                'Android can attach this service to its own accessibility shortcut button. That system shortcut is not the Open Bubble overlay and can disable the runtime if tapped.',
+            accent: const Color(0xFFB42318),
+            child: Text(
+              'If you see a separate Android accessibility floating shortcut, turn it off in Accessibility settings. Then use Open Bubble\'s own Show Bubble action.',
+              style: theme.textTheme.bodyLarge,
             ),
           ),
         ],
@@ -424,9 +443,13 @@ class _SessionsPage extends StatelessWidget {
 }
 
 class _ReviewPage extends StatelessWidget {
-  const _ReviewPage({required this.controller});
+  const _ReviewPage({
+    required this.controller,
+    required this.sandboxController,
+  });
 
   final OpenBubbleController controller;
+  final TextEditingController sandboxController;
 
   @override
   Widget build(BuildContext context) {
@@ -442,7 +465,10 @@ class _ReviewPage extends StatelessWidget {
               ? const Text(
                   'No reply draft yet. Capture context from the Sessions tab or generate a mock reply to see the review flow.',
                 )
-              : _ReplyDraftCard(controller: controller),
+              : _ReplyDraftCard(
+                  controller: controller,
+                  sandboxController: sandboxController,
+                ),
         ),
         const SizedBox(height: 14),
         _SectionCard(
@@ -548,9 +574,13 @@ class _HeroDeck extends StatelessWidget {
 }
 
 class _ReplyDraftCard extends StatelessWidget {
-  const _ReplyDraftCard({required this.controller});
+  const _ReplyDraftCard({
+    required this.controller,
+    required this.sandboxController,
+  });
 
   final OpenBubbleController controller;
+  final TextEditingController sandboxController;
 
   @override
   Widget build(BuildContext context) {
@@ -600,6 +630,24 @@ class _ReplyDraftCard extends StatelessWidget {
                     _StatusPill(label: warning, color: const Color(0xFFF7DEC0)),
               )
               .toList(),
+        ),
+        const SizedBox(height: 14),
+        Text('Local fill sandbox', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          'This field is here to verify the native fill path while cross-app review and fill UX is still being hardened.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: sandboxController,
+          decoration: const InputDecoration(
+            labelText: 'Sandbox field',
+            hintText: 'Tap here, then try Fill Focused Field',
+            border: OutlineInputBorder(),
+          ),
+          minLines: 2,
+          maxLines: 3,
         ),
         const SizedBox(height: 14),
         Wrap(

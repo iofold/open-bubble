@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -46,6 +47,7 @@ class MainActivity : FlutterActivity() {
         call: MethodCall,
         result: MethodChannel.Result,
     ) {
+        Log.d(TAG, "handleMethodCall: ${call.method}")
         when (call.method) {
             "getServiceStatus" -> result.success(buildServiceStatus())
             "getRecentEvents" -> result.success(OpenBubbleEventHub.snapshot())
@@ -90,6 +92,13 @@ class MainActivity : FlutterActivity() {
                 )
             }
 
+            "cacheFillSuggestion" -> {
+                val text = call.argument<String>("text").orEmpty()
+                OpenBubbleAccessibilityService.cachedFillSuggestion = text
+                Log.d(TAG, "cacheFillSuggestion: length=${text.length}")
+                result.success(true)
+            }
+
             "copyText" -> {
                 val text = call.argument<String>("text").orEmpty()
                 copyText(text)
@@ -103,9 +112,12 @@ class MainActivity : FlutterActivity() {
     private fun buildServiceStatus(): Map<String, Any?> {
         val service = OpenBubbleAccessibilityService.instance
         val enabled = isAccessibilityServiceEnabled()
+        val shortcutAssigned = isAccessibilityShortcutAssigned()
         val note =
             when {
                 !enabled -> "Enable the accessibility service to unlock bubble actions."
+                shortcutAssigned ->
+                    "Android's system accessibility shortcut is also assigned to Open Bubble. That shortcut is separate from the app bubble and can toggle the service off."
                 service == null -> "Service is enabled but not currently bound."
                 else -> "Accessibility runtime is connected."
             }
@@ -114,6 +126,7 @@ class MainActivity : FlutterActivity() {
             "accessibilityEnabled" to enabled,
             "serviceConnected" to (service != null),
             "bubbleVisible" to (service?.isBubbleVisible() ?: false),
+            "systemShortcutAssigned" to shortcutAssigned,
             "captureSupported" to (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R),
             "windowScopedCaptureSupported" to (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE),
             "sdkInt" to Build.VERSION.SDK_INT,
@@ -143,6 +156,14 @@ class MainActivity : FlutterActivity() {
         return enabledServices.contains(componentName.flattenToString())
     }
 
+    private fun isAccessibilityShortcutAssigned(): Boolean {
+        val componentName =
+            ComponentName(this, OpenBubbleAccessibilityService::class.java).flattenToString()
+        val targets =
+            Settings.Secure.getString(contentResolver, "accessibility_button_targets") ?: return false
+        return targets.contains(componentName)
+    }
+
     private fun copyText(text: String) {
         val clipboard =
             getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -150,6 +171,7 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
+        private const val TAG = "OpenBubbleMainActivity"
         private const val METHOD_CHANNEL = "dev.openbubble.mobile/platform"
         private const val EVENT_CHANNEL = "dev.openbubble.mobile/events"
     }

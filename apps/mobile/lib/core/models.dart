@@ -7,6 +7,7 @@ class ServiceStatus {
     required this.accessibilityEnabled,
     required this.serviceConnected,
     required this.bubbleVisible,
+    required this.systemShortcutAssigned,
     required this.captureSupported,
     required this.windowScopedCaptureSupported,
     required this.sdkInt,
@@ -19,6 +20,7 @@ class ServiceStatus {
     : accessibilityEnabled = false,
       serviceConnected = false,
       bubbleVisible = false,
+      systemShortcutAssigned = false,
       captureSupported = false,
       windowScopedCaptureSupported = false,
       sdkInt = 0,
@@ -29,6 +31,7 @@ class ServiceStatus {
   final bool accessibilityEnabled;
   final bool serviceConnected;
   final bool bubbleVisible;
+  final bool systemShortcutAssigned;
   final bool captureSupported;
   final bool windowScopedCaptureSupported;
   final int sdkInt;
@@ -41,6 +44,7 @@ class ServiceStatus {
       accessibilityEnabled: map['accessibilityEnabled'] as bool? ?? false,
       serviceConnected: map['serviceConnected'] as bool? ?? false,
       bubbleVisible: map['bubbleVisible'] as bool? ?? false,
+      systemShortcutAssigned: map['systemShortcutAssigned'] as bool? ?? false,
       captureSupported: map['captureSupported'] as bool? ?? false,
       windowScopedCaptureSupported:
           map['windowScopedCaptureSupported'] as bool? ?? false,
@@ -55,6 +59,7 @@ class ServiceStatus {
     bool? accessibilityEnabled,
     bool? serviceConnected,
     bool? bubbleVisible,
+    bool? systemShortcutAssigned,
     bool? captureSupported,
     bool? windowScopedCaptureSupported,
     int? sdkInt,
@@ -66,6 +71,8 @@ class ServiceStatus {
       accessibilityEnabled: accessibilityEnabled ?? this.accessibilityEnabled,
       serviceConnected: serviceConnected ?? this.serviceConnected,
       bubbleVisible: bubbleVisible ?? this.bubbleVisible,
+      systemShortcutAssigned:
+          systemShortcutAssigned ?? this.systemShortcutAssigned,
       captureSupported: captureSupported ?? this.captureSupported,
       windowScopedCaptureSupported:
           windowScopedCaptureSupported ?? this.windowScopedCaptureSupported,

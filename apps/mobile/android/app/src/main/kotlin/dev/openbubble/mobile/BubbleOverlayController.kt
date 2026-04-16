@@ -222,6 +222,7 @@ class BubbleOverlayController(
             height = WindowManager.LayoutParams.WRAP_CONTENT
             x = params.x - 8
             y = params.y + 184
+            title = "OpenBubblePanel"
         }
 
         runCatching {
@@ -268,6 +269,11 @@ class BubbleOverlayController(
             addView(
                 createActionChip(service.getString(R.string.overlay_action_open)) {
                     openApp()
+                },
+            )
+            addView(
+                createActionChip(service.getString(R.string.overlay_action_fill)) {
+                    service.fillCachedSuggestion()
                 },
             )
             addView(
@@ -329,6 +335,7 @@ class BubbleOverlayController(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             gravity = Gravity.TOP or Gravity.START
+            title = "OpenBubbleBubble"
         }
     }
 }
