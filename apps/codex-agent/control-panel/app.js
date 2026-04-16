@@ -37,6 +37,12 @@ let selected = null;
 let activeTypes = new Set();
 let activeConnectors = new Set();
 let transform = { x: 0, y: 0, scale: 1 };
+let graphStream = null;
+
+function sessionIdFromLocation() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("sessionId") || "sess_test_001";
+}
 
 function connectorOf(node) {
   return node.metadata?.connector || (node.isEpisode ? "local" : "local");
@@ -249,6 +255,26 @@ async function loadGraphData(payload) {
   render();
 }
 
+async function loadLiveGraph() {
+  const sessionId = sessionIdFromLocation();
+  const response = await fetch(`/context-graph?sessionId=${encodeURIComponent(sessionId)}`);
+  if (!response.ok) throw new Error(`Graph request failed: ${response.status}`);
+  await loadGraphData(await response.json());
+}
+
+function connectGraphStream() {
+  if (!window.EventSource) return;
+  const sessionId = sessionIdFromLocation();
+  if (graphStream) graphStream.close();
+  graphStream = new EventSource(`/context-graph/stream?sessionId=${encodeURIComponent(sessionId)}`);
+  graphStream.addEventListener("graph.snapshot", (event) => {
+    loadGraphData(JSON.parse(event.data));
+  });
+  graphStream.onerror = () => {
+    sessionLabel.textContent = `${sessionLabel.textContent} (live stream disconnected)`;
+  };
+}
+
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0];
   if (!file) return;
@@ -272,11 +298,15 @@ resetButton.addEventListener("click", () => {
 
 window.addEventListener("resize", render);
 
-fetch("./graph.sample.json")
-  .then((response) => (response.ok ? response.json() : null))
-  .then((payload) => {
-    if (payload) loadGraphData(payload);
-  })
+loadLiveGraph()
+  .then(connectGraphStream)
   .catch(() => {
-    renderStats([], []);
+    fetch("./graph.sample.json")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload) loadGraphData(payload);
+      })
+      .catch(() => {
+        renderStats([], []);
+      });
   });

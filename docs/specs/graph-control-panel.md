@@ -184,7 +184,22 @@ MVP rendering options:
 
 Do not add graph visualization dependencies until the App Server exposes the draft graph API or a static JSON export from DuckDB.
 
-The Codex-agent workspace now provides a dependency-free static first pass under `apps/codex-agent/control-panel/`. It can load JSON exported by:
+The Codex-agent workspace now provides a dependency-free control panel under `apps/codex-agent/control-panel/`. It can load exported JSON directly, or it can run live through the context graph server:
+
+```bash
+apps/codex-agent/scripts/context-graph-server.py \
+  --db apps/codex-agent/data/demo-context.duckdb \
+  --host tailscale \
+  --port 8788
+```
+
+Then open:
+
+```text
+http://<tailscale-ip>:8788/control-panel?sessionId=sess_test_001
+```
+
+For static fallback, export JSON with:
 
 ```bash
 apps/codex-agent/scripts/export-context-graph.py \

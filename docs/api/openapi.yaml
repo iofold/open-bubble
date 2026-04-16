@@ -79,6 +79,103 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /context-graph:
+    get:
+      summary: Read a live context graph snapshot
+      parameters:
+        - in: query
+          name: sessionId
+          required: false
+          schema:
+            type: string
+            default: sess_test_001
+        - in: query
+          name: connector
+          required: false
+          schema:
+            type: string
+            enum: [gmail, drive, calendar]
+      responses:
+        '200':
+          description: Context graph snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextGraphSnapshot'
+  /context-graph/stream:
+    get:
+      summary: Stream context graph snapshots when the graph changes
+      parameters:
+        - in: query
+          name: sessionId
+          required: false
+          schema:
+            type: string
+            default: sess_test_001
+      responses:
+        '200':
+          description: Server-Sent Events with `graph.snapshot` events
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /context-graph/seed:
+    post:
+      summary: Seed the local context graph from a fixture
+      responses:
+        '200':
+          description: Seed result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /context-graph/ingest/mcp-results:
+    post:
+      summary: Ingest normalized MCP connector results into the context graph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Ingest result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /context-graph/ingest/context-request:
+    post:
+      summary: Ingest a frontend context request into the context graph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Ingest result and optional graph-backed answer
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /control-panel:
+    get:
+      summary: Serve the local context graph control panel
+      responses:
+        '200':
+          description: HTML control panel
+          content:
+            text/html:
+              schema:
+                type: string
 components:
   schemas:
     HealthResponse:
@@ -219,3 +316,30 @@ components:
         message:
           type: string
       additionalProperties: false
+    ContextGraphSnapshot:
+      type: object
+      required: [sessionId, nodes, edges, episodes, stats]
+      properties:
+        sessionId:
+          type: string
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [id, type, label]
+            additionalProperties: true
+        edges:
+          type: array
+          items:
+            type: object
+            required: [id, source, target, type, label]
+            additionalProperties: true
+        episodes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        stats:
+          type: object
+          required: [nodeCount, edgeCount, episodeCount, chunkCount]
+          additionalProperties: true

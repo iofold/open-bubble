@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
+import urllib.error
+import urllib.request
 
 from processor_loader import load_processor
 
@@ -41,6 +44,24 @@ def main() -> int:
     fixture = json.loads(Path(args.fixture).read_text())
     if not isinstance(fixture, dict):
         raise SystemExit("Seed fixture must be a JSON object")
+
+    server_url = os.environ.get("OPEN_BUBBLE_CONTEXT_GRAPH_URL")
+    if server_url:
+        endpoint = f"{server_url.rstrip('/')}/seed"
+        payload = json.dumps({"fixture": fixture, "reset": args.reset}).encode("utf-8")
+        request = urllib.request.Request(
+            endpoint,
+            data=payload,
+            headers={"content-type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                print(json.dumps(json.loads(response.read().decode("utf-8")), indent=2, sort_keys=True))
+                return 0
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise SystemExit(f"Context graph server rejected seed: {exc.code} {body}") from exc
 
     db_path = Path(args.db)
     db_path.parent.mkdir(parents=True, exist_ok=True)

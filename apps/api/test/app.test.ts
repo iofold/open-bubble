@@ -1,12 +1,19 @@
-import { mkdtemp } from 'node:fs/promises';
-import * as os from 'node:os';
-import * as path from 'node:path';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { buildApp, serviceVersion } from '../src/app.js';
 import { createMultipartPayload } from './helpers/multipart.js';
+
+const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
+const fixturePath = (...segments: string[]): string =>
+  path.join(repoRoot, 'apps', 'codex-agent', 'testdata', ...segments);
+
+const readFixture = async (name: string): Promise<Record<string, unknown>> =>
+  JSON.parse(await readFile(fixturePath(name), 'utf8')) as Record<string, unknown>;
 
 const createTaskStoreRoot = async (): Promise<string> =>
   mkdtemp(path.join(os.tmpdir(), 'open-bubble-api-task-test-'));
@@ -105,6 +112,23 @@ const waitForTaskStatus = async (
   }
 
   assert.fail(`Task ${taskId} did not reach ${expectedStatus}.`);
+};
+
+const withContextGraphDb = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'open-bubble-api-'));
+  const previous = process.env['OPEN_BUBBLE_CONTEXT_DB'];
+  process.env['OPEN_BUBBLE_CONTEXT_DB'] = path.join(tempDir, 'context.duckdb');
+
+  try {
+    return await fn();
+  } finally {
+    if (previous === undefined) {
+      delete process.env['OPEN_BUBBLE_CONTEXT_DB'];
+    } else {
+      process.env['OPEN_BUBBLE_CONTEXT_DB'] = previous;
+    }
+    await rm(tempDir, { recursive: true, force: true });
+  }
 };
 
 void test('GET /health returns ok service metadata', async () => {
@@ -490,6 +514,73 @@ void test('GET /openapi.json returns the current OpenAPI document', async () => 
       response.json().paths['/tasks/{taskId}'].get.summary,
       'Get prompt task status'
     );
+  } finally {
+    await app.close();
+  }
+});
+
+void test('context graph endpoints seed, ingest MCP, and export live graph', async () => {
+  await withContextGraphDb(async () => {
+    const app = await createTestApp();
+
+    try {
+      const seedResponse = await app.inject({
+        method: 'POST',
+        url: '/context-graph/seed',
+        payload: {
+          fixture: await readFixture('seed-context.json'),
+          reset: true
+        }
+      });
+
+      assert.equal(seedResponse.statusCode, 200);
+      assert.equal(seedResponse.json().sessionId, 'sess_test_001');
+
+      const mcpResponse = await app.inject({
+        method: 'POST',
+        url: '/context-graph/ingest/mcp-results',
+        payload: await readFixture('mcp-gmail-results.json')
+      });
+
+      assert.equal(mcpResponse.statusCode, 200);
+      assert.equal(mcpResponse.json().connector, 'gmail');
+
+      const graphResponse = await app.inject({
+        method: 'GET',
+        url: '/context-graph?sessionId=sess_test_001'
+      });
+
+      assert.equal(graphResponse.statusCode, 200);
+      assert.equal(graphResponse.json().sessionId, 'sess_test_001');
+      assert.ok(graphResponse.json().nodes.length > 0);
+      assert.ok(graphResponse.json().edges.some((edge: { sourceEpisodeId?: string }) => edge.sourceEpisodeId));
+      assert.equal(graphResponse.json().stats.connectorCounts.gmail, 4);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+void test('control panel serves the live graph UI assets', async () => {
+  const app = await createTestApp();
+
+  try {
+    const html = await app.inject({
+      method: 'GET',
+      url: '/control-panel'
+    });
+
+    assert.equal(html.statusCode, 200);
+    assert.match(html.body, /Context Graph/);
+    assert.match(html.headers['content-type'] as string, /text\/html/);
+
+    const js = await app.inject({
+      method: 'GET',
+      url: '/control-panel/app.js'
+    });
+
+    assert.equal(js.statusCode, 200);
+    assert.match(js.body, /EventSource/);
   } finally {
     await app.close();
   }

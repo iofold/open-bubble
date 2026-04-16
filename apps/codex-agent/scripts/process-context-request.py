@@ -8,6 +8,8 @@ import json
 import os
 import re
 import sys
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -964,6 +966,72 @@ def build_details(
     return " ".join(parts)
 
 
+def process_context_request(
+    conn: duckdb.DuckDBPyConnection,
+    request: dict[str, Any],
+    database_label: str = "context-graph-server",
+) -> dict[str, Any]:
+    session_id = get_session_id(request)
+    request_id = get_request_id(request, session_id)
+    transcript = transcript_from_request(request)
+    classified_intent = classify_intent(request, transcript)
+    screenshot_analysis = summarize_screenshot(request)
+    voice_analysis = summarize_voice(request, transcript)
+
+    init_schema(conn)
+    ingested = ingest_request(
+        conn,
+        request,
+        session_id,
+        request_id,
+        classified_intent,
+        screenshot_analysis,
+        voice_analysis,
+    )
+    session_context = load_session_context(conn, session_id)
+    relevant_chunks = query_relevant_context(conn, session_id, transcript, request_id)
+    answer = build_answer(
+        request,
+        classified_intent,
+        session_id,
+        request_id,
+        screenshot_analysis,
+        voice_analysis,
+        session_context,
+        relevant_chunks,
+    )
+    return {
+        "requestId": request_id,
+        "sessionId": session_id,
+        "classifiedIntent": classified_intent,
+        "ingested": ingested,
+        "answerProduced": answer is not None,
+        "answer": answer,
+        "database": database_label,
+    }
+
+
+def post_context_request_to_server(
+    server_url: str,
+    request: dict[str, Any],
+    answer_only: bool,
+) -> dict[str, Any]:
+    endpoint = f"{server_url.rstrip('/')}/ingest/context-request"
+    payload = json.dumps({"request": request, "answerOnly": answer_only}).encode("utf-8")
+    http_request = urllib.request.Request(
+        endpoint,
+        data=payload,
+        headers={"content-type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(http_request, timeout=60) as response:
+            return require_object(json.loads(response.read().decode("utf-8")), endpoint)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"Context graph server rejected request: {exc.code} {body}") from exc
+
+
 def write_outputs(result: dict[str, Any], answer_only: bool) -> None:
     response_file = os.environ.get("OPEN_BUBBLE_RESPONSE_FILE")
     response_payload = result.get("answer") if answer_only else result
@@ -999,51 +1067,19 @@ def main() -> int:
     args = parser.parse_args()
 
     request = load_request()
-    session_id = get_session_id(request)
-    request_id = get_request_id(request, session_id)
-    transcript = transcript_from_request(request)
-    classified_intent = classify_intent(request, transcript)
-    screenshot_analysis = summarize_screenshot(request)
-    voice_analysis = summarize_voice(request, transcript)
+    server_url = os.environ.get("OPEN_BUBBLE_CONTEXT_GRAPH_URL")
+    if server_url:
+        result = post_context_request_to_server(server_url, request, args.answer_only)
+        write_outputs(result, answer_only=args.answer_only)
+        return 0
 
     db_path = Path(args.db)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = duckdb.connect(str(db_path))
     try:
-        init_schema(conn)
-        ingested = ingest_request(
-            conn,
-            request,
-            session_id,
-            request_id,
-            classified_intent,
-            screenshot_analysis,
-            voice_analysis,
-        )
-        session_context = load_session_context(conn, session_id)
-        relevant_chunks = query_relevant_context(conn, session_id, transcript, request_id)
-        answer = build_answer(
-            request,
-            classified_intent,
-            session_id,
-            request_id,
-            screenshot_analysis,
-            voice_analysis,
-            session_context,
-            relevant_chunks,
-        )
+        result = process_context_request(conn, request, database_label=str(db_path))
     finally:
         conn.close()
-
-    result = {
-        "requestId": request_id,
-        "sessionId": session_id,
-        "classifiedIntent": classified_intent,
-        "ingested": ingested,
-        "answerProduced": answer is not None,
-        "answer": answer,
-        "database": str(db_path),
-    }
     write_outputs(result, answer_only=args.answer_only)
     return 0
 

@@ -5,6 +5,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+import urllib.request
 from pathlib import Path
 
 import duckdb
@@ -15,6 +16,7 @@ SEED_SCRIPT = AGENT_DIR / "scripts" / "seed-context-graph.py"
 INGEST_MCP_SCRIPT = AGENT_DIR / "scripts" / "ingest-mcp-results.py"
 EXPORT_SCRIPT = AGENT_DIR / "scripts" / "export-context-graph.py"
 PROCESS_SCRIPT = AGENT_DIR / "scripts" / "process-context-request.py"
+SERVER_SCRIPT = AGENT_DIR / "scripts" / "context-graph-server.py"
 TESTDATA = AGENT_DIR / "testdata"
 SCHEMAS = AGENT_DIR / "schemas"
 
@@ -209,6 +211,87 @@ class McpConnectorGraphTests(unittest.TestCase):
         self.assertTrue(report["answerProduced"])
         self.assertIn("mcp:gmail", answer["localContextUsed"])
         self.assertIn("connector snippets", answer["summary"].lower())
+
+    def test_scripts_can_write_through_context_graph_server(self) -> None:
+        server_db = str(Path(self.tmp.name) / "server-context.duckdb")
+        server = subprocess.Popen(
+            [str(SERVER_SCRIPT), "--db", server_db, "--host", "127.0.0.1", "--port", "0"],
+            cwd=AGENT_DIR,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        def stop_server() -> None:
+            server.terminate()
+            try:
+                server.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                server.kill()
+                server.wait(timeout=5)
+            if server.stdout:
+                server.stdout.close()
+            if server.stderr:
+                server.stderr.close()
+
+        self.addCleanup(stop_server)
+        assert server.stdout is not None
+        startup = json.loads(server.stdout.readline())
+        server_url = startup["url"]
+
+        run_json(
+            [
+                str(SEED_SCRIPT),
+                "--db",
+                server_db,
+                "--fixture",
+                str(TESTDATA / "seed-context.json"),
+                "--reset",
+            ],
+            env={"OPEN_BUBBLE_CONTEXT_GRAPH_URL": server_url},
+        )
+        run_json(
+            [
+                str(INGEST_MCP_SCRIPT),
+                "--db",
+                server_db,
+                "--input",
+                str(TESTDATA / "mcp-gmail-results.json"),
+            ],
+            env={"OPEN_BUBBLE_CONTEXT_GRAPH_URL": server_url},
+        )
+        response_path = Path(self.tmp.name) / "server-answer.json"
+        request = {
+            "id": "ctx_req_server_001",
+            "sessionId": "sess_test_001",
+            "deviceId": "android_test_device",
+            "createdAt": "2026-04-16T08:15:00Z",
+            "intent": "context_question",
+            "screenshot": {
+                "capturedAt": "2026-04-16T08:14:58Z",
+                "screenMetadata": {"visibleText": "Email follow-up"},
+            },
+            "prompt": {
+                "capturedAt": "2026-04-16T08:14:59Z",
+                "transcript": "What did the email say about connector snippets?",
+                "language": "en-US",
+            },
+        }
+        run_json(
+            [str(PROCESS_SCRIPT), "--answer-only"],
+            env={
+                "OPEN_BUBBLE_CONTEXT_GRAPH_URL": server_url,
+                "OPEN_BUBBLE_CONTEXT_DB": server_db,
+                "OPEN_BUBBLE_CONTEXT_REQUEST": json.dumps(request),
+                "OPEN_BUBBLE_RESPONSE_FILE": str(response_path),
+            },
+        )
+        answer = json.loads(response_path.read_text())
+        self.assertIn("mcp:gmail", answer["localContextUsed"])
+
+        with urllib.request.urlopen(f"{server_url}/context-graph?sessionId=sess_test_001", timeout=10) as response:
+            graph = json.loads(response.read().decode("utf-8"))
+        self.assertGreaterEqual(graph["stats"]["nodeCount"], 1)
+        self.assertGreaterEqual(graph["stats"]["episodeCount"], 1)
 
 
 if __name__ == "__main__":

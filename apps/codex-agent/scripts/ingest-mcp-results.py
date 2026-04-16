@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
+import urllib.error
+import urllib.request
 
 from processor_loader import load_processor
 
@@ -316,6 +319,56 @@ def merge_counts(*items: dict[str, int]) -> dict[str, int]:
     return result
 
 
+def ingest_mcp_fetch(
+    processor: Any,
+    conn: Any,
+    fetch: dict[str, Any],
+    database_label: str = "context-graph-server",
+) -> dict[str, Any]:
+    connector = str(fetch.get("connector") or "")
+    if connector not in CONNECTORS:
+        raise SystemExit(f"connector must be one of {sorted(CONNECTORS)}")
+    require_list(fetch.get("results"), "results")
+
+    timestamp = processor.utc_now()
+    processor.init_schema(conn)
+    episode_id = upsert_episode(processor, conn, fetch, timestamp)
+    counts = {"episodes": 1, "entities": 0, "relations": 0, "chunks": 0}
+    if connector == "gmail":
+        counts = merge_counts(counts, ingest_gmail(processor, conn, fetch, episode_id, timestamp))
+    elif connector == "drive":
+        counts = merge_counts(counts, ingest_drive(processor, conn, fetch, episode_id, timestamp))
+    elif connector == "calendar":
+        counts = merge_counts(counts, ingest_calendar(processor, conn, fetch, episode_id, timestamp))
+
+    return {
+        "database": database_label,
+        "sessionId": fetch["sessionId"],
+        "connector": connector,
+        "operation": fetch.get("operation"),
+        "episodeId": episode_id,
+        "ingested": counts,
+    }
+
+
+def post_mcp_fetch_to_server(server_url: str, fetch: dict[str, Any]) -> dict[str, Any]:
+    endpoint = f"{server_url.rstrip('/')}/ingest/mcp-results"
+    payload = json.dumps(fetch).encode("utf-8")
+    request = urllib.request.Request(
+        endpoint,
+        data=payload,
+        headers={"content-type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            return require_object(result, endpoint)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"Context graph server rejected MCP result: {exc.code} {body}") from exc
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Ingest normalized MCP connector results into the context graph.")
     parser.add_argument("--db", required=True, help="DuckDB path to create/update.")
@@ -324,42 +377,20 @@ def main() -> int:
 
     processor = load_processor()
     fetch = require_object(json.loads(Path(args.input).read_text()), args.input)
-    connector = str(fetch.get("connector") or "")
-    if connector not in CONNECTORS:
-        raise SystemExit(f"connector must be one of {sorted(CONNECTORS)}")
-    require_list(fetch.get("results"), "results")
+    server_url = os.environ.get("OPEN_BUBBLE_CONTEXT_GRAPH_URL")
+    if server_url:
+        print(json.dumps(post_mcp_fetch_to_server(server_url, fetch), indent=2, sort_keys=True))
+        return 0
 
     db_path = Path(args.db)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    timestamp = processor.utc_now()
     conn = processor.duckdb.connect(str(db_path))
     try:
-        processor.init_schema(conn)
-        episode_id = upsert_episode(processor, conn, fetch, timestamp)
-        counts = {"episodes": 1, "entities": 0, "relations": 0, "chunks": 0}
-        if connector == "gmail":
-            counts = merge_counts(counts, ingest_gmail(processor, conn, fetch, episode_id, timestamp))
-        elif connector == "drive":
-            counts = merge_counts(counts, ingest_drive(processor, conn, fetch, episode_id, timestamp))
-        elif connector == "calendar":
-            counts = merge_counts(counts, ingest_calendar(processor, conn, fetch, episode_id, timestamp))
+        result = ingest_mcp_fetch(processor, conn, fetch, database_label=str(db_path))
     finally:
         conn.close()
 
-    print(
-        json.dumps(
-            {
-                "database": str(db_path),
-                "sessionId": fetch["sessionId"],
-                "connector": connector,
-                "operation": fetch.get("operation"),
-                "episodeId": episode_id,
-                "ingested": counts,
-            },
-            indent=2,
-            sort_keys=True,
-        )
-    )
+    print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 

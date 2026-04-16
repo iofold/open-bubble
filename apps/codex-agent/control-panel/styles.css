@@ -266,3 +266,70 @@ button:hover,
   stroke-width: 3px;
   stroke-linejoin: round;
 }
+
+@media (max-width: 900px) {
+  .topbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .actions {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(430px, 52vh) auto;
+  }
+
+  .filters,
+  .inspector {
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .filters {
+    max-height: 250px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .inspector {
+    min-height: 180px;
+    border-top: 1px solid var(--line);
+  }
+
+  #graph {
+    height: 100%;
+    min-height: 430px;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    padding: 12px 14px;
+  }
+
+  .topbar h1 {
+    font-size: 17px;
+  }
+
+  button,
+  .fileButton {
+    white-space: nowrap;
+  }
+
+  .filters,
+  .inspector {
+    padding: 12px 14px;
+  }
+
+  .workspace {
+    grid-template-rows: auto minmax(360px, 48vh) auto;
+  }
+
+  #graph {
+    min-height: 360px;
+  }
+}

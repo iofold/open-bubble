@@ -10,6 +10,7 @@ import {
 } from './lib/task-manager.js';
 import { promptRoute } from './routes/prompt.js';
 import { taskStatusRoute } from './routes/task-status.js';
+import { contextGraphRoute } from './routes/context-graph.js';
 import { openApiExists, resolveOpenApiPath } from './lib/openapi.js';
 
 export const serviceVersion = '0.1.0';
@@ -44,6 +45,7 @@ export const buildApp = async (
 
   await app.register(healthRoute({ serviceVersion }));
   await app.register(appsRoute());
+  await app.register(contextGraphRoute());
   await app.register(promptRoute({ taskManager }));
   await app.register(taskStatusRoute({ taskManager }));
 

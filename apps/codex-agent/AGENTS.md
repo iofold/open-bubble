@@ -48,7 +48,8 @@ For explicit code assertion requests only, include `codeAssertionResult`.
 ## DuckDB Policy
 
 - Treat direct DuckDB access as the MVP fast path.
-- Use read-only queries for frontend context answers unless the task explicitly asks to update local context.
+- Prefer the local context graph server for writes when `OPEN_BUBBLE_CONTEXT_GRAPH_URL` is set.
+- Direct DuckDB writes are still allowed for tests and local one-shot scripts when no graph server is running.
 - Do not create a production tool bridge here yet.
 - If DuckDB is missing or the schema is unknown, fall back to request/session/local-file context and explain the gap in `details`.
 

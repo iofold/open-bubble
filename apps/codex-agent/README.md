@@ -60,6 +60,37 @@ Export graph data for the control panel:
 
 Open `control-panel/index.html` in a browser, or use the `Load JSON` button with any exported graph file.
 
+## Live Context Graph Server
+
+Run a single long-lived DuckDB owner for writes and live graph reads:
+
+```bash
+./scripts/context-graph-server.py \
+  --db data/demo-context.duckdb \
+  --host tailscale \
+  --port 8788
+```
+
+Use `--host tailscale` to bind to the machine's Tailscale IPv4 address, or `--host 0.0.0.0` for all interfaces.
+
+Point agent scripts at the server instead of opening DuckDB directly:
+
+```bash
+export OPEN_BUBBLE_CONTEXT_GRAPH_URL=http://<tailscale-ip>:8788
+
+./scripts/seed-context-graph.py --db data/demo-context.duckdb --fixture testdata/seed-context.json --reset
+./scripts/ingest-mcp-results.py --db data/demo-context.duckdb --input testdata/mcp-gmail-results.json
+./scripts/process-context-request.py --db data/demo-context.duckdb --answer-only
+```
+
+Open the live control panel:
+
+```text
+http://<tailscale-ip>:8788/control-panel?sessionId=sess_test_001
+```
+
+The panel reads `/context-graph` and listens to `/context-graph/stream`, so it updates as the graph server accepts writes.
+
 ## Layout
 
 ```text

@@ -121,7 +121,16 @@ Each connector fetch should create one raw episode:
 
 Derived entities and relations must point back to the source episode with `graph_relations.source_episode_id`.
 
-The Codex-agent implementation accepts normalized connector result JSON matching `apps/codex-agent/schemas/mcp-fetch-result.schema.json` and ingests it with:
+The Codex-agent implementation accepts normalized connector result JSON matching `apps/codex-agent/schemas/mcp-fetch-result.schema.json`. Prefer routing writes through the context graph server:
+
+```bash
+OPEN_BUBBLE_CONTEXT_GRAPH_URL=http://<host>:8788 \
+apps/codex-agent/scripts/ingest-mcp-results.py \
+  --db <context.duckdb> \
+  --input <mcp-fetch-result.json>
+```
+
+The script falls back to direct DuckDB writes when no server URL is set:
 
 ```bash
 apps/codex-agent/scripts/ingest-mcp-results.py \

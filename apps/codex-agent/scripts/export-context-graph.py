@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
+import urllib.parse
+import urllib.request
 
 import duckdb
 
@@ -26,46 +29,46 @@ def rows_to_dicts(cursor: duckdb.DuckDBPyConnection) -> list[dict[str, Any]]:
     return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
 
 
-def export_graph(db_path: str, session_id: str, connector: str | None = None) -> dict[str, Any]:
-    conn = duckdb.connect(db_path)
-    try:
-        entity_rows = rows_to_dicts(
-            conn.execute(
-                """
-                SELECT id, type, name, description, metadata, updated_at
-                FROM graph_entities
-                WHERE session_id = ?
-                ORDER BY type, name
-                """,
-                [session_id],
-            )
+def export_graph_from_conn(
+    conn: duckdb.DuckDBPyConnection,
+    session_id: str,
+    connector: str | None = None,
+) -> dict[str, Any]:
+    entity_rows = rows_to_dicts(
+        conn.execute(
+            """
+            SELECT id, type, name, description, metadata, updated_at
+            FROM graph_entities
+            WHERE session_id = ?
+            ORDER BY type, name
+            """,
+            [session_id],
         )
-        episode_rows = rows_to_dicts(
-            conn.execute(
-                """
-                SELECT id, type, source, content, metadata, created_at, ingested_at
-                FROM graph_episodes
-                WHERE session_id = ?
-                ORDER BY ingested_at, id
-                """,
-                [session_id],
-            )
+    )
+    episode_rows = rows_to_dicts(
+        conn.execute(
+            """
+            SELECT id, type, source, content, metadata, created_at, ingested_at
+            FROM graph_episodes
+            WHERE session_id = ?
+            ORDER BY ingested_at, id
+            """,
+            [session_id],
         )
-        relation_rows = rows_to_dicts(
-            conn.execute(
-                """
-                SELECT id, source_id, target_id, type, fact, confidence,
-                       source_episode_id, metadata, valid_at, invalid_at
-                FROM graph_relations
-                ORDER BY updated_at, id
-                """
-            )
+    )
+    relation_rows = rows_to_dicts(
+        conn.execute(
+            """
+            SELECT id, source_id, target_id, type, fact, confidence,
+                   source_episode_id, metadata, valid_at, invalid_at
+            FROM graph_relations
+            ORDER BY updated_at, id
+            """
         )
-        chunk_count = int(
-            (conn.execute("SELECT COUNT(*) FROM context_chunks WHERE session_id = ?", [session_id]).fetchone() or [0])[0]
-        )
-    finally:
-        conn.close()
+    )
+    chunk_count = int(
+        (conn.execute("SELECT COUNT(*) FROM context_chunks WHERE session_id = ?", [session_id]).fetchone() or [0])[0]
+    )
 
     nodes: list[dict[str, Any]] = []
     for row in entity_rows:
@@ -140,6 +143,14 @@ def export_graph(db_path: str, session_id: str, connector: str | None = None) ->
     }
 
 
+def export_graph(db_path: str, session_id: str, connector: str | None = None) -> dict[str, Any]:
+    conn = duckdb.connect(db_path)
+    try:
+        return export_graph_from_conn(conn, session_id, connector)
+    finally:
+        conn.close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Export Open Bubble context graph JSON.")
     parser.add_argument("--db", required=True, help="DuckDB path.")
@@ -148,7 +159,16 @@ def main() -> int:
     parser.add_argument("--out", help="Write JSON to file instead of stdout.")
     args = parser.parse_args()
 
-    payload = export_graph(args.db, args.session_id, args.connector)
+    server_url = os.environ.get("OPEN_BUBBLE_CONTEXT_GRAPH_URL")
+    if server_url:
+        query = {"sessionId": args.session_id}
+        if args.connector:
+            query["connector"] = args.connector
+        endpoint = f"{server_url.rstrip('/')}/context-graph?{urllib.parse.urlencode(query)}"
+        with urllib.request.urlopen(endpoint, timeout=60) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    else:
+        payload = export_graph(args.db, args.session_id, args.connector)
     text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
     if args.out:
         out = Path(args.out)
