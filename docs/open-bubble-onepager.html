@@ -412,6 +412,63 @@
         line-height: 1.45;
       }
 
+      .proof figure {
+        margin: 18px 0 0;
+      }
+
+      .proof img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 2px solid rgba(24, 24, 27, 0.12);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(24, 24, 27, 0.08);
+      }
+
+      .proof-points {
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 14px;
+      }
+
+      .proof-points li {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        padding: 12px 0;
+        border-top: 1.5px dashed rgba(24, 24, 27, 0.12);
+      }
+
+      .proof-points li:first-child {
+        border-top: none;
+        padding-top: 4px;
+      }
+
+      .proof-points strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 1rem;
+      }
+
+      .proof-points span {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .proof-number {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border: 1.5px solid rgba(24, 24, 27, 0.16);
+        border-radius: 999px;
+        background: rgba(246, 240, 229, 0.82);
+        font-weight: 900;
+      }
+
       .graph-shot {
         transform: rotate(0.45deg);
       }
@@ -654,29 +711,49 @@
           <section class="support">
             <article class="proof" data-animate data-delay="2">
               <div class="eyebrow">How we use Codex</div>
-              <h3>Codex is in the product and in the build loop.</h3>
+              <h3>How we used Codex</h3>
               <p>
-                We use Codex to build Open Bubble, to modify and test the mobile
-                app, and to seed the context graph by pulling structured context
-                from connected tools and pushing it into the graph. This
-                presentation itself was shaped with Codex using the
+                Codex shows up in three places here: building the product,
+                testing the mobile experience, and seeding the context graph.
+                This presentation itself was also shaped with Codex using the
                 <code>frontend-skill</code>.
               </p>
 
-              <div class="proof-grid">
-                <div>
-                  <strong>Build</strong>
-                  <span>Codex helps us implement and iterate across the stack.</span>
-                </div>
-                <div>
-                  <strong>Mobile test</strong>
-                  <span>We use Codex to play with and validate the Android flow.</span>
-                </div>
-                <div>
-                  <strong>Graph seeding</strong>
-                  <span>Codex pulls external context and writes it into the local graph.</span>
-                </div>
-              </div>
+              <ol class="proof-points">
+                <li>
+                  <div class="proof-number">1)</div>
+                  <div>
+                    <strong>Build the product</strong>
+                    <span>Codex helps us implement, modify, and iterate across the stack end to end.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="proof-number">2)</div>
+                  <div>
+                    <strong>Test the mobile app</strong>
+                    <span>We use Codex to play with and validate the Android flow as we refine the experience.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="proof-number">3)</div>
+                  <div>
+                    <strong>Seed the context graph</strong>
+                    <span>Codex connectors pull external context and push that data into the local DuckDB graph.</span>
+                  </div>
+                </li>
+              </ol>
+
+              <figure>
+                <img
+                  src="./assets/graph-seeding-connectors.png"
+                  alt="Codex connectors used to seed context graph data from Notion, Gmail, Google Calendar, and Vercel"
+                />
+                <figcaption>
+                  Codex connectors were used to seed the graph with real context
+                  from tools like Notion, Gmail, and Google Calendar before
+                  pushing that data into the local DuckDB graph.
+                </figcaption>
+              </figure>
             </article>
 
             <aside class="graph-shot" data-animate data-delay="3">
