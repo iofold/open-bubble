@@ -4,6 +4,7 @@ The current API contract is intentionally small:
 
 - `GET /health`
 - `POST /prompt`
+- `GET /tasks/{taskId}`
 
 `POST /prompt` uses `multipart/form-data` with:
 
@@ -14,4 +15,6 @@ The current API contract is intentionally small:
 
 The frontend does not transcribe audio. It sends the raw bytes and the backend receives them as-is.
 
-Keep the API synchronous and keep the source of truth in `docs/api/openapi.yaml`.
+`POST /prompt` is asynchronous. It creates a lightweight local task, returns a task id immediately, and the client polls `GET /tasks/{taskId}` for `in_progress`, `completed`, `failed`, or `error`.
+
+Keep the source of truth in `docs/api/openapi.yaml`.

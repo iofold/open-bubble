@@ -8,33 +8,14 @@ import type {
   MultipartFile,
   MultipartValue
 } from '@fastify/multipart';
-
-export type ScreenMediaKind = 'image' | 'video';
-
-export interface ScreenMediaMetadata {
-  filename: string;
-  mimeType: string;
-  kind: ScreenMediaKind;
-}
-
-export interface PromptAudioMetadata {
-  filename: string;
-  mimeType: string;
-}
-
-export interface PromptResponse {
-  answer: string;
-  screenMedia: ScreenMediaMetadata;
-  receivedAt: string;
-  promptText?: string;
-  promptAudio?: PromptAudioMetadata;
-}
-
-interface ParsedPromptRequest {
-  screenMedia: ScreenMediaMetadata;
-  promptText?: string;
-  promptAudio?: PromptAudioMetadata;
-}
+import type {
+  ParsedPromptRequest,
+  PromptAcceptedResponse,
+  PromptAudioMetadata,
+  PromptTaskManager,
+  ScreenMediaKind,
+  ScreenMediaMetadata
+} from '../lib/task-manager.js';
 
 interface ErrorResponse {
   error: 'bad_request' | 'unsupported_media_type';
@@ -46,9 +27,8 @@ const trimPromptText = (value: MultipartValue['value']): string | undefined => {
   return normalized.length > 0 ? normalized : undefined;
 };
 
-const readFilePart = async (part: MultipartFile): Promise<void> => {
-  await part.toBuffer();
-};
+const readFilePart = async (part: MultipartFile): Promise<Buffer> =>
+  part.toBuffer();
 
 const getScreenMediaKind = (mimeType: string): ScreenMediaKind | undefined => {
   if (mimeType.startsWith('image/')) {
@@ -93,11 +73,21 @@ const parsePromptRequest = async (
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<ParsedPromptRequest | null> => {
-  let screenMedia: ScreenMediaMetadata | undefined;
+  let screenMedia:
+    | {
+        buffer: Buffer;
+        metadata: ScreenMediaMetadata;
+      }
+    | undefined;
   let promptText: string | undefined;
-  let promptAudio: PromptAudioMetadata | undefined;
+  let promptAudio:
+    | {
+        buffer: Buffer;
+        metadata: PromptAudioMetadata;
+      }
+    | undefined;
 
-  const parts = request.parts();
+  const parts: AsyncIterableIterator<Multipart> = request.parts();
 
   for await (const part of parts) {
     if (part.type === 'file') {
@@ -121,11 +111,14 @@ const parsePromptRequest = async (
           return null;
         }
 
-        await readFilePart(filePart);
+        const buffer = await readFilePart(filePart);
         screenMedia = {
-          filename: getSafeFilename(filePart.filename),
-          mimeType: filePart.mimetype,
-          kind
+          buffer,
+          metadata: {
+            filename: getSafeFilename(filePart.filename),
+            mimeType: filePart.mimetype,
+            kind
+          }
         };
         continue;
       }
@@ -146,10 +139,13 @@ const parsePromptRequest = async (
           return null;
         }
 
-        await readFilePart(filePart);
+        const buffer = await readFilePart(filePart);
         promptAudio = {
-          filename: getSafeFilename(filePart.filename),
-          mimeType: filePart.mimetype
+          buffer,
+          metadata: {
+            filename: getSafeFilename(filePart.filename),
+            mimeType: filePart.mimetype
+          }
         };
         continue;
       }
@@ -203,43 +199,29 @@ const parsePromptRequest = async (
   return parsed;
 };
 
-const buildAnswer = (payload: ParsedPromptRequest): string => {
-  const screenLabel =
-    payload.screenMedia.kind === 'image' ? 'screenshot' : 'screen recording';
+export const promptRoute = ({
+  taskManager
+}: {
+  taskManager: PromptTaskManager;
+}): FastifyPluginAsync => {
+  const route: FastifyPluginAsync = async (app) => {
+    app.post(
+      '/prompt',
+      async (
+        request,
+        reply
+      ): Promise<PromptAcceptedResponse | FastifyReply> => {
+        const parsed = await parsePromptRequest(request, reply);
 
-  if (payload.promptText && payload.promptAudio) {
-    return `Dummy response for ${screenLabel} with text and raw audio prompt input.`;
-  }
+        if (!parsed) {
+          return reply;
+        }
 
-  if (payload.promptAudio) {
-    return `Dummy response for ${screenLabel} with raw audio prompt input.`;
-  }
+        const task = await taskManager.createTask(parsed);
+        return reply.code(202).send(task);
+      }
+    );
+  };
 
-  return `Dummy response for ${screenLabel} with text prompt input.`;
-};
-
-export const promptRoute: FastifyPluginAsync = async (app) => {
-  app.post('/prompt', async (request, reply): Promise<PromptResponse | FastifyReply> => {
-    const parsed = await parsePromptRequest(request, reply);
-
-    if (!parsed) {
-      return reply;
-    }
-
-    const response: PromptResponse = {
-      answer: buildAnswer(parsed),
-      screenMedia: parsed.screenMedia,
-      receivedAt: new Date().toISOString()
-    };
-
-    if (parsed.promptText) {
-      response.promptText = parsed.promptText;
-    }
-
-    if (parsed.promptAudio) {
-      response.promptAudio = parsed.promptAudio;
-    }
-
-    return response;
-  });
+  return route;
 };
