@@ -1,6 +1,6 @@
 # Open Bubble
 
-Open Bubble is a docs-first hackathon repo for a Flutter Android companion, a tiny local API, and future Codex-backed context-answer workflows. The current MVP keeps the active backend surface small so the team can move quickly and stay aligned.
+Open Bubble is a docs-first hackathon repo for a Flutter Android companion and a tiny local API. The current MVP keeps the backend surface small so the team can build quickly and stay aligned.
 
 ## MVP
 
@@ -17,11 +17,8 @@ open-bubble/
   apps/
     api/             # Fastify API MVP and local docs
     mobile/          # Flutter Android app
-    server/          # Retired path; active server work now lives in apps/api
-    agent-adapters/  # Future backend integration work
-    codex-agent/     # Spawn cwd for App Server-managed Codex context-answer agents
   docs/
-    api/             # OpenAPI contract, examples, and future async notes
+    api/             # OpenAPI contract and examples
     specs/           # Short MVP notes
     adr/             # Architecture decision records
   .github/           # PR template / collaboration hygiene

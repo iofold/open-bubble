@@ -14,11 +14,8 @@ Open Bubble is in a docs-first MVP phase. Keep the active story focused on the l
 apps/
   api/             Fastify API MVP
   mobile/          Flutter Android app placeholder
-  server/          Retired path; active server work now lives in apps/api
-  agent-adapters/  Backend/Codex-agent adapter placeholder
-  codex-agent/     Codex agent workspace spawned by App Server
 docs/
-  api/             OpenAPI contract, examples, and future async notes
+  api/             OpenAPI contract and examples
   specs/           Short MVP notes
 ```
 
@@ -45,20 +42,6 @@ docs/
 - `POST /prompt` uses multipart/form-data with required `screenMedia`, optional `promptText`, optional raw `promptAudio`, and at least one prompt field.
 - Keep docs brief and prefer removing stale scope over documenting old flows as active behavior.
 - Update the API contract before changing API behavior.
-
-### Agent Adapters (`apps/agent-adapters/`)
-
-- Adapters connect backend agent runtimes to the Open Bubble server story; mobile should not talk directly to agent runtimes.
-- Keep adapter payloads aligned with `docs/api/examples/` when those examples apply to adapter work.
-
-### Codex Agent Workspace (`apps/codex-agent/`)
-
-- This directory is the intended `cwd` for Codex agents spawned or managed by the server-side flow.
-- Keep runnable agent instructions in `apps/codex-agent/AGENTS.md`.
-- Put local Codex-compatible skills under `apps/codex-agent/.agents/skills/`.
-- Keep helper scripts lightweight and dependency-free unless a dependency is documented in this directory.
-- Runtime request/response payloads and local DuckDB files should stay ignored.
-- The MVP agent may read DuckDB directly for context answers; do not introduce a Bun CLI/tool bridge until the direct path is too slow or repetitive.
 
 ## Contract-change rule
 
@@ -100,7 +83,6 @@ For later implementation changes:
 
 - Mobile: run Flutter format/analyze/tests once the Flutter project exists.
 - API: run `apps/api` tests, typecheck, and build once the workspace exists.
-- Adapter: run demo script or adapter tests once adapter code exists.
 
 ## Commit guidance
 
