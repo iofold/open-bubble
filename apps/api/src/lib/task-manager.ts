@@ -128,6 +128,64 @@ const getSimulatedDelayMs = (): number => {
   return 0;
 };
 
+const isDemoModeEnabled = (): boolean =>
+  process.env['OPEN_BUBBLE_DEMO_MODE'] === '1';
+
+const normalizePrompt = (promptText: string | undefined): string =>
+  promptText?.trim().toLowerCase() ?? '';
+
+const buildInsuranceAnswer = (): string =>
+  [
+    'Insurance policy details',
+    'Policy number: OBI-4837-1192-AX',
+    'Provider: Meridian Mutual Assurance',
+    'Plan: Premier Comprehensive',
+    'Member ID: MM-90214478',
+    'Support: +1 (800) 555-0148'
+  ].join('\n');
+
+const buildCalendarAnswer = (): string =>
+  [
+    'Calendar event created.',
+    'Title: Meeting with Abhinav',
+    'When: Wednesday, 3:00 PM',
+    'Calendar: Gmail / Google Calendar',
+    'Status: Confirmed and ready to send.'
+  ].join('\n');
+
+const buildDemoAnswer = (promptText: string | undefined): string | undefined => {
+  const normalizedPrompt = normalizePrompt(promptText);
+
+  if (!normalizedPrompt) {
+    return undefined;
+  }
+
+  if (normalizedPrompt.includes('are we ready to demo')) {
+    return "Umm... sure, ready for a demo. Just don't sell it to the Pentagon yet.";
+  }
+
+  const wantsCalendarAction =
+    normalizedPrompt.includes('book') ||
+    normalizedPrompt.includes('calendar') ||
+    normalizedPrompt.includes('add it') ||
+    normalizedPrompt.includes('add this');
+
+  if (wantsCalendarAction) {
+    return buildCalendarAnswer();
+  }
+
+  const wantsInsuranceDetails =
+    normalizedPrompt.includes('insurance') ||
+    normalizedPrompt.includes('policy') ||
+    normalizedPrompt.includes('policy number');
+
+  if (wantsInsuranceDetails) {
+    return buildInsuranceAnswer();
+  }
+
+  return undefined;
+};
+
 const buildAnswer = (payload: {
   screenMedia: ScreenMediaMetadata;
   promptText?: string;
@@ -158,14 +216,20 @@ const defaultPromptTaskProcessor: PromptTaskProcessor = async ({
     await delay(simulatedDelayMs);
   }
 
+  const demoAnswer = isDemoModeEnabled()
+    ? buildDemoAnswer(promptText)
+    : undefined;
+
   return {
     status: 'completed',
     result: {
-      answer: buildAnswer({
-        screenMedia,
-        ...(promptText ? { promptText } : {}),
-        ...(promptAudio ? { promptAudio } : {})
-      })
+      answer:
+        demoAnswer ??
+        buildAnswer({
+          screenMedia,
+          ...(promptText ? { promptText } : {}),
+          ...(promptAudio ? { promptAudio } : {})
+        })
     }
   };
 };
