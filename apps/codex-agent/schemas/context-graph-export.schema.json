@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-bubble.local/schemas/context-graph-export.schema.json",
+  "title": "Open Bubble Context Graph Export",
+  "type": "object",
+  "required": ["sessionId", "nodes", "edges", "episodes", "stats"],
+  "properties": {
+    "sessionId": {
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "label"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "metadata": { "type": "object", "additionalProperties": true },
+          "isEpisode": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "target", "type", "label"],
+        "properties": {
+          "id": { "type": "string" },
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "confidence": { "type": "number" },
+          "sourceEpisodeId": { "type": "string" },
+          "metadata": { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": true
+      }
+    },
+    "episodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "source"],
+        "additionalProperties": true
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["nodeCount", "edgeCount", "episodeCount"],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

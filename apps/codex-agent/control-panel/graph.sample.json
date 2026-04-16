@@ -1,0 +1,962 @@
+{
+  "edges": [
+    {
+      "confidence": 0.8,
+      "id": "rel_seed_file_claim",
+      "invalidAt": null,
+      "label": "Processor script supports structured ContextAnswer output",
+      "metadata": {},
+      "source": "file_apps_codex_agent_processor",
+      "sourceEpisodeId": "episode_seed_status",
+      "target": "claim_processor_outputs_answer",
+      "type": "supports_claim",
+      "validAt": "2026-04-16 07:54:00"
+    },
+    {
+      "confidence": 0.95,
+      "id": "rel_seed_session_task",
+      "invalidAt": null,
+      "label": "Session is working on context graph ingestion",
+      "metadata": {},
+      "source": "session:sess_test_001",
+      "sourceEpisodeId": "episode_seed_status",
+      "target": "task_context_graph_ingest",
+      "type": "current_task",
+      "validAt": "2026-04-16 07:54:00"
+    },
+    {
+      "confidence": 0.9,
+      "id": "rel_seed_task_file",
+      "invalidAt": null,
+      "label": "Context graph ingestion touches the processor script",
+      "metadata": {},
+      "source": "task_context_graph_ingest",
+      "sourceEpisodeId": "episode_seed_status",
+      "target": "file_apps_codex_agent_processor",
+      "type": "touches_file",
+      "validAt": "2026-04-16 07:54:00"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_043a66f8b26d65d1",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "gmail_thread:gmail_thread_001",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_048b904dc8b40e39",
+      "invalidAt": null,
+      "label": "Gmail message was sent to person",
+      "metadata": {},
+      "source": "gmail_message:gmail_msg_001",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "person_74b9e3bc910b807d",
+      "type": "sent_to",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_248a0e1ffbeb6055",
+      "invalidAt": null,
+      "label": "Drive file is shared with person",
+      "metadata": {},
+      "source": "drive_file:drive_file_001",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "shared_with",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_24f3d3302e2b5046",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_29da3c9c21a1b11b",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "attachment:att_plan",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_2ff1ca6c7ba2f90d",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_3364eddf39433c71",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "person_74b9e3bc910b807d",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_371d9f72970441ae",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "gmail_thread:gmail_thread_001",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_3aa306b8ad402b49",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "drive_file:drive_file_001",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_3d0c7401b77dc81c",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "gmail_message:gmail_msg_001",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_423a1cbea8103292",
+      "invalidAt": null,
+      "label": "Drive file is owned by person",
+      "metadata": {},
+      "source": "drive_file:drive_file_001",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "person_74b9e3bc910b807d",
+      "type": "owned_by",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_526ad5c51d59eaa0",
+      "invalidAt": null,
+      "label": "Gmail message was sent by person",
+      "metadata": {},
+      "source": "gmail_message:gmail_msg_001",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "sent_by",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_7f91d8d262c9def8",
+      "invalidAt": null,
+      "label": "Gmail message has attachment",
+      "metadata": {},
+      "source": "gmail_message:gmail_msg_001",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "attachment:att_plan",
+      "type": "has_attachment",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_80f55e4a91a8558b",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "drive_folder:drive_folder_open_bubble",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_8895e436c15c6768",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_8e856108b7d67f90",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "document_section:drive_file_001_section_control_panel",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_bd58bf18fb6cb793",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "document_section:drive_file_001_section_control_panel",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_bfd6988f99a647f0",
+      "invalidAt": null,
+      "label": "Document section belongs to Drive file",
+      "metadata": {},
+      "source": "document_section:drive_file_001_section_control_panel",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "drive_file:drive_file_001",
+      "type": "contained_in",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_cbdcc22830a72825",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "person_74b9e3bc910b807d",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_d2882a27f67edd14",
+      "invalidAt": null,
+      "label": "Drive file is contained in folder",
+      "metadata": {},
+      "source": "drive_file:drive_file_001",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "drive_folder:drive_folder_open_bubble",
+      "type": "contained_in",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_db8d2886842a32e8",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "gmail_message:gmail_msg_001",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_dc96d4f4a2bcc40d",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "person_74b9e3bc910b807d",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_dd2c5a93c53f7832",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "drive_folder:drive_folder_open_bubble",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_e6bbfc5d2c0dd9a5",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "attachment:att_plan",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_e9843732f9cd8d51",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_e7a6f91f136c542c",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "person_74b9e3bc910b807d",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_eca7fbcf8ea9f6b0",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_f6dfbac5c26876a3",
+      "invalidAt": null,
+      "label": "Gmail message belongs to thread",
+      "metadata": {},
+      "source": "gmail_message:gmail_msg_001",
+      "sourceEpisodeId": "episode_e7a6f91f136c542c",
+      "target": "gmail_thread:gmail_thread_001",
+      "type": "part_of_thread",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_fbe5c73b0c809cbb",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_ce700007d3364267",
+      "sourceEpisodeId": "episode_ce700007d3364267",
+      "target": "drive_file:drive_file_001",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:01"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_07484b9ab8534a46",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "calendar_event:calendar_evt_001",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_1133d707cda95b4d",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "location_78aeb390abbc558f",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_16b11b49e67fde47",
+      "invalidAt": null,
+      "label": "Calendar event is scheduled with person",
+      "metadata": {},
+      "source": "calendar_event:calendar_evt_001",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "scheduled_with",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_16b4029b47b86d86",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "time_97a97b28b1965601",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_2f4a4665cb7290ea",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "calendar_event:calendar_evt_001",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_3816423e1616c3cf",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_74b9e3bc910b807d",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_5275187bf0402d4f",
+      "invalidAt": null,
+      "label": "Calendar event is scheduled at time",
+      "metadata": {},
+      "source": "calendar_event:calendar_evt_001",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "time_97a97b28b1965601",
+      "type": "scheduled_at",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_5a73f72c0010bfac",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "location_78aeb390abbc558f",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_5ab2a3fd40d5bbd2",
+      "invalidAt": null,
+      "label": "Calendar event includes attendee",
+      "metadata": {},
+      "source": "calendar_event:calendar_evt_001",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_74b9e3bc910b807d",
+      "type": "attended_by",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_6b6e3fafe50934aa",
+      "invalidAt": null,
+      "label": "Calendar event includes attendee",
+      "metadata": {},
+      "source": "calendar_event:calendar_evt_001",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "attended_by",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_6d029145a9f77273",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_78c263d07a4c7e91",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_6bdb7e961d54ddc2",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_8e275fdfcf90a5eb",
+      "invalidAt": null,
+      "label": "MCP episode mentions entity",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "time_97a97b28b1965601",
+      "type": "episode_mentions",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_abbab4085937f793",
+      "invalidAt": null,
+      "label": "Calendar event mentions location",
+      "metadata": {},
+      "source": "calendar_event:calendar_evt_001",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "location_78aeb390abbc558f",
+      "type": "mentions",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.85,
+      "id": "rel_af0b07989dfa6898",
+      "invalidAt": null,
+      "label": "Calendar event is scheduled with person",
+      "metadata": {},
+      "source": "calendar_event:calendar_evt_001",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_74b9e3bc910b807d",
+      "type": "scheduled_with",
+      "validAt": "2026-04-16 07:54:02"
+    },
+    {
+      "confidence": 0.8,
+      "id": "rel_f48d7d5fbfbb5bd5",
+      "invalidAt": null,
+      "label": "Entity was derived from MCP connector data",
+      "metadata": {
+        "sourceRequestId": "ctx_req_fetch_001"
+      },
+      "source": "episode_6a6a6f4ae2edf1dc",
+      "sourceEpisodeId": "episode_6a6a6f4ae2edf1dc",
+      "target": "person_74b9e3bc910b807d",
+      "type": "derived_from_mcp",
+      "validAt": "2026-04-16 07:54:02"
+    }
+  ],
+  "episodes": [
+    {
+      "description": "The agent is implementing context graph ingestion and frontend response generation.",
+      "id": "episode_seed_status",
+      "isEpisode": true,
+      "label": "seed context",
+      "metadata": {
+        "purpose": "test seed"
+      },
+      "type": "seed_context",
+      "updatedAt": "2026-04-16 07:54:00"
+    },
+    {
+      "description": "Open Bubble Context Graph Notes\nThe control panel should show episodes, entities, facts, source connector, and answer traces.",
+      "id": "episode_ce700007d3364267",
+      "isEpisode": true,
+      "label": "mcp drive search",
+      "metadata": {
+        "connector": "drive",
+        "operation": "search",
+        "query": "Open Bubble context graph",
+        "redaction": "snippet_only",
+        "sourceRequestId": "ctx_req_fetch_001",
+        "userVisible": true
+      },
+      "type": "mcp_drive_search",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Context graph ingestion plan\nLet's make sure the Codex agent stores connector snippets as episodes with provenance.",
+      "id": "episode_e7a6f91f136c542c",
+      "isEpisode": true,
+      "label": "mcp gmail search",
+      "metadata": {
+        "connector": "gmail",
+        "operation": "search",
+        "query": "context graph ingestion",
+        "redaction": "snippet_only",
+        "sourceRequestId": "ctx_req_fetch_001",
+        "userVisible": true
+      },
+      "type": "mcp_gmail_search",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Open Bubble demo review\nReview context graph ingestion, MCP connector fixtures, and control panel trace view.",
+      "id": "episode_6a6a6f4ae2edf1dc",
+      "isEpisode": true,
+      "label": "mcp calendar search",
+      "metadata": {
+        "connector": "calendar",
+        "operation": "search",
+        "query": "Open Bubble demo",
+        "redaction": "snippet_only",
+        "sourceRequestId": "ctx_req_fetch_001",
+        "userVisible": true
+      },
+      "type": "mcp_calendar_search",
+      "updatedAt": "2026-04-16 07:54:02"
+    }
+  ],
+  "nodes": [
+    {
+      "description": "Test Open Bubble session",
+      "id": "session:sess_test_001",
+      "isEpisode": false,
+      "label": "sess_test_001",
+      "metadata": {},
+      "type": "agent_session",
+      "updatedAt": "2026-04-16 07:54:00"
+    },
+    {
+      "description": "text/markdown",
+      "id": "attachment:att_plan",
+      "isEpisode": false,
+      "label": "context-plan.md",
+      "metadata": {
+        "connector": "gmail",
+        "id": "att_plan",
+        "mimeType": "text/markdown",
+        "name": "context-plan.md"
+      },
+      "type": "attachment",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Review context graph ingestion, MCP connector fixtures, and control panel trace view.",
+      "id": "calendar_event:calendar_evt_001",
+      "isEpisode": false,
+      "label": "Open Bubble demo review",
+      "metadata": {
+        "connector": "calendar",
+        "end": "2026-04-16T17:30:00Z",
+        "eventId": "calendar_evt_001",
+        "location": "Google Meet",
+        "start": "2026-04-16T17:00:00Z"
+      },
+      "type": "calendar_event",
+      "updatedAt": "2026-04-16 07:54:02"
+    },
+    {
+      "description": "The processor writes structured ContextAnswer JSON for frontend response requests",
+      "id": "claim_processor_outputs_answer",
+      "isEpisode": false,
+      "label": "Processor outputs ContextAnswer",
+      "metadata": {},
+      "type": "claim",
+      "updatedAt": "2026-04-16 07:54:00"
+    },
+    {
+      "description": "Use a graph canvas, filters, inspector, and answer trace.",
+      "id": "document_section:drive_file_001_section_control_panel",
+      "isEpisode": false,
+      "label": "Control panel",
+      "metadata": {
+        "connector": "drive",
+        "id": "drive_file_001_section_control_panel",
+        "text": "Use a graph canvas, filters, inspector, and answer trace.",
+        "title": "Control panel"
+      },
+      "type": "document_section",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "The control panel should show episodes, entities, facts, source connector, and answer traces.",
+      "id": "drive_file:drive_file_001",
+      "isEpisode": false,
+      "label": "Open Bubble Context Graph Notes",
+      "metadata": {
+        "connector": "drive",
+        "fileId": "drive_file_001",
+        "mimeType": "application/vnd.google-apps.document",
+        "webUrl": "https://drive.google.com/file/d/drive_file_001"
+      },
+      "type": "drive_file",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Open Bubble",
+      "id": "drive_folder:drive_folder_open_bubble",
+      "isEpisode": false,
+      "label": "Open Bubble",
+      "metadata": {
+        "connector": "drive",
+        "id": "drive_folder_open_bubble",
+        "name": "Open Bubble"
+      },
+      "type": "drive_folder",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Processor that ingests requests into DuckDB and produces ContextAnswer JSON",
+      "id": "file_apps_codex_agent_processor",
+      "isEpisode": false,
+      "label": "apps/codex-agent/scripts/process-context-request.py",
+      "metadata": {},
+      "type": "file",
+      "updatedAt": "2026-04-16 07:54:00"
+    },
+    {
+      "description": "Let's make sure the Codex agent stores connector snippets as episodes with provenance.",
+      "id": "gmail_message:gmail_msg_001",
+      "isEpisode": false,
+      "label": "Context graph ingestion plan",
+      "metadata": {
+        "connector": "gmail",
+        "date": "2026-04-16T07:55:00Z",
+        "messageId": "gmail_msg_001"
+      },
+      "type": "gmail_message",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Context graph ingestion plan",
+      "id": "gmail_thread:gmail_thread_001",
+      "isEpisode": false,
+      "label": "Context graph ingestion plan",
+      "metadata": {
+        "connector": "gmail",
+        "threadId": "gmail_thread_001"
+      },
+      "type": "gmail_thread",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Calendar event location",
+      "id": "location_78aeb390abbc558f",
+      "isEpisode": false,
+      "label": "Google Meet",
+      "metadata": {
+        "connector": "calendar",
+        "location": "Google Meet"
+      },
+      "type": "location",
+      "updatedAt": "2026-04-16 07:54:02"
+    },
+    {
+      "description": "priya@example.com",
+      "id": "person_6bdb7e961d54ddc2",
+      "isEpisode": false,
+      "label": "Priya Rao",
+      "metadata": {
+        "email": "priya@example.com",
+        "name": "Priya Rao"
+      },
+      "type": "person",
+      "updatedAt": "2026-04-16 07:54:02"
+    },
+    {
+      "description": "yash@example.com",
+      "id": "person_74b9e3bc910b807d",
+      "isEpisode": false,
+      "label": "Yash Gupta",
+      "metadata": {
+        "email": "yash@example.com",
+        "name": "Yash Gupta"
+      },
+      "type": "person",
+      "updatedAt": "2026-04-16 07:54:02"
+    },
+    {
+      "description": "Implement context graph ingestion and frontend response generation",
+      "id": "task_context_graph_ingest",
+      "isEpisode": false,
+      "label": "Context graph ingestion",
+      "metadata": {},
+      "type": "task",
+      "updatedAt": "2026-04-16 07:54:00"
+    },
+    {
+      "description": "2026-04-16T17:30:00Z",
+      "id": "time_97a97b28b1965601",
+      "isEpisode": false,
+      "label": "2026-04-16T17:00:00Z",
+      "metadata": {
+        "end": "2026-04-16T17:30:00Z",
+        "start": "2026-04-16T17:00:00Z"
+      },
+      "type": "time_anchor",
+      "updatedAt": "2026-04-16 07:54:02"
+    },
+    {
+      "description": "The agent is implementing context graph ingestion and frontend response generation.",
+      "id": "episode_seed_status",
+      "isEpisode": true,
+      "label": "seed context",
+      "metadata": {
+        "purpose": "test seed"
+      },
+      "type": "seed_context",
+      "updatedAt": "2026-04-16 07:54:00"
+    },
+    {
+      "description": "Open Bubble Context Graph Notes\nThe control panel should show episodes, entities, facts, source connector, and answer traces.",
+      "id": "episode_ce700007d3364267",
+      "isEpisode": true,
+      "label": "mcp drive search",
+      "metadata": {
+        "connector": "drive",
+        "operation": "search",
+        "query": "Open Bubble context graph",
+        "redaction": "snippet_only",
+        "sourceRequestId": "ctx_req_fetch_001",
+        "userVisible": true
+      },
+      "type": "mcp_drive_search",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Context graph ingestion plan\nLet's make sure the Codex agent stores connector snippets as episodes with provenance.",
+      "id": "episode_e7a6f91f136c542c",
+      "isEpisode": true,
+      "label": "mcp gmail search",
+      "metadata": {
+        "connector": "gmail",
+        "operation": "search",
+        "query": "context graph ingestion",
+        "redaction": "snippet_only",
+        "sourceRequestId": "ctx_req_fetch_001",
+        "userVisible": true
+      },
+      "type": "mcp_gmail_search",
+      "updatedAt": "2026-04-16 07:54:01"
+    },
+    {
+      "description": "Open Bubble demo review\nReview context graph ingestion, MCP connector fixtures, and control panel trace view.",
+      "id": "episode_6a6a6f4ae2edf1dc",
+      "isEpisode": true,
+      "label": "mcp calendar search",
+      "metadata": {
+        "connector": "calendar",
+        "operation": "search",
+        "query": "Open Bubble demo",
+        "redaction": "snippet_only",
+        "sourceRequestId": "ctx_req_fetch_001",
+        "userVisible": true
+      },
+      "type": "mcp_calendar_search",
+      "updatedAt": "2026-04-16 07:54:02"
+    }
+  ],
+  "sessionId": "sess_test_001",
+  "stats": {
+    "chunkCount": 6,
+    "connectorCounts": {
+      "calendar": 3,
+      "drive": 4,
+      "gmail": 4,
+      "local": 8
+    },
+    "edgeCount": 47,
+    "episodeCount": 4,
+    "nodeCount": 19,
+    "typeCounts": {
+      "agent_session": 1,
+      "attachment": 1,
+      "calendar_event": 1,
+      "claim": 1,
+      "document_section": 1,
+      "drive_file": 1,
+      "drive_folder": 1,
+      "file": 1,
+      "gmail_message": 1,
+      "gmail_thread": 1,
+      "location": 1,
+      "mcp_calendar_search": 1,
+      "mcp_drive_search": 1,
+      "mcp_gmail_search": 1,
+      "person": 2,
+      "seed_context": 1,
+      "task": 1,
+      "time_anchor": 1
+    }
+  }
+}

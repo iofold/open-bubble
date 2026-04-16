@@ -1,0 +1,8 @@
+{
+  "screenMedia": {
+    "filename": "screenshot.png",
+    "mimeType": "image/png",
+    "kind": "image"
+  },
+  "promptText": "What should I do next?"
+}

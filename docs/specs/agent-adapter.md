@@ -1,32 +1,9 @@
-# Agent Adapter Spec
+# Adapter Notes
 
-## Role
+The current MVP does not define an active backend adapter contract.
 
-Agent adapters connect whatever backend agent runtime the team uses to the Open Bubble App Server contract.
+The active API contract is still intentionally small: `POST /prompt` creates a local async task and `GET /tasks/{taskId}` exposes polling for its status and result.
 
-## MVP responsibilities
+Keep this file as a short placeholder until the API grows beyond this local task-and-poll flow.
 
-- Discover or register active sessions.
-- Produce a compact context summary for a session.
-- Accept phone-originated screenshot/context uploads and attach them to the right session.
-- Emit events when an agent changes status or finishes work.
-
-## Adapter boundary
-
-Adapters should call the App Server; the Flutter app should not call agent runtimes directly.
-
-## Initial event mapping
-
-| Agent runtime event | Open Bubble event |
-| --- | --- |
-| Session started | `session.started` |
-| Session context changed | `session.context.updated` |
-| Agent asks for user context | `agent.input.requested` |
-| Agent task completed | `agent.done` |
-| Agent failed or blocked | `agent.error` |
-
-## Open questions
-
-- Which agent runtimes are in scope for the demo?
-- Can sessions be discovered automatically, or do we manually register demo sessions?
-- What is the smallest useful context summary: task, cwd, last message, files touched, status?
+Future-scope references from `main`, including Codex-agent integration and direct DuckDB reads, remain available elsewhere in the repo and can be activated once the `/prompt` MVP expands beyond the current async polling flow.

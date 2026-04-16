@@ -1,42 +1,59 @@
 # Open Bubble
 
-Open Bubble is a hackathon prototype for a Flutter-first Android companion that uses an accessibility-powered bubble to inspect the active screen, capture context, send it to a local/team app server, and surface agent replies back into the phone workflow.
+Open Bubble is a hackathon prototype for a Flutter-first Android companion, a tiny local API, and a local Codex-agent workspace. The current MVP keeps the backend surface small while the Android client uses an accessibility-powered bubble to inspect the active screen, capture context, submit prompts, and surface replies back into the phone workflow.
 
-## Current repo status
+## MVP
 
-This repo is intentionally docs-first right now. The first goal is to align the team on scope, API contracts, and ownership before writing app/server code.
+- `apps/api` owns the local Fastify API.
+- `GET /health` checks that the server is up.
+- `POST /prompt` accepts one required `screenMedia` upload plus at least one of `promptText` or raw `promptAudio`, then creates a lightweight async task.
+- `GET /tasks/:taskId` lets the client poll task state and fetch the result later.
+- The frontend forwards raw audio without client-side transcription.
+- The API returns a task handle immediately instead of blocking for the final result.
 
-## Proposed shape
+## One-command API tunnel
+
+Run `./scripts/start-api-ngrok.sh` from the repo root to start the API and publish it through `ngrok`.
+
+- The command prints the public URL.
+- It syncs that URL into the repo-level `.env` as `OPEN_BUBBLE_API_BASE_URL`.
+- Frontend setup details live in `docs/guides/frontend-api-server.md`.
+
+## Codex Agent Context Graph
+
+`apps/codex-agent` contains the local Codex-agent workspace for context graph experiments:
+
+- screenshot + prompt request ingestion,
+- DuckDB graph fixtures,
+- Gmail/Drive/Calendar MCP result normalization,
+- graph export JSON,
+- a static local graph control panel.
+
+This workspace is intentionally decoupled from `apps/api` dispatch. The API can call the scripts later through file/JSON handoffs.
+
+## Repository shape
 
 ```text
 open-bubble/
   apps/
-    mobile/          # Flutter Android app; native Android hooks via platform channels later
-    server/          # App Server API + event relay later
-    agent-adapters/  # Backend/Codex-agent adapters later
+    api/             # Fastify API MVP and local docs
+    mobile/          # Flutter Android app
+    codex-agent/     # Codex-agent context graph workspace
   docs/
-    api/             # OpenAPI + event contracts
-    specs/           # Product, mobile, server, and adapter specs
+    api/             # OpenAPI contract and examples
+    guides/          # Frontend / local workflow guides
+    specs/           # Short MVP notes
     adr/             # Architecture decision records
   .github/           # PR template / collaboration hygiene
 ```
 
-## MVP in one sentence
+## Working notes
 
-A user opens the Flutter app, enables the Open Bubble accessibility service, sees a draggable accessibility bubble, sends active-screen context to the server, and receives a reviewable reply back through the bubble/app.
-
-## Team starting points
-
-- Read [`docs/specs/product-scope.md`](docs/specs/product-scope.md) for MVP boundaries.
-- Read [`docs/specs/team-collaboration.md`](docs/specs/team-collaboration.md) for workstream ownership.
-- Use [`docs/api/openapi.yaml`](docs/api/openapi.yaml) and [`docs/api/events.md`](docs/api/events.md) as the shared contract between mobile, server, and agent adapters.
-- Log architectural decisions in [`docs/adr/`](docs/adr/).
-
-## Suggested hackathon flow
-
-1. Agree on the API contract.
-2. Stub server responses against the contract.
-3. Build Flutter UI screens against mocked/server data.
-4. Add Android platform-channel hooks for accessibility overlay, inspection, screenshot capture, and review-before-fill.
-5. Wire agent backend events into the server event stream.
-6. Run the demo script in [`docs/specs/demo-plan.md`](docs/specs/demo-plan.md).
+- Read `AGENTS.md` before starting work.
+- Keep API changes in sync with `docs/api/openapi.yaml`.
+- Keep the docs short and remove outdated detail instead of layering on new active scope.
+- Read `docs/specs/mcp-connectors.md` before changing Gmail/Drive/Calendar connector behavior.
+- Read `docs/specs/graph-control-panel.md` before changing the graph inspection UI.
+- Read `docs/specs/product-scope.md` for MVP boundaries.
+- Read `docs/specs/team-collaboration.md` for workstream ownership.
+- Log architectural decisions in `docs/adr/`.

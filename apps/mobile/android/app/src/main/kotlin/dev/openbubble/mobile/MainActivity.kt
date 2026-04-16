@@ -53,6 +53,14 @@ class MainActivity : FlutterActivity() {
         when (call.method) {
             "getServiceStatus" -> result.success(buildServiceStatus())
             "getRecentEvents" -> result.success(OpenBubbleEventHub.snapshot())
+            "getServerBaseUrl" -> result.success(OpenBubblePreferences.getServerBaseUrl(this))
+            "setServerBaseUrl" -> {
+                val value = call.argument<String>("value").orEmpty()
+                OpenBubblePreferences.setServerBaseUrl(this, value)
+                Log.d(TAG, "setServerBaseUrl: value=$value")
+                result.success(true)
+            }
+
             "openAccessibilitySettings" -> {
                 openAccessibilitySettings()
                 result.success(true)
@@ -102,6 +110,7 @@ class MainActivity : FlutterActivity() {
             "cacheFillSuggestion" -> {
                 val text = call.argument<String>("text").orEmpty()
                 OpenBubbleAccessibilityService.cachedFillSuggestion = text
+                OpenBubblePreferences.setCachedFillSuggestion(this, text)
                 Log.d(TAG, "cacheFillSuggestion: length=${text.length}")
                 result.success(true)
             }

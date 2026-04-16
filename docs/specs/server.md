@@ -1,42 +1,20 @@
-# App Server Spec
+# API MVP Spec
 
-## Role
+The current API contract is intentionally small:
 
-The App Server is the contract boundary between the Flutter app and backend agents. It should be simple enough for the hackathon demo but structured so mobile, server, and adapter work can proceed independently.
+- `GET /health`
+- `POST /prompt`
+- `GET /tasks/{taskId}`
 
-## Responsibilities
+`POST /prompt` uses `multipart/form-data` with:
 
-- Maintain a list of active agent sessions.
-- Expose session context summaries to mobile.
-- Receive screenshot/context payloads from mobile.
-- Relay backend agent status/completion events to mobile.
-- Provide stable sample payloads for mobile development.
+- required `screenMedia`
+- optional `promptText`
+- optional raw `promptAudio`
+- at least one of `promptText` or `promptAudio`
 
-## MVP transport
+The frontend does not transcribe audio. It sends the raw bytes and the backend receives them as-is.
 
-- REST for request/response actions.
-- Server-Sent Events (SSE) for one-way event notifications to mobile.
-- JSON payloads only for the first pass.
+`POST /prompt` is asynchronous. It creates a lightweight local task, returns a task id immediately, and the client polls `GET /tasks/{taskId}` for `in_progress`, `completed`, `failed`, or `error`.
 
-## Storage
-
-Start with in-memory storage. Add file or database persistence only if the demo needs restart survival.
-
-## Suggested server modules later
-
-```text
-apps/server/
-  src/
-    index.*          # boot server
-    api/             # routes/controllers
-    domain/          # session/event models
-    adapters/        # backend agent integrations
-    store/           # in-memory persistence
-  test/              # API contract tests
-```
-
-## Contract discipline
-
-- `docs/api/openapi.yaml` is the source of truth for REST endpoints.
-- `docs/api/events.md` is the source of truth for event names and payloads.
-- Server implementation should include contract tests before mobile depends on changed behavior.
+Keep the source of truth in `docs/api/openapi.yaml`.

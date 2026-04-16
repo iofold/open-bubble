@@ -1,17 +1,5 @@
-# App Server Placeholder
+# apps/server
 
-Server implementation will live here after the team agrees on the API contract.
+This directory is retired for the current MVP.
 
-Before coding, read:
-
-- `docs/specs/server.md`
-- `docs/api/openapi.yaml`
-- `docs/api/events.md`
-
-Suggested implementation direction for MVP:
-
-- Start with a tiny local server.
-- In-memory sessions/events.
-- REST endpoints from OpenAPI.
-- SSE stream for bubble notifications.
-- Contract tests based on `docs/api/examples/`.
+Active server work now lives in `apps/api`, where the Fastify API exposes `GET /health` and `POST /prompt`.

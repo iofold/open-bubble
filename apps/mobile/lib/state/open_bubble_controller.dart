@@ -30,7 +30,7 @@ class OpenBubbleController extends ChangeNotifier {
   bool performingAction = false;
   bool serverHealthy = false;
 
-  String serverBaseUrl = 'http://10.0.2.2:8787';
+  String serverBaseUrl = 'http://10.0.2.2:3000';
   ServiceStatus serviceStatus = const ServiceStatus.initial();
   List<SessionSummary> sessions = const [];
   List<RequestJob> requests = const [];
@@ -78,18 +78,22 @@ class OpenBubbleController extends ChangeNotifier {
     notifyListeners();
 
     _eventSubscription = _bridge.events.listen(_handlePlatformEvent);
+    final persistedServerBaseUrl = await _bridge.getServerBaseUrl();
+    if (persistedServerBaseUrl.trim().isNotEmpty) {
+      serverBaseUrl = persistedServerBaseUrl.trim();
+    }
 
     await Future.wait<void>([
       refreshSessions(),
       refreshServiceStatus(),
-      checkServerHealth(),
       _hydrateRecentEvents(),
     ]);
+    await checkServerHealth();
 
     _addTimeline(
-      title: 'Accessibility-first runtime ready',
+      title: 'Accessibility + prompt runtime ready',
       detail:
-          'The Flutter shell, mocked server flow, and native Android bridge are wired together.',
+          'The Flutter shell is now tracking the native bubble, real App Server health, and prompt task events coming back from Android.',
       tone: TimelineTone.success,
     );
 
@@ -163,6 +167,7 @@ class OpenBubbleController extends ChangeNotifier {
 
   Future<void> updateServerBaseUrl(String value) async {
     serverBaseUrl = value.trim();
+    await _bridge.setServerBaseUrl(serverBaseUrl);
     notifyListeners();
     await checkServerHealth();
   }
@@ -483,15 +488,21 @@ class OpenBubbleController extends ChangeNotifier {
             stage: mode == 'pull'
                 ? RequestStage.drafting
                 : RequestStage.capturing,
-            detail: mode == 'pull'
-                ? 'Reading the current screen and preparing a structured mock data pull.'
-                : 'Capturing the current external app and preparing a mocked reply.',
-            usesMockCapture: mode == 'pull',
+            detail: switch (mode) {
+              'prompt' =>
+                'Capturing the current external app and preparing a real prompt request for the App Server.',
+              'pull' =>
+                'Reading the current screen and preparing a structured mock data pull.',
+              _ =>
+                'Capturing the current external app and preparing a mocked reply.',
+            },
+            usesMockCapture: mode != 'prompt',
           );
         }
         break;
       case 'capture.ready':
         latestCapture = CaptureSnapshot.fromMap(event.payload);
+        final mode = event.payload['mode'] as String?;
         final snapshotPayload = event.payload['windowSnapshot'];
         if (snapshotPayload is Map) {
           latestInspection = WindowSnapshot.fromMap(
@@ -502,9 +513,12 @@ class OpenBubbleController extends ChangeNotifier {
         }
         _updateRequest(
           latestCapture!.requestId,
-          stage: RequestStage.drafting,
-          detail:
-              'Screenshot persisted. Drafting a mocked server response now.',
+          stage: mode == 'prompt'
+              ? RequestStage.uploading
+              : RequestStage.drafting,
+          detail: mode == 'prompt'
+              ? 'Screenshot persisted. Uploading prompt and image to the App Server.'
+              : 'Screenshot persisted. Drafting a mocked server response now.',
         );
         if (!_isOverlayManagedRequest(latestCapture!.requestId)) {
           final sessionId = selectedSessionId ?? _firstSessionId;
@@ -516,6 +530,43 @@ class OpenBubbleController extends ChangeNotifier {
               ),
             );
           }
+        }
+        break;
+      case 'task.accepted':
+        final requestId = event.payload['requestId'] as String?;
+        if (requestId != null) {
+          _updateRequest(
+            requestId,
+            stage: RequestStage.drafting,
+            detail:
+                'The App Server accepted the task. Open Bubble is polling for the result now.',
+            usesMockCapture: false,
+          );
+        }
+        break;
+      case 'task.completed':
+        final requestId = event.payload['requestId'] as String?;
+        if (requestId != null) {
+          _updateRequest(
+            requestId,
+            stage: RequestStage.ready,
+            detail:
+                'The App Server completed the task. The answer was copied to the clipboard and synced into review.',
+            usesMockCapture: false,
+          );
+        }
+        break;
+      case 'task.failed':
+        final requestId = event.payload['requestId'] as String?;
+        if (requestId != null) {
+          _updateRequest(
+            requestId,
+            stage: RequestStage.failed,
+            detail:
+                event.message ??
+                'The App Server request failed before a reply was ready.',
+            usesMockCapture: false,
+          );
         }
         break;
       case 'overlay.reply.ready':
@@ -544,10 +595,15 @@ class OpenBubbleController extends ChangeNotifier {
             requestId: requestId,
             session: session,
             stage: RequestStage.ready,
-            detail: mode == 'pull'
-                ? 'Mock data is ready in the clipboard and available for review-before-fill.'
-                : 'Background capture reply is ready in the clipboard and available for review-before-fill.',
-            usesMockCapture: mode == 'pull',
+            detail: switch (mode) {
+              'prompt' =>
+                'The App Server reply is ready in the clipboard and available for review-before-fill.',
+              'pull' =>
+                'Mock data is ready in the clipboard and available for review-before-fill.',
+              _ =>
+                'Background capture reply is ready in the clipboard and available for review-before-fill.',
+            },
+            usesMockCapture: mode != 'prompt',
           );
         }
         break;
@@ -558,7 +614,7 @@ class OpenBubbleController extends ChangeNotifier {
           _updateRequest(
             requestId,
             stage: RequestStage.failed,
-            detail:
+            detail: event.message ??
                 'The background overlay workflow failed. Retry from the bubble or reopen the app for more detail.',
           );
         }
@@ -585,8 +641,11 @@ class OpenBubbleController extends ChangeNotifier {
         tone: switch (event.type) {
           'capture.failed' ||
           'fill.failed' ||
-          'overlay.workflow.failed' => TimelineTone.error,
-          'fill.completed' || 'overlay.reply.ready' => TimelineTone.success,
+          'overlay.workflow.failed' ||
+          'task.failed' => TimelineTone.error,
+          'fill.completed' ||
+          'overlay.reply.ready' ||
+          'task.completed' => TimelineTone.success,
           'bubble.longPress' => TimelineTone.info,
           _ => TimelineTone.info,
         },
@@ -601,6 +660,12 @@ class OpenBubbleController extends ChangeNotifier {
   SessionSummary? _sessionForMode(String? mode) {
     if (sessions.isEmpty) {
       return null;
+    }
+
+    if (mode == 'prompt') {
+      return selectedSession ??
+          _findSessionById('sess_hackathon_001') ??
+          sessions.first;
     }
 
     if (mode == 'pull') {
@@ -659,7 +724,9 @@ class OpenBubbleController extends ChangeNotifier {
   }
 
   bool _isOverlayManagedRequest(String requestId) {
-    return requestId.startsWith('orb_') || requestId.startsWith('pull_');
+    return requestId.startsWith('orb_') ||
+        requestId.startsWith('pull_') ||
+        requestId.startsWith('prompt_');
   }
 
   bool _markEventProcessed(ServiceEvent event) {

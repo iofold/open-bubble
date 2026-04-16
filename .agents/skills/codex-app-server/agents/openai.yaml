@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex App Server"
+  short_description: "Open Bubble App Server REST, SSE, and Codex-agent workflow"
+  default_prompt: "Use $codex-app-server when changing Open Bubble App Server contracts, events, server specs, or Codex context-answer integration."

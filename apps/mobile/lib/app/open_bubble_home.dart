@@ -43,6 +43,14 @@ class _OpenBubbleHomeState extends State<OpenBubbleHome> {
       animation: widget.controller,
       builder: (context, child) {
         final controller = widget.controller;
+        if (_serverController.text != controller.serverBaseUrl) {
+          _serverController.value = _serverController.value.copyWith(
+            text: controller.serverBaseUrl,
+            selection: TextSelection.collapsed(
+              offset: controller.serverBaseUrl.length,
+            ),
+          );
+        }
         final pages = <Widget>[
           _SetupPage(
             controller: controller,
@@ -224,9 +232,9 @@ class _SetupPage extends StatelessWidget {
             ),
             _MiniMetricCard(
               title: 'App Server',
-              value: controller.serverHealthy ? 'Reachable' : 'Mocked',
+              value: controller.serverHealthy ? 'Reachable' : 'Offline',
               detail:
-                  'Requests are mocked for now; health checks can point at the real server.',
+                  'The bubble submits to `/prompt` and polls `/tasks/{taskId}` when the server is reachable.',
             ),
           ],
         ),
@@ -277,7 +285,7 @@ class _SetupPage extends StatelessWidget {
         _SectionCard(
           title: 'Connection target',
           subtitle:
-              'The client can already health-check a real server URL, even though request/reply flows are still mocked in the app.',
+              'This URL is persisted into the Android runtime. The bubble uses it while the app is backgrounded.',
           accent: const Color(0xFF6B8F71),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +294,7 @@ class _SetupPage extends StatelessWidget {
                 controller: serverController,
                 decoration: const InputDecoration(
                   labelText: 'App Server base URL',
-                  hintText: 'http://10.0.2.2:8787',
+                  hintText: 'http://10.0.2.2:3000',
                   border: OutlineInputBorder(),
                 ),
                 onSubmitted: controller.updateServerBaseUrl,
@@ -311,7 +319,7 @@ class _SetupPage extends StatelessWidget {
                   _StatusPill(
                     label: controller.serverHealthy
                         ? 'Real server reachable'
-                        : 'Mocked replies active',
+                        : 'Server unreachable',
                     color: controller.serverHealthy
                         ? const Color(0xFF2F855A)
                         : const Color(0xFFB45309),
@@ -353,7 +361,7 @@ class _SessionsPage extends StatelessWidget {
         _SectionCard(
           title: 'Active sessions',
           subtitle:
-              'The client can already browse mocked sessions while the real App Server integration is being built.',
+              'These are local workflow lanes for the demo UI. The real network flow now comes from the bubble prompt composer and the App Server task API.',
           accent: theme.colorScheme.primary,
           child: Column(
             children: [
@@ -382,24 +390,29 @@ class _SessionsPage extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(session.currentTask),
                 const SizedBox(height: 12),
+                Text(
+                  'Use the floating bubble on top of another app for the real prompt flow: tap `Ask` or long-press the bubble, type your prompt, then send it. Open Bubble captures the current screen, submits it to the App Server, and waits for the answer.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    FilledButton.icon(
-                      onPressed: controller.captureAndSend,
-                      icon: const Icon(Icons.camera_rounded),
-                      label: const Text('Capture & Send'),
-                    ),
                     FilledButton.tonalIcon(
                       onPressed: controller.inspectActiveWindow,
                       icon: const Icon(Icons.view_quilt_rounded),
                       label: const Text('Inspect Now'),
                     ),
+                    FilledButton.tonalIcon(
+                      onPressed: controller.showBubble,
+                      icon: const Icon(Icons.radio_button_checked_rounded),
+                      label: const Text('Show Bubble'),
+                    ),
                     OutlinedButton.icon(
-                      onPressed: controller.generateMockReply,
-                      icon: const Icon(Icons.auto_awesome_rounded),
-                      label: const Text('Generate Mock Reply'),
+                      onPressed: controller.openNotificationSettings,
+                      icon: const Icon(Icons.notifications_active_rounded),
+                      label: const Text('Notifications'),
                     ),
                   ],
                 ),
@@ -410,11 +423,11 @@ class _SessionsPage extends StatelessWidget {
         _SectionCard(
           title: 'Request pipeline',
           subtitle:
-              'This mirrors the lifecycle the real App Server will expose later: capture, correlate, draft, then review.',
+              'This reflects the live bubble workflow: capture, upload to `/prompt`, poll `/tasks/{taskId}`, then review and copy/fill.',
           accent: const Color(0xFF7C3AED),
           child: controller.requests.isEmpty
               ? const Text(
-                  'No requests yet. Capture the current window or generate a mocked reply to start the pipeline.',
+                  'No requests yet. Start from another app with the bubble, enter a prompt, and send it.',
                 )
               : Column(
                   children: [
@@ -435,7 +448,7 @@ class _SessionsPage extends StatelessWidget {
           _SectionCard(
             title: 'Latest inspection',
             subtitle:
-                'This snapshot comes from the accessibility runtime and is what the server mock currently consumes.',
+                'This snapshot comes from the accessibility runtime and shows what Open Bubble can read from the current window.',
             accent: const Color(0xFF0E5A63),
             child: _InspectionPreview(snapshot: controller.latestInspection!),
           ),
@@ -474,7 +487,7 @@ class _ReviewPage extends StatelessWidget {
           accent: const Color(0xFF6B8F71),
           child: controller.latestReplyDraft == null
               ? const Text(
-                  'No reply draft yet. Capture context from the Sessions tab or generate a mock reply to see the review flow.',
+                  'No reply draft yet. Use the bubble on top of another app, type a prompt, and wait for the App Server result.',
                 )
               : _ReplyDraftCard(
                   controller: controller,
@@ -485,7 +498,7 @@ class _ReviewPage extends StatelessWidget {
         _SectionCard(
           title: 'Timeline',
           subtitle:
-              'The feed below mixes Flutter actions, mocked server work, and native Android events coming back over the platform bridge.',
+              'The feed below mixes Flutter actions with native Android events from the bubble, capture pipeline, and App Server task flow.',
           accent: const Color(0xFF7C3AED),
           child: controller.timeline.isEmpty
               ? const Text('No activity yet.')
@@ -542,7 +555,7 @@ class _HeroDeck extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'A Flutter shell backed by a native Android accessibility runtime for overlay, inspect, capture, and review-before-fill flows.',
+            'A Flutter shell backed by a native Android accessibility runtime for overlay, prompt entry, capture, and review-before-fill flows.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.88),
             ),
@@ -646,7 +659,7 @@ class _ReplyDraftCard extends StatelessWidget {
         Text('Local fill sandbox', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         Text(
-          'This field is here to verify the native fill path while cross-app review and fill UX is still being hardened.',
+          'This field is here to verify the native fill path while the main user journey stays centered on clipboard plus notification.',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 10),

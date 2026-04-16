@@ -23,6 +23,16 @@ class OpenBubblePlatformBridge {
     return ServiceStatus.fromMap(_stringMap(result));
   }
 
+  Future<String> getServerBaseUrl() async {
+    return await _methodChannel.invokeMethod<String>('getServerBaseUrl') ?? '';
+  }
+
+  Future<void> setServerBaseUrl(String value) async {
+    await _methodChannel.invokeMethod<void>('setServerBaseUrl', <String, dynamic>{
+      'value': value,
+    });
+  }
+
   Future<List<ServiceEvent>> getRecentEvents() async {
     final result = await _methodChannel.invokeMethod<dynamic>(
       'getRecentEvents',

@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Open Bubble App Server API
+  title: Open Bubble API
   version: 0.1.0
-  summary: Contract between the Flutter Android companion app, App Server, and backend agent adapters.
+  summary: Minimal contract for the local prompt MVP.
 servers:
-  - url: http://localhost:8787
+  - url: http://localhost:3000
     description: Local development server
 paths:
   /health:
@@ -17,189 +17,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
-  /v1/sessions:
-    get:
-      summary: List active or recent agent sessions
-      responses:
-        '200':
-          description: Session list
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [sessions]
-                properties:
-                  sessions:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/SessionSummary'
+  /prompt:
     post:
-      summary: Register a demo/backend agent session
+      summary: Submit a media prompt and create an async task
+      description: Send one multipart file named `screenMedia` and at least one prompt field. The runtime accepts `image/*` and `video/*` for screen media, accepts raw `audio/*` in `promptAudio`, and forwards the audio bytes without client-side transcription. The API persists a lightweight local task, starts background processing, and returns a task id for polling. Any unsupported media type should return `415 Unsupported Media Type`.
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-      responses:
-        '201':
-          description: Created session
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SessionSummary'
-  /v1/sessions/{sessionId}:
-    get:
-      summary: Get one session
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      responses:
-        '200':
-          description: Session detail
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SessionDetail'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /v1/sessions/{sessionId}/context:
-    get:
-      summary: Fetch current context summary for a session
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      responses:
-        '200':
-          description: Session context
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SessionContext'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      summary: Replace or update context summary from an agent adapter
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SessionContextUpdate'
-      responses:
-        '200':
-          description: Updated context
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SessionContext'
-  /v1/sessions/{sessionId}/captures:
-    post:
-      summary: Upload an accessibility capture from mobile
-      parameters:
-        - $ref: '#/components/parameters/SessionId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CaptureSubmissionRequest'
+              $ref: '#/components/schemas/PromptRequest'
       responses:
         '202':
-          description: Capture accepted
+          description: Prompt accepted and queued for background processing
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CaptureSubmissionResponse'
-  /v1/requests/{requestId}:
+                $ref: '#/components/schemas/PromptAcceptedResponse'
+        '400':
+          description: Missing required media or invalid prompt payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Unsupported media type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /tasks/{taskId}:
     get:
-      summary: Get the latest status/result for a submitted mobile request
+      summary: Get prompt task status
       parameters:
-        - $ref: '#/components/parameters/RequestId'
-      responses:
-        '200':
-          description: Request status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RequestResult'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /v1/events:
-    get:
-      summary: Poll recent events as a fallback to SSE
-      parameters:
-        - in: query
-          name: since
-          required: false
-          schema:
-            type: string
-            format: date-time
-      responses:
-        '200':
-          description: Recent events
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [events]
-                properties:
-                  events:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/BubbleEvent'
-    post:
-      summary: Publish an event from an agent adapter or demo script
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateEventRequest'
-      responses:
-        '202':
-          description: Event accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BubbleEvent'
-  /v1/events/stream:
-    get:
-      summary: Subscribe to bubble events with Server-Sent Events
-      parameters:
-        - in: query
-          name: deviceId
+        - name: taskId
+          in: path
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         '200':
-          description: SSE stream of BubbleEvent payloads
+          description: Current task state
           content:
-            text/event-stream:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/TaskStatusResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
-  parameters:
-    SessionId:
-      in: path
-      name: sessionId
-      required: true
-      schema:
-        type: string
-    RequestId:
-      in: path
-      name: requestId
-      required: true
-      schema:
-        type: string
-  responses:
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     HealthResponse:
       type: object
@@ -209,297 +79,121 @@ components:
           type: boolean
         service:
           type: string
-          const: open-bubble-server
+          const: open-bubble-api
         version:
           type: string
-    SessionStatus:
-      type: string
-      enum: [starting, running, waiting_for_input, done, error, unknown]
-    SessionSummary:
+    PromptRequest:
       type: object
-      required: [id, title, status, updatedAt]
+      required: [screenMedia]
+      anyOf:
+        - required: [promptText]
+        - required: [promptAudio]
       properties:
-        id:
+        screenMedia:
           type: string
-        title:
+          format: binary
+          description: Upload one screenshot or screen recording as an image/* or video/* file.
+        promptText:
           type: string
-        status:
-          $ref: '#/components/schemas/SessionStatus'
-        agentKind:
+          description: Optional text prompt sent with the uploaded screen media.
+        promptAudio:
           type: string
-          examples: [codex, demo]
-        updatedAt:
-          type: string
-          format: date-time
-    SessionDetail:
-      allOf:
-        - $ref: '#/components/schemas/SessionSummary'
-        - type: object
-          properties:
-            context:
-              $ref: '#/components/schemas/SessionContext'
-            lastEvent:
-              $ref: '#/components/schemas/BubbleEvent'
-    CreateSessionRequest:
+          format: binary
+          description: Optional raw audio prompt sent as audio/* and forwarded to the backend without client-side transcription.
+      additionalProperties: false
+    PromptMedia:
       type: object
-      required: [title]
+      required: [filename, mimeType, kind]
       properties:
-        title:
+        filename:
           type: string
-        agentKind:
-          type: string
-          default: demo
-        status:
-          $ref: '#/components/schemas/SessionStatus'
-        context:
-          $ref: '#/components/schemas/SessionContextUpdate'
-    SessionContext:
-      type: object
-      required: [sessionId, summary, updatedAt]
-      properties:
-        sessionId:
-          type: string
-        summary:
-          type: string
-        currentTask:
-          type: string
-        workingDirectory:
-          type: string
-        files:
-          type: array
-          items:
-            type: string
-        recentMessages:
-          type: array
-          items:
-            type: string
-        updatedAt:
-          type: string
-          format: date-time
-    SessionContextUpdate:
-      type: object
-      properties:
-        summary:
-          type: string
-        currentTask:
-          type: string
-        workingDirectory:
-          type: string
-        files:
-          type: array
-          items:
-            type: string
-        recentMessages:
-          type: array
-          items:
-            type: string
-    CaptureSubmissionRequest:
-      type: object
-      required: [deviceId, requestId, capturedAt, captureType]
-      properties:
-        deviceId:
-          type: string
-        requestId:
-          type: string
-        capturedAt:
-          type: string
-          format: date-time
-        captureType:
-          type: string
-          enum: [inspect, screenshot, screenshot_with_prompt]
         mimeType:
           type: string
-          enum: [image/png, image/jpeg, image/webp]
-        imageBase64:
+        kind:
           type: string
-          description: Optional for MVP; may be omitted if sending metadata only.
-        userPrompt:
-          type: string
-        sourceApp:
-          type: string
-        sourcePackage:
-          type: string
-        focusedField:
-          $ref: '#/components/schemas/FocusedField'
-        windowSnapshot:
-          $ref: '#/components/schemas/WindowSnapshot'
-        notes:
-          type: string
-        captureMetadata:
-          type: object
-          additionalProperties: true
-    CaptureSubmissionResponse:
+          enum: [image, video]
+      additionalProperties: false
+    PromptAudio:
       type: object
-      required: [accepted, requestId, status]
+      required: [filename, mimeType]
       properties:
-        accepted:
-          type: boolean
-        requestId:
+        filename:
           type: string
-        status:
-          $ref: '#/components/schemas/RequestStatus'
-        captureId:
+        mimeType:
           type: string
-        message:
-          type: string
-    FocusedField:
-      type: object
-      properties:
-        label:
-          type: string
-        hint:
-          type: string
-        bounds:
-          $ref: '#/components/schemas/ScreenBounds'
-        supportsSetText:
-          type: boolean
-        supportsPaste:
-          type: boolean
-    WindowSnapshot:
-      type: object
-      properties:
-        packageName:
-          type: string
-        className:
-          type: string
-        windowCount:
-          type: integer
-        visibleText:
-          type: array
-          items:
-            type: string
-        editableLabels:
-          type: array
-          items:
-            type: string
-        focusedField:
-          $ref: '#/components/schemas/FocusedField'
-    ScreenBounds:
-      type: object
-      properties:
-        left:
-          type: integer
-        top:
-          type: integer
-        right:
-          type: integer
-        bottom:
-          type: integer
-        width:
-          type: integer
-        height:
-          type: integer
-    RequestStatus:
+      additionalProperties: false
+    TaskStatus:
       type: string
-      enum: [queued, running, awaiting_review, completed, error]
-    FillSuggestion:
+      enum: [in_progress, completed, failed, error]
+    PromptAcceptedResponse:
       type: object
+      required: [taskId, status, createdAt, statusUrl]
       properties:
-        label:
+        taskId:
           type: string
-        text:
-          type: string
-        copyText:
-          type: string
-        confidence:
-          type: string
-          enum: [low, medium, high]
-        warnings:
-          type: array
-          items:
-            type: string
-    RequestResult:
-      type: object
-      required: [requestId, status, updatedAt]
-      properties:
-        requestId:
-          type: string
-        sessionId:
-          type: string
+          format: uuid
         status:
-          $ref: '#/components/schemas/RequestStatus'
-        title:
-          type: string
-        message:
-          type: string
-        replyText:
-          type: string
-        fillSuggestion:
-          $ref: '#/components/schemas/FillSuggestion'
-        updatedAt:
-          type: string
-          format: date-time
-    EventType:
-      type: string
-      enum:
-        - session.started
-        - session.context.updated
-        - capture.accepted
-        - request.updated
-        - assistant.reply.ready
-        - fill.preview.ready
-        - agent.done
-        - agent.error
-    BubbleEvent:
-      type: object
-      required: [id, type, title, createdAt]
-      properties:
-        id:
-          type: string
-        type:
-          $ref: '#/components/schemas/EventType'
-        sessionId:
-          type: string
-        requestId:
-          type: string
-        title:
-          type: string
-        message:
-          type: string
-        severity:
-          type: string
-          enum: [info, success, warning, error]
-          default: info
+          $ref: '#/components/schemas/TaskStatus'
         createdAt:
           type: string
           format: date-time
-        action:
-          type: object
-          properties:
-            label:
-              type: string
-            deepLink:
-              type: string
-    CreateEventRequest:
+        statusUrl:
+          type: string
+      additionalProperties: false
+    TaskResult:
       type: object
-      required: [type, title]
+      required: [screenMedia, completedAt]
       properties:
-        type:
-          $ref: '#/components/schemas/EventType'
-        sessionId:
+        answer:
           type: string
-        requestId:
+        pullRequestUrl:
           type: string
-        title:
+          format: uri
+        promptText:
+          type: string
+        promptAudio:
+          $ref: '#/components/schemas/PromptAudio'
+        screenMedia:
+          $ref: '#/components/schemas/PromptMedia'
+        completedAt:
+          type: string
+          format: date-time
+      additionalProperties: false
+    TaskFailure:
+      type: object
+      required: [code, message]
+      properties:
+        code:
           type: string
         message:
           type: string
-        severity:
+      additionalProperties: false
+    TaskStatusResponse:
+      type: object
+      required: [taskId, status, createdAt, updatedAt]
+      properties:
+        taskId:
           type: string
-          enum: [info, success, warning, error]
-        action:
-          type: object
-          properties:
-            label:
-              type: string
-            deepLink:
-              type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        result:
+          $ref: '#/components/schemas/TaskResult'
+        errorDetail:
+          $ref: '#/components/schemas/TaskFailure'
+      additionalProperties: false
     ErrorResponse:
       type: object
-      required: [error]
+      required: [error, message]
       properties:
         error:
           type: string
-        details:
-          type: object
-          additionalProperties: true
+        message:
+          type: string
+      additionalProperties: false

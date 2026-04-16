@@ -37,6 +37,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pendingOverlayWorkflows = ConcurrentHashMap<String, OverlayWorkflow>()
+    private val pendingPromptSubmissions = ConcurrentHashMap<String, PendingPromptSubmission>()
 
     private var captureInFlight = false
     private var lastExternalWindowId: Int? = null
@@ -56,6 +57,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         instance = this
         overlayController = BubbleOverlayController(this)
         ensureNotificationChannel()
+        cachedFillSuggestion = OpenBubblePreferences.getCachedFillSuggestion(this)
         Log.d(TAG, "onServiceConnected")
 
         OpenBubbleEventHub.emit(
@@ -186,7 +188,9 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
     }
 
     fun fillCachedSuggestion(): Map<String, Any?> {
-        val text = cachedFillSuggestion?.takeIf { it.isNotBlank() }
+        val text =
+            (cachedFillSuggestion ?: OpenBubblePreferences.getCachedFillSuggestion(this))
+                ?.takeIf { it.isNotBlank() }
             ?: run {
                 overlayController.updateStatus(
                     bubbleText = "!",
@@ -213,6 +217,78 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         )
         scheduleBubbleStatusReset()
         return result
+    }
+
+    fun openPromptComposer(seedText: String = ""): Boolean {
+        if (!::overlayController.isInitialized) {
+            Log.d(TAG, "openPromptComposer: overlay controller not initialized")
+            return false
+        }
+
+        overlayController.showPromptComposer(seedText)
+        return true
+    }
+
+    fun submitPromptFromOverlay(promptText: String): Boolean {
+        val trimmedPrompt = promptText.trim()
+        if (trimmedPrompt.isBlank()) {
+            overlayController.updatePromptComposerStatus(
+                message = "Add a short prompt before sending.",
+                isError = true,
+            )
+            return false
+        }
+
+        val baseUrl = OpenBubblePreferences.getServerBaseUrl(this)
+        if (baseUrl.isBlank()) {
+            overlayController.updatePromptComposerStatus(
+                message = "Set the App Server URL in Open Bubble first.",
+                isError = true,
+            )
+            return false
+        }
+
+        val requestId = newRequestId("prompt")
+        pendingPromptSubmissions[requestId] = PendingPromptSubmission(promptText = trimmedPrompt)
+        overlayController.updateStatus(
+            bubbleText = "...",
+            subtitle = "Capturing current app…",
+        )
+        OpenBubbleEventHub.emit(
+            type = "overlay.workflow.started",
+            message = "Background prompt workflow started.",
+            payload = mapOf(
+                "requestId" to requestId,
+                "mode" to "prompt",
+                "promptText" to trimmedPrompt,
+            ),
+        )
+
+        val result = captureActiveWindow(requestId = requestId, preferExternal = true)
+        if (!(result["accepted"] as? Boolean ?: false)) {
+            pendingPromptSubmissions.remove(requestId)
+            overlayController.updateStatus(
+                bubbleText = "!",
+                subtitle = "Capture could not start.",
+            )
+            scheduleBubbleStatusReset()
+            OpenBubbleEventHub.emit(
+                type = "overlay.workflow.failed",
+                message = "Background prompt workflow failed to start.",
+                payload = mapOf(
+                    "requestId" to requestId,
+                    "mode" to "prompt",
+                    "reason" to (result["reason"] ?: "unknown"),
+                ),
+            )
+            return false
+        }
+
+        overlayController.updatePromptComposerStatus(
+            message = "Prompt accepted. Open Bubble is sending it now.",
+            isError = false,
+        )
+        return true
     }
 
     fun startOverlayCaptureWorkflow(): Map<String, Any?> {
@@ -309,6 +385,7 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         val callback =
             object : TakeScreenshotCallback {
                 override fun onSuccess(screenshot: ScreenshotResult) {
+                    val promptSubmission = pendingPromptSubmissions[requestId]
                     val payload =
                         persistScreenshot(
                             screenshot = screenshot,
@@ -330,8 +407,30 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                     OpenBubbleEventHub.emit(
                         type = "capture.ready",
                         message = "Capture ready for request $requestId.",
-                        payload = payload + ("windowSnapshot" to snapshot),
+                        payload =
+                            payload +
+                                mapOf(
+                                    "windowSnapshot" to snapshot,
+                                    "mode" to
+                                        when {
+                                            promptSubmission != null -> "prompt"
+                                            pendingOverlayWorkflows[requestId] == OverlayWorkflow.capture -> "capture"
+                                            pendingOverlayWorkflows[requestId] == OverlayWorkflow.pull -> "pull"
+                                            else -> "capture"
+                                        },
+                                ),
                     )
+
+                    if (promptSubmission != null) {
+                        pendingPromptSubmissions.remove(requestId)
+                        startPromptTaskSubmission(
+                            requestId = requestId,
+                            submission = promptSubmission,
+                            capturePayload = payload,
+                            snapshot = snapshot,
+                        )
+                        return
+                    }
 
                     if (pendingOverlayWorkflows[requestId] == OverlayWorkflow.capture) {
                         overlayController.updateStatus(
@@ -362,6 +461,33 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                             "errorCode" to errorCode,
                         ),
                     )
+
+                    if (pendingPromptSubmissions.remove(requestId) != null) {
+                        overlayController.updateStatus(
+                            bubbleText = "!",
+                            subtitle = "Capture failed.",
+                        )
+                        scheduleBubbleStatusReset()
+                        OpenBubbleEventHub.emit(
+                            type = "task.failed",
+                            message = "Prompt capture failed before upload.",
+                            payload = mapOf(
+                                "requestId" to requestId,
+                                "mode" to "prompt",
+                                "errorCode" to errorCode,
+                            ),
+                        )
+                        OpenBubbleEventHub.emit(
+                            type = "overlay.workflow.failed",
+                            message = "Background prompt workflow failed during capture.",
+                            payload = mapOf(
+                                "requestId" to requestId,
+                                "mode" to "prompt",
+                                "errorCode" to errorCode,
+                            ),
+                        )
+                        return
+                    }
 
                     if (pendingOverlayWorkflows.remove(requestId) == OverlayWorkflow.capture) {
                         overlayController.updateStatus(
@@ -507,20 +633,203 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
         )
     }
 
+    private fun startPromptTaskSubmission(
+        requestId: String,
+        submission: PendingPromptSubmission,
+        capturePayload: Map<String, Any?>,
+        snapshot: Map<String, Any?>,
+    ) {
+        val screenshotPath = capturePayload["filePath"] as? String
+        val packageName =
+            snapshot["packageName"] as? String ?: (lastExternalPackageName ?: "background app")
+        if (screenshotPath.isNullOrBlank()) {
+            failPromptWorkflow(
+                requestId = requestId,
+                packageName = packageName,
+                code = "missing_capture",
+                message = "The screenshot capture finished without a file path.",
+            )
+            return
+        }
+
+        val screenshotFile = File(screenshotPath)
+        if (!screenshotFile.exists()) {
+            failPromptWorkflow(
+                requestId = requestId,
+                packageName = packageName,
+                code = "missing_capture_file",
+                message = "The captured screenshot could not be found on disk.",
+            )
+            return
+        }
+
+        overlayController.updateStatus(
+            bubbleText = "...",
+            subtitle = "Uploading prompt…",
+        )
+
+        Thread {
+            try {
+                val baseUrl = OpenBubblePreferences.getServerBaseUrl(this)
+                val accepted =
+                    PromptTaskClient.submitPrompt(
+                        baseUrl = baseUrl,
+                        screenshotFile = screenshotFile,
+                        promptText = submission.promptText,
+                    )
+
+                OpenBubbleEventHub.emit(
+                    type = "task.accepted",
+                    message = "The App Server accepted the prompt task.",
+                    payload = mapOf(
+                        "requestId" to requestId,
+                        "taskId" to accepted.taskId,
+                        "mode" to "prompt",
+                        "status" to accepted.status,
+                        "statusUrl" to accepted.statusUrl,
+                        "createdAt" to accepted.createdAt,
+                        "promptText" to submission.promptText,
+                        "targetPackage" to packageName,
+                    ),
+                )
+
+                mainHandler.post {
+                    overlayController.updateStatus(
+                        bubbleText = "...",
+                        subtitle = "Waiting for server reply…",
+                    )
+                }
+
+                val outcome =
+                    PromptTaskClient.pollTask(
+                        baseUrl = baseUrl,
+                        taskId = accepted.taskId,
+                        statusUrl = accepted.statusUrl,
+                    )
+
+                if (outcome.status == "completed") {
+                    val answer =
+                        outcome.answer?.takeIf { it.isNotBlank() }
+                            ?: "The task completed without a textual answer."
+                    OpenBubbleEventHub.emit(
+                        type = "task.completed",
+                        message = "The App Server completed the prompt task.",
+                        payload = mapOf(
+                            "requestId" to requestId,
+                            "taskId" to outcome.taskId,
+                            "mode" to "prompt",
+                            "status" to outcome.status,
+                            "updatedAt" to outcome.updatedAt,
+                            "completedAt" to (outcome.completedAt ?: outcome.updatedAt),
+                            "promptText" to submission.promptText,
+                            "answer" to answer,
+                            "targetPackage" to packageName,
+                        ),
+                    )
+                    deliverOverlayReply(
+                        OverlayReply(
+                            requestId = requestId,
+                            workflow = "prompt",
+                            title = "Server reply ready",
+                            replyText = answer,
+                            fillSuggestion = answer,
+                            notificationText = "Server reply copied to clipboard.",
+                            targetPackage = packageName,
+                            taskId = outcome.taskId,
+                            promptText = submission.promptText,
+                        ),
+                    )
+                    return@Thread
+                }
+
+                failPromptWorkflow(
+                    requestId = requestId,
+                    packageName = packageName,
+                    code = outcome.errorCode ?: outcome.status,
+                    message =
+                        outcome.errorMessage
+                            ?: "The App Server returned ${outcome.status} for this task.",
+                    taskId = outcome.taskId,
+                    promptText = submission.promptText,
+                )
+            } catch (error: PromptTaskException) {
+                failPromptWorkflow(
+                    requestId = requestId,
+                    packageName = packageName,
+                    code = error.code,
+                    message = error.message,
+                    promptText = submission.promptText,
+                )
+            } catch (error: Exception) {
+                failPromptWorkflow(
+                    requestId = requestId,
+                    packageName = packageName,
+                    code = "network_error",
+                    message = error.message ?: "Prompt upload failed.",
+                    promptText = submission.promptText,
+                )
+            }
+        }.start()
+    }
+
+    private fun failPromptWorkflow(
+        requestId: String,
+        packageName: String,
+        code: String,
+        message: String,
+        taskId: String? = null,
+        promptText: String? = null,
+    ) {
+        mainHandler.post {
+            overlayController.updateStatus(
+                bubbleText = "!",
+                subtitle = "Server request failed.",
+            )
+            scheduleBubbleStatusReset()
+        }
+
+        OpenBubbleEventHub.emit(
+            type = "task.failed",
+            message = message,
+            payload = buildMap {
+                put("requestId", requestId)
+                put("mode", "prompt")
+                put("errorCode", code)
+                put("targetPackage", packageName)
+                taskId?.let { put("taskId", it) }
+                promptText?.let { put("promptText", it) }
+            },
+        )
+        OpenBubbleEventHub.emit(
+            type = "overlay.workflow.failed",
+            message = message,
+            payload = buildMap {
+                put("requestId", requestId)
+                put("mode", "prompt")
+                put("reason", code)
+                put("targetPackage", packageName)
+                taskId?.let { put("taskId", it) }
+            },
+        )
+    }
+
     private fun deliverOverlayReply(reply: OverlayReply) {
         cachedFillSuggestion = reply.fillSuggestion
+        OpenBubblePreferences.setCachedFillSuggestion(this, reply.fillSuggestion)
         copyTextToClipboard(reply.fillSuggestion)
         val notificationPosted = maybePostReadyNotification(reply)
-        overlayController.updateStatus(
-            bubbleText = "OK",
-            subtitle =
-                if (notificationPosted) {
-                    "Ready. Clipboard and notification updated."
-                } else {
-                    "Ready. Clipboard updated."
-                },
-        )
-        scheduleBubbleStatusReset()
+        mainHandler.post {
+            overlayController.updateStatus(
+                bubbleText = "OK",
+                subtitle =
+                    if (notificationPosted) {
+                        "Ready. Clipboard and notification updated."
+                    } else {
+                        "Ready. Clipboard updated."
+                    },
+            )
+            scheduleBubbleStatusReset()
+        }
 
         OpenBubbleEventHub.emit(
             type = "overlay.reply.ready",
@@ -540,6 +849,8 @@ class OpenBubbleAccessibilityService : AccessibilityService() {
                 "notificationPosted" to notificationPosted,
                 "copiedToClipboard" to true,
                 "targetPackage" to reply.targetPackage,
+                "taskId" to reply.taskId,
+                "promptText" to reply.promptText,
             ),
         )
     }
@@ -837,9 +1148,15 @@ private data class OverlayReply(
     val fillSuggestion: String,
     val notificationText: String,
     val targetPackage: String,
+    val taskId: String? = null,
+    val promptText: String? = null,
 )
 
 private enum class OverlayWorkflow {
     capture,
     pull,
 }
+
+private data class PendingPromptSubmission(
+    val promptText: String,
+)

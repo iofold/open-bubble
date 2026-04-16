@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open Bubble Context Graph</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Context Graph</h1>
+          <p id="sessionLabel">Load an exported graph JSON file.</p>
+        </div>
+        <div class="actions">
+          <label class="fileButton">
+            Load JSON
+            <input id="fileInput" type="file" accept="application/json,.json" />
+          </label>
+          <button id="fitButton" type="button">Fit</button>
+          <button id="resetButton" type="button">Reset</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="filters">
+          <label class="field">
+            <span>Search</span>
+            <input id="searchInput" type="search" placeholder="Node, fact, source..." />
+          </label>
+
+          <div class="filterGroup">
+            <h2>Connectors</h2>
+            <div id="connectorFilters" class="checkList"></div>
+          </div>
+
+          <div class="filterGroup">
+            <h2>Node Types</h2>
+            <div id="typeFilters" class="checkList"></div>
+          </div>
+
+          <div class="stats" id="stats"></div>
+        </aside>
+
+        <section class="graphPane">
+          <svg id="graph" role="img" aria-label="Context graph"></svg>
+        </section>
+
+        <aside class="inspector">
+          <h2>Inspector</h2>
+          <div id="inspectorContent" class="empty">
+            Select a node or edge.
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

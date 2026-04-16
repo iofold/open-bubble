@@ -1,0 +1,28 @@
+{
+  "sessionId": "sess_test_001",
+  "connector": "calendar",
+  "operation": "search",
+  "query": "Open Bubble demo",
+  "fetchedAt": "2026-04-16T08:02:00Z",
+  "sourceRequestId": "ctx_req_fetch_001",
+  "results": [
+    {
+      "id": "calendar_evt_001",
+      "title": "Open Bubble demo review",
+      "description": "Review context graph ingestion, MCP connector fixtures, and control panel trace view.",
+      "start": "2026-04-16T17:00:00Z",
+      "end": "2026-04-16T17:30:00Z",
+      "location": "Google Meet",
+      "attendees": [
+        {
+          "name": "Yash Gupta",
+          "email": "yash@example.com"
+        },
+        {
+          "name": "Priya Rao",
+          "email": "priya@example.com"
+        }
+      ]
+    }
+  ]
+}
